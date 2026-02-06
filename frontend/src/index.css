@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+@layer base {
+    :root {
+        --background: 222.2 84% 4.9%;
+        --foreground: 0 0% 98%;
+        --card: 222.2 84% 4.9%;
+        --card-foreground: 0 0% 98%;
+        --popover: 240 10% 10%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 45 100% 50%;
+        --primary-foreground: 0 0% 0%;
+        --secondary: 0 0% 15.3%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 0 0% 15.3%;
+        --muted-foreground: 0 0% 63.9%;
+        --accent: 0 0% 15.3%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 0 0% 16%;
+        --input: 0 0% 16%;
+        --ring: 45 100% 50%;
+        --chart-1: 45 100% 50%;
+        --chart-2: 0 0% 75%;
+        --chart-3: 210 100% 60%;
+        --chart-4: 142 76% 36%;
+        --chart-5: 0 84% 60%;
+        --radius: 0.25rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-[#09090b] text-foreground;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+    }
+    .font-data {
+        font-family: 'JetBrains Mono', monospace;
+    }
+}
+
+.glass-effect {
+    backdrop-filter: blur(16px);
+    background: rgba(9, 9, 11, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gold-text {
+    color: #FFD700;
+}
+
+.silver-text {
+    color: #C0C0C0;
+}
+
+.score-zone-unfavorable {
+    color: #EF4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.score-zone-neutral {
+    color: #F59E0B;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.score-zone-favorable {
+    color: #10B981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.score-zone-strong_buy {
+    color: #22C55E;
+    background: rgba(34, 197, 94, 0.15);
+    font-weight: 600;
+}

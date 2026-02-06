@@ -1,0 +1,157 @@
+# Phase 1 Configuration
+# =====================
+# Composite DCA State Score Configuration
+#
+# NON-NEGOTIABLE RULES:
+# - DO NOT set numeric weights or thresholds here
+# - All values are SYMBOLIC PLACEHOLDERS until Phase 2 tuning
+# - Phase 2 will determine optimal values via walk-forward backtests
+#
+# Author: Phase 1 Implementation
+# Date: 2026-02-07
+
+# =============================================================================
+# SAFETY FLAGS
+# =============================================================================
+
+# CRITICAL: Set to false to prevent accidental production use
+# Must be explicitly set to true after Phase 2 validation
+allow_production_mode: false
+
+# =============================================================================
+# REGIME DETECTION
+# =============================================================================
+
+# Threshold for regime probability in Gate calculation
+# R_t must exceed this threshold for favorable gate
+# SYMBOLIC PLACEHOLDER - will be tuned in Phase 2
+# Candidates to explore: 0.4, 0.5, 0.6
+regime_threshold: null  # TODO Phase 2: Tune via sensitivity analysis
+
+# HMM Configuration
+hmm:
+  n_states: 2  # Number of regime states
+  emission_type: "gaussian"  # TODO Phase 2: Replace with "student_t" for heavier tails
+  window: 252  # Rolling window for regime detection
+  jump_penalty: null  # TODO Phase 2: Add jump penalty for regime stability
+  seed: 42  # Random seed for reproducibility
+
+# =============================================================================
+# COMPOSITE SCORE
+# =============================================================================
+
+# Scale parameter for final score transformation
+# Controls sensitivity of score around the neutral point (50)
+# CompositeScore = 100 * clip(0.5 + (RawFavor - 0.5) * S_scale, 0, 1)
+# SYMBOLIC PLACEHOLDER - will be tuned in Phase 2
+# Candidates: 0.5 (compressed), 1.0 (linear), 2.0 (expanded)
+S_scale: null  # TODO Phase 2: Tune via score distribution analysis
+
+# Committee aggregation for Opportunity calculation
+committee_method: "trimmed_mean"  # Options: trimmed_mean, winsorized_mean, median, mean
+committee_trim_pct: 0.1  # Fraction trimmed from each end (for trimmed_mean)
+
+# =============================================================================
+# PERSISTENCE MODIFIER (g_pers)
+# =============================================================================
+
+# Function type for mapping Hurst exponent to weight
+# Options: linear, sigmoid, threshold
+g_pers_type: "linear"
+
+# Parameters for g_pers function
+# SYMBOLIC PLACEHOLDERS - will be tuned based on empirical H distribution
+g_pers_params:
+  # H value that maps to neutral (g=0.5)
+  H_neutral: null  # TODO Phase 2: Determine from asset H distribution
+  
+  # H value that maps to favorable (g=1.0)
+  H_favorable: null  # TODO Phase 2: Typically H > 0.6 for trending assets
+  
+  # H value that maps to unfavorable (g=0.0)
+  H_unfavorable: null  # TODO Phase 2: Typically H < 0.4 for mean-reverting
+  
+  # Steepness for sigmoid type (if used)
+  k: null
+
+# =============================================================================
+# NORMALIZATION PIPELINE
+# =============================================================================
+
+normalization:
+  # Minimum observations before computing expanding percentile
+  min_obs: 100
+  
+  # Sigmoid steepness parameter for Z → [0,1] transformation
+  sigmoid_k: 1.0
+  
+  # Per-indicator polarity (true = higher raw value is favorable)
+  polarity:
+    trend: true           # Higher trend score = favorable
+    undervaluation: true  # Higher undervaluation = favorable (already inverted from Z)
+    volatility: true      # Lower vol = favorable (score is inverted)
+    liquidity: true       # Higher liquidity = favorable
+    coupling: true        # Lower coupling = favorable (score is inverted)
+    hurst: true           # Higher H (persistence) = favorable for trending
+
+# =============================================================================
+# INDICATOR WINDOWS
+# =============================================================================
+
+windows:
+  hurst: 252             # Rolling window for Hurst estimation
+  hmm_regime: 252        # Window for HMM regime detection
+  vwap: 20               # VWAP calculation window
+  volatility: 21         # Realized volatility window
+  vol_percentile: 252    # Lookback for volatility percentile
+  liquidity: 21          # Amihud illiquidity window
+  liquidity_pct: 252     # Lookback for liquidity percentile
+  coupling: 63           # Window for coupling covariance
+
+# =============================================================================
+# LOGGING & AUDIT TRAIL
+# =============================================================================
+
+logging:
+  # Whether to log all intermediate values for each computation
+  log_intermediates: true
+  
+  # Path for indicator computation logs (relative to project root)
+  log_path: "logs/phase1_indicator_runs.json"
+  
+  # Verbosity level: debug, info, warning, error
+  level: "info"
+
+# =============================================================================
+# DATA PROVIDERS (Phase 1 uses fixtures)
+# =============================================================================
+
+data_providers:
+  # Use fixture data instead of live APIs
+  use_fixtures: true
+  fixture_path: "tests/fixtures/"
+  
+  # Provider API keys - LEAVE EMPTY for Phase 1
+  # TODO: Fill in for production (Phase 2+)
+  api_keys:
+    # yfinance doesn't need a key
+    newsapi: null  # TODO: Get from newsapi.org
+    # TODO Phase 2: Add MCX/NSE data provider keys
+    mcx: null
+    nse: null
+
+# =============================================================================
+# PHASE 2 TASKS (DO NOT IMPLEMENT YET)
+# =============================================================================
+# These are documented here for reference but should NOT be implemented in Phase 1
+
+# phase2_todos:
+#   - Tune regime_threshold via walk-forward backtest
+#   - Tune S_scale via score distribution analysis
+#   - Calibrate g_pers_params from empirical Hurst distributions
+#   - Replace GMM with full HMM + t-emissions
+#   - Add jump penalty for regime switching
+#   - Implement wavelet Hurst with pywt
+#   - Add slippage/cost modeling for DCA decisions
+#   - Integrate real MCX/NSE data providers
+#   - Build confidence intervals for composite score

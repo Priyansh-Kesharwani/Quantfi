@@ -1,0 +1,156 @@
+{
+  "identity": {
+    "name": "E1",
+    "archetype": "The Performance Pro x Jewel & Luxury",
+    "mission": "Create a financial dashboard that feels like a command center for wealth. Precision, Authority, and 'Old Money' meets 'High Tech'.",
+    "principles": [
+      "Fusion over Imitation: Mix 'Bloomberg Terminal' density with 'Swiss Watch' elegance.",
+      "Emotion First: Every pixel must scream 'Trust' and 'Value'.",
+      "Content is King: Data is the hero. Charts are the narrative.",
+      "Zoom In: High density data, but with breathing room for key metrics.",
+      "Contrast: Deep blacks vs. glowing gold/silver/neon."
+    ]
+  },
+  "theme": {
+    "mode": "dark",
+    "base_style": "Cinematic Dark",
+    "emotional_tone": "Authoritative, Wealth-Focused, Precision",
+    "visual_enhancers": [
+      "Glassmorphism (Crystal Clarity) for overlays",
+      "Grid Borders (The 'Technical' Look) for data sections",
+      "Neon Glows (Subtle) for active states"
+    ]
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Barlow Condensed, sans-serif",
+      "weight": "700",
+      "tracking": "tracking-tight",
+      "usage": "Page titles, Section headers, Asset Names"
+    },
+    "body": {
+      "font_family": "Inter, sans-serif",
+      "weight": "400",
+      "usage": "General text, descriptions"
+    },
+    "data": {
+      "font_family": "JetBrains Mono, monospace",
+      "weight": "500",
+      "usage": "Prices, Percentages, Technical Indicators, Tables"
+    },
+    "rules": [
+      "Never use Inter for Headings.",
+      "Use JetBrains Mono for ALL numerical data to ensure alignment.",
+      "Headings must be uppercase or capitalized with tight tracking."
+    ]
+  },
+  "colors": {
+    "background": {
+      "default": "#09090b",
+      "paper": "#18181b",
+      "subtle": "#27272a"
+    },
+    "primary": {
+      "gold": "#FFD700",
+      "silver": "#C0C0C0",
+      "brand_accent": "#3b82f6"
+    },
+    "functional": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "info": "#3B82F6"
+    },
+    "text": {
+      "primary": "#FAFAFA",
+      "secondary": "#A1A1AA",
+      "muted": "#52525B"
+    },
+    "gradients": {
+      "gold_shine": "linear-gradient(135deg, #FFD700 0%, #FDB931 100%)",
+      "silver_shine": "linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%)",
+      "dark_glass": "rgba(9, 9, 11, 0.7)"
+    }
+  },
+  "layout": {
+    "grid_system": "Bento Grid Mode B (High Density)",
+    "spacing": {
+      "container_padding": "p-6 md:p-8",
+      "gap": "gap-4 md:gap-6",
+      "internal_padding": "p-4"
+    },
+    "rules": [
+      "Mobile-First: Start with grid-cols-1.",
+      "Desktop: Use grid-cols-12 for maximum flexibility.",
+      "Every pixel utilized: Use h-full on children to match neighbors.",
+      "No jagged bottoms in dashboard views."
+    ]
+  },
+  "components": {
+    "cards": {
+      "style": "Flat, 1px border, no shadow (default), glow on hover",
+      "border_color": "border-white/10",
+      "radius": "rounded-none or rounded-sm"
+    },
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 sharp-edges",
+      "secondary": "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+    },
+    "charts": {
+      "library": "Recharts (via Shadcn Charts)",
+      "style": "Minimalist, thin lines, gradient fills for area charts",
+      "colors": ["#FFD700", "#C0C0C0", "#3B82F6", "#10B981", "#EF4444"]
+    },
+    "navigation": {
+      "style": "Sidebar for Desktop, Bottom Nav or Hamburger for Mobile",
+      "glass_effect": "backdrop-blur-xl bg-background/80 border-r border-border"
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "Gold",
+        "url": "https://images.unsplash.com/photo-1762463176312-1757d5125c85",
+        "description": "Gold bars stacked on dark surface",
+        "usage": "Hero section for Gold asset, background for Gold cards"
+      },
+      {
+        "category": "Silver",
+        "url": "https://images.unsplash.com/photo-1643393670577-b214e610c8f8",
+        "description": "Silver coins stack on dark background",
+        "usage": "Hero section for Silver asset, background for Silver cards"
+      },
+      {
+        "category": "Market",
+        "url": "https://images.unsplash.com/photo-1639825752750-5061ded5503b",
+        "description": "Stock market chart abstract",
+        "usage": "General market overview background, Equities section"
+      },
+      {
+        "category": "Global",
+        "url": "https://images.unsplash.com/photo-1640697687394-d02650d7ecc6",
+        "description": "Blue and black abstract world map",
+        "usage": "News & Geopolitical Events section background"
+      }
+    ],
+    "icons": {
+      "library": "Lucide React",
+      "style": "Stroke width 1.5px, sharp or slightly rounded"
+    }
+  },
+  "universal_guidelines": [
+    "Do not use 'Inter' for Headings. Use 'Barlow Condensed'.",
+    "Use 'JetBrains Mono' for all financial data.",
+    "Dark Mode is the default. Ensure high contrast (WCAG AA).",
+    "Use 'sonner' for toasts.",
+    "Use 'recharts' for charts.",
+    "All interactive elements must have 'data-testid'.",
+    "Do not use gradients for text unless it's a very large hero title.",
+    "Avoid 'Center-Everything'. Use asymmetric grids.",
+    "Use 'p-6' or 'p-8' for container padding.",
+    "Images must be darkened or have an overlay to ensure text readability.",
+    "Do not use generic AI emojis.",
+    "Create new components in 'src/components/ui' if needed, matching Shadcn style."
+  ],
+  "instructions_to_main_agent": "You are building a high-performance financial dashboard. Focus on data density and clarity. Use the provided image URLs for the respective sections. Implement the 'Bento Grid' layout for the main dashboard. Use the 'Gold' and 'Silver' colors as primary accents for those specific assets. Ensure the 'News' section uses the map background with a heavy overlay."
+}
