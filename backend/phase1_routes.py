@@ -115,11 +115,12 @@ def load_config() -> Phase1Config:
         
         return Phase1Config(
             regime_threshold=config_dict.get("regime_threshold"),
+            regime_threshold_type=config_dict.get("regime_threshold_type", "hard"),
             S_scale=config_dict.get("S_scale"),
-            committee_method=config_dict.get("committee_method", "trimmed_mean"),
+            committee_method=config_dict.get("committee_method", "mean"),
             committee_trim_pct=config_dict.get("committee_trim_pct", 0.1),
-            g_pers_type=config_dict.get("g_pers_type", "linear"),
-            g_pers_params=config_dict.get("g_pers_params", {}),
+            g_pers_type=config_dict.get("g_pers_type", "sigmoid_canonical"),
+            g_pers_params=config_dict.get("g_pers_params", {"k": 10.0, "H_neutral": 0.5}),
             min_obs=config_dict.get("normalization", {}).get("min_obs", 100),
             log_intermediates=config_dict.get("logging", {}).get("log_intermediates", True),
             log_path=config_dict.get("logging", {}).get("log_path", "logs/phase1_indicator_runs.json"),

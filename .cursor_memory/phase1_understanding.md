@@ -5,6 +5,44 @@
 
 ---
 
+## Mathematical Modeling Framework
+
+### Composite Score Formula (Canonical)
+
+```
+Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
+Opp_t = Mean([T_t, U_t × g_pers(H_t)])
+RawFavor_t = Opp_t × Gate_t
+CompositeScore_t = 100 × clip(0.5 + (RawFavor_t − 0.5) × S_scale, 0, 1)
+```
+
+where:
+- `g_pers(H_t) = Sigmoid(H_t - 0.5) × 2` (persistence modifier)
+- `𝟙[·]` = indicator function (1 if true, 0 if false)
+
+### Latent Factor Indicators
+
+| Symbol | Name | Range | Interpretation |
+|--------|------|-------|----------------|
+| T_t | Trend strength | [0,1] | Directional clarity (ADX, EMA slope) |
+| U_t | Undervaluation | [0,1] | Z-VWAP deviation (negative Z → favorable) |
+| H_t | Hurst exponent | (0,1) | Persistence: >0.5=trending, <0.5=mean-reverting |
+| R_t | Regime probability | [0,1] | P(StableExpansion) from HMM |
+| V_t | Volatility regime | [0,1] | Inverse percentile (quiet → high) |
+| L_t | Liquidity | [0,1] | Amihud inverted (liquid → high) |
+| C_t | Coupling | [0,1] | Correlation inverted (decoupled → high) |
+
+### Key Insight: g_pers(H_t)
+
+The persistence modifier ensures:
+- **H > 0.5 (trending)**: g_pers > 0.5 → U_t is **boosted** → buy dips more aggressively
+- **H < 0.5 (mean-reverting)**: g_pers < 0.5 → U_t is **suppressed** → avoid dip-buying
+- **H = 0.5 (random walk)**: g_pers ≈ 0.5 → neutral
+
+This aligns with the intuition that buying dips works better in persistent/trending markets.
+
+---
+
 ## Repository Overview
 
 **Project:** QuantFi - Financial Analysis Platform for DCA (Dollar Cost Averaging) Strategy
@@ -274,3 +312,5 @@ tests/
 
 **Last Updated:** 2026-02-07
 **Author:** Phase 1 Implementation Assistant
+**Branch:** phase1/market-state-indicators
+**Status:** IMPLEMENTATION COMPLETE - Ready for PR

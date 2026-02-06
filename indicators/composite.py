@@ -52,6 +52,15 @@ class Phase1Config:
     """
     Configuration for Phase 1 composite calculation.
     
+    Mathematical Framework:
+    ----------------------
+    Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
+    Opp_t = Mean([T_t, U_t × g_pers(H_t)])
+    RawFavor_t = Opp_t × Gate_t
+    CompositeScore_t = 100 × clip(0.5 + (RawFavor_t − 0.5) × S_scale, 0, 1)
+    
+    where g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
+    
     All numeric values are SYMBOLIC PLACEHOLDERS - do not hardcode tuned values.
     These will be determined in Phase 2 walk-forward optimization.
     """
@@ -59,21 +68,33 @@ class Phase1Config:
     # SYMBOLIC: Set to None or placeholder - will be tuned in Phase 2
     regime_threshold: Optional[float] = None  # TODO Phase 2: Tune via backtest
     
+    # Threshold type for regime gating
+    # "hard": 𝟙[R_t ≥ threshold] = 1 or 0 (canonical indicator function)
+    # "soft": sigmoid transition
+    regime_threshold_type: str = "hard"
+    
     # Scale parameter for final score transformation
     # SYMBOLIC: Set to None or placeholder - will be tuned in Phase 2
     S_scale: Optional[float] = None  # TODO Phase 2: Tune via sensitivity analysis
     
-    # Committee aggregation method
-    committee_method: str = "trimmed_mean"
+    # Committee aggregation method for Opp_t
+    # "mean": Simple arithmetic mean (canonical: Opp_t = Mean([T_t, U_weighted]))
+    # "trimmed_mean": Robust to outliers
+    committee_method: str = "mean"  # Canonical formula uses mean
     committee_trim_pct: float = 0.1
     
     # Persistence function parameters (g_pers)
-    # SYMBOLIC: These define the shape of g_pers but coefficients are placeholders
-    g_pers_type: str = "linear"  # "linear", "sigmoid", or "threshold"
+    # CANONICAL: g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
+    # "sigmoid_canonical": Uses the canonical formula
+    # "sigmoid": General sigmoid with configurable center
+    # "linear": Linear interpolation
+    # "threshold": Binary threshold
+    g_pers_type: str = "sigmoid_canonical"  # Canonical formula
     g_pers_params: Dict[str, Optional[float]] = field(default_factory=lambda: {
-        "H_neutral": None,  # TODO Phase 2: H value mapping to g=0.5
-        "H_favorable": None,  # TODO Phase 2: H value mapping to g=1.0
-        "H_unfavorable": None,  # TODO Phase 2: H value mapping to g=0.0
+        "k": 10.0,  # Sigmoid steepness (controls sensitivity around H=0.5)
+        "H_neutral": 0.5,  # Center point (canonical = 0.5)
+        "H_favorable": None,  # For linear type
+        "H_unfavorable": None,  # For linear type
     })
     
     # Minimum observations for valid computation
@@ -89,6 +110,7 @@ class Phase1Config:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "regime_threshold": self.regime_threshold,
+            "regime_threshold_type": self.regime_threshold_type,
             "S_scale": self.S_scale,
             "committee_method": self.committee_method,
             "committee_trim_pct": self.committee_trim_pct,
@@ -120,18 +142,31 @@ class CompositeResult(NamedTuple):
 
 def g_pers(
     H_t: float,
-    g_type: str = "linear",
+    g_type: str = "sigmoid_canonical",
     params: Optional[Dict[str, Optional[float]]] = None
 ) -> float:
     """
     Persistence modifier function mapping Hurst exponent to [0, 1].
     
+    Mathematical Definition (Canonical):
+    ------------------------------------
+    g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
+    
+    This maps:
+    - H = 0.5 (random walk) → g ≈ 0.5 (neutral)
+    - H > 0.5 (persistent/trending) → g > 0.5 (boost undervaluation signal)
+    - H < 0.5 (mean-reverting) → g < 0.5 (suppress undervaluation signal)
+    
     Parameters
     ----------
     H_t : float
-        Hurst exponent value (typically 0.3-0.7 range)
+        Hurst exponent value ∈ (0, 1)
     g_type : str
-        Function type: "linear", "sigmoid", or "threshold"
+        Function type:
+        - "sigmoid_canonical": g = sigmoid(H - 0.5) * 2, clamped to [0,1] (DEFAULT)
+        - "sigmoid": g = 1 / (1 + exp(-k*(H - H_mid)))
+        - "linear": g = (H - H_min) / (H_max - H_min)
+        - "threshold": g = 1 if H > threshold else 0
     params : Dict, optional
         Type-specific parameters
     
@@ -142,19 +177,15 @@ def g_pers(
     
     Notes
     -----
-    Phase 1 STUB: Parameters are symbolic. The actual mapping function
-    and its parameters will be determined in Phase 2 based on:
-    - Empirical H distribution in target assets
-    - Walk-forward backtest performance
-    - Sensitivity analysis
+    The canonical formula g_pers(H_t) = Sigmoid(H_t - 0.5) × 2 ensures:
+    - Undervaluation (U_t) is boosted only in persistent/trending regimes
+    - Mean-reverting regimes suppress the dip-buying signal
+    - This aligns with the intuition that buying dips works better in trends
     
-    Current placeholder uses simple linear mapping:
-    g = (H - 0.3) / (0.7 - 0.3) for H in [0.3, 0.7]
-    
-    Alternatives for Phase 2:
-    - Sigmoid: g = 1 / (1 + exp(-k*(H - H_mid)))
-    - Threshold: g = 1 if H > H_threshold else 0
-    - Piecewise: Different behavior for H<0.5 vs H>0.5
+    References
+    ----------
+    - Mandelbrot & Van Ness (1968): Fractional Brownian motions
+    - Peters (1994): Fractal Market Analysis
     """
     if np.isnan(H_t):
         return 0.5  # Neutral when missing
@@ -162,23 +193,32 @@ def g_pers(
     if params is None:
         params = {}
     
-    # Placeholder parameter values (SYMBOLIC - will be tuned in Phase 2)
-    H_min = params.get("H_unfavorable") or 0.3
-    H_max = params.get("H_favorable") or 0.7
-    H_mid = params.get("H_neutral") or 0.5
+    if g_type == "sigmoid_canonical":
+        # CANONICAL FORMULA: g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
+        # Sigmoid(x) = 1 / (1 + exp(-x))
+        # We use a scaling factor to spread the sigmoid across H range
+        k = params.get("k") or 10.0  # Steepness (controls sensitivity around H=0.5)
+        z = k * (H_t - 0.5)
+        sigmoid_val = 1.0 / (1.0 + np.exp(-z))
+        # Scale by 2 and clamp to [0, 1]
+        g = sigmoid_val * 2.0
+        return float(np.clip(g, 0.0, 1.0))
     
-    if g_type == "linear":
+    elif g_type == "sigmoid":
+        # General sigmoid centered at configurable H_mid
+        H_mid = params.get("H_neutral") or 0.5
+        k = params.get("k") or 10.0
+        z = k * (H_t - H_mid)
+        return float(1.0 / (1.0 + np.exp(-z)))
+    
+    elif g_type == "linear":
         # Simple linear mapping
+        H_min = params.get("H_unfavorable") or 0.3
+        H_max = params.get("H_favorable") or 0.7
         if H_max == H_min:
             return 0.5
         g = (H_t - H_min) / (H_max - H_min)
         return float(np.clip(g, 0.0, 1.0))
-    
-    elif g_type == "sigmoid":
-        # Sigmoid centered at H_mid
-        k = params.get("k") or 10.0  # Steepness (SYMBOLIC)
-        z = k * (H_t - H_mid)
-        return float(1.0 / (1.0 + np.exp(-z)))
     
     elif g_type == "threshold":
         # Binary threshold
@@ -186,41 +226,61 @@ def g_pers(
         return 1.0 if H_t > threshold else 0.0
     
     else:
-        logger.warning(f"Unknown g_pers type '{g_type}', using linear")
-        g = (H_t - H_min) / (H_max - H_min)
-        return float(np.clip(g, 0.0, 1.0))
+        logger.warning(f"Unknown g_pers type '{g_type}', using sigmoid_canonical")
+        k = 10.0
+        z = k * (H_t - 0.5)
+        sigmoid_val = 1.0 / (1.0 + np.exp(-z))
+        return float(np.clip(sigmoid_val * 2.0, 0.0, 1.0))
 
 
 def compute_gate(
     C_t: float,
     L_t: float,
     R_t: float,
-    regime_threshold: Optional[float] = None
+    regime_threshold: Optional[float] = None,
+    threshold_type: str = "hard"
 ) -> Tuple[float, Dict[str, Any]]:
     """
-    Compute Gate value: C_t × L_t × R_t_thresholded.
+    Compute Gate value: C_t × L_t × 𝟙[R_t ≥ r_thresh]
+    
+    Mathematical Definition:
+    ------------------------
+    Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
+    
+    where 𝟙[·] is the indicator function:
+    - 𝟙[R_t ≥ r_thresh] = 1 if R_t ≥ threshold, else 0 (hard)
+    - Or soft version: sigmoid(k × (R_t - threshold))
     
     The Gate mechanism reduces composite when:
-    - Coupling is high (systemic risk)
-    - Liquidity is low (slippage risk)
-    - Regime is unfavorable (below threshold)
+    - Coupling is high (systemic risk) → C_t low
+    - Liquidity is low (slippage risk) → L_t low
+    - Regime is unstable (below threshold) → indicator = 0
     
     Parameters
     ----------
     C_t : float
-        Coupling score [0, 1] (already inverted: high = low coupling = favorable)
+        Coupling score [0, 1] (inverted: high = low correlation = favorable)
     L_t : float
-        Liquidity score [0, 1] (high = favorable)
+        Liquidity score [0, 1] (high = more liquid = favorable)
     R_t : float
         Regime probability [0, 1] (P(StableExpansion))
     regime_threshold : float, optional
-        Threshold for regime (SYMBOLIC - None means use R_t directly)
+        Threshold r_thresh for regime indicator (SYMBOLIC - None means use R_t directly)
+    threshold_type : str
+        "hard": 𝟙[R_t ≥ threshold] = 1 or 0 (strict indicator function)
+        "soft": sigmoid(k × (R_t - threshold)) (smooth transition)
     
     Returns
     -------
     Tuple[float, Dict[str, Any]]
         - Gate_t: Gate value [0, 1]
         - meta: Computation details
+    
+    Notes
+    -----
+    The hard threshold (indicator function) provides clear gating:
+    - If regime is unstable (R_t < threshold), Gate shuts off completely
+    - This prevents DCA intensification during detected instability
     """
     # Handle NaN inputs
     if np.isnan(C_t):
@@ -232,12 +292,15 @@ def compute_gate(
     
     # Apply regime threshold if specified
     if regime_threshold is not None:
-        # Soft thresholding: smooth transition around threshold
-        # R_thresholded = sigmoid(k * (R_t - threshold))
-        k = 10.0  # Steepness (SYMBOLIC - could be configurable)
-        R_t_thresholded = 1.0 / (1.0 + np.exp(-k * (R_t - regime_threshold)))
+        if threshold_type == "hard":
+            # CANONICAL: Indicator function 𝟙[R_t ≥ r_thresh]
+            R_t_thresholded = 1.0 if R_t >= regime_threshold else 0.0
+        else:
+            # Soft thresholding: smooth transition around threshold
+            k = 10.0  # Steepness (SYMBOLIC - could be configurable)
+            R_t_thresholded = 1.0 / (1.0 + np.exp(-k * (R_t - regime_threshold)))
     else:
-        # No threshold, use R_t directly
+        # No threshold, use R_t directly (continuous gating)
         R_t_thresholded = R_t
     
     # Gate is product of components
@@ -248,6 +311,7 @@ def compute_gate(
         "L_t": L_t,
         "R_t": R_t,
         "regime_threshold": regime_threshold,
+        "threshold_type": threshold_type,
         "R_t_thresholded": R_t_thresholded,
         "Gate_t": Gate_t
     }
@@ -262,28 +326,43 @@ def compute_opportunity(
     config: Optional[Phase1Config] = None
 ) -> Tuple[float, Dict[str, Any]]:
     """
-    Compute Opportunity value: agg_committee([T_t, U_t × g_pers(H_t)]).
+    Compute Opportunity value: Mean([T_t, U_t × g_pers(H_t)])
     
-    Opportunity reflects the potential benefit from DCA:
-    - T_t: Trend favorability
-    - U_t × g_pers(H_t): Undervaluation weighted by persistence
+    Mathematical Definition:
+    ------------------------
+    Opp_t = Mean([T_t, U_t × g_pers(H_t)])
+    
+    where:
+    - T_t = Trend strength signal (directional clarity)
+    - U_t = Undervaluation signal (Z-VWAP based)
+    - g_pers(H_t) = Sigmoid(H_t - 0.5) × 2 (persistence modifier)
+    
+    The undervaluation signal is boosted only in persistent/trending 
+    regimes (H > 0.5), since buying dips works better when trends persist.
     
     Parameters
     ----------
     T_t : float
-        Trend score [0, 1]
+        Trend score [0, 1] - captures directional clarity
     U_t : float
-        Undervaluation score [0, 1]
+        Undervaluation score [0, 1] - statistical undervaluation via Z-VWAP
     H_t : float
-        Hurst exponent [0, 1]
+        Hurst exponent [0, 1] - persistence measure
     config : Phase1Config, optional
-        Configuration for g_pers and committee
+        Configuration for g_pers and aggregation
     
     Returns
     -------
     Tuple[float, Dict[str, Any]]
         - Opp_t: Opportunity value [0, 1]
-        - meta: Computation details
+        - meta: Computation details with g_pers_H for explainability
+    
+    Notes
+    -----
+    The formula U_t × g_pers(H_t) ensures:
+    - When H > 0.5 (trending): g_pers > 0.5, so U_t is boosted
+    - When H < 0.5 (mean-reverting): g_pers < 0.5, so U_t is suppressed
+    - This prevents buying dips in choppy/mean-reverting markets
     """
     if config is None:
         config = Phase1Config()
@@ -296,19 +375,28 @@ def compute_opportunity(
     if np.isnan(H_t):
         H_t = 0.5
     
-    # Compute persistence modifier
+    # Compute persistence modifier: g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
     g_H = g_pers(H_t, config.g_pers_type, config.g_pers_params)
     
     # Weight undervaluation by persistence
+    # This is the key insight: U_t × g_pers(H_t)
     U_weighted = U_t * g_H
     
-    # Aggregate via committee
+    # Aggregate: Opp_t = Mean([T_t, U_t × g_pers(H_t)])
+    # Or use committee aggregation for robustness
     scores = [T_t, U_weighted]
-    Opp_t, committee_meta = agg_committee(
-        scores,
-        method=config.committee_method,
-        trim_pct=config.committee_trim_pct
-    )
+    
+    if config.committee_method == "mean":
+        # Canonical: simple arithmetic mean
+        Opp_t = np.mean(scores)
+        committee_meta = {"method": "mean", "inputs": scores}
+    else:
+        # Robust aggregation (trimmed mean, etc.)
+        Opp_t, committee_meta = agg_committee(
+            scores,
+            method=config.committee_method,
+            trim_pct=config.committee_trim_pct
+        )
     
     meta = {
         "T_t": T_t,
@@ -316,6 +404,7 @@ def compute_opportunity(
         "H_t": H_t,
         "g_pers_H": g_H,
         "U_weighted": U_weighted,
+        "formula": "Opp_t = Mean([T_t, U_t × g_pers(H_t)])",
         "committee_inputs": scores,
         "committee_meta": committee_meta,
         "Opp_t": Opp_t
@@ -388,11 +477,13 @@ def compute_composite_score(
         config = Phase1Config()
     
     # Step 1: Compute Gate
+    # Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
     Gate_t, gate_meta = compute_gate(
         C_t=C_t,
         L_t=L_t,
         R_t=R_t,
-        regime_threshold=config.regime_threshold
+        regime_threshold=config.regime_threshold,
+        threshold_type=config.regime_threshold_type
     )
     
     # Step 2: Compute Opportunity

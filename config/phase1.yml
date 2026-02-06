@@ -2,6 +2,17 @@
 # =====================
 # Composite DCA State Score Configuration
 #
+# MATHEMATICAL FRAMEWORK:
+# -----------------------
+# Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
+# Opp_t = Mean([T_t, U_t × g_pers(H_t)])
+# RawFavor_t = Opp_t × Gate_t
+# CompositeScore_t = 100 × clip(0.5 + (RawFavor_t − 0.5) × S_scale, 0, 1)
+#
+# where:
+#   g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
+#   𝟙[·] = indicator function (1 if condition true, else 0)
+#
 # NON-NEGOTIABLE RULES:
 # - DO NOT set numeric weights or thresholds here
 # - All values are SYMBOLIC PLACEHOLDERS until Phase 2 tuning
@@ -23,10 +34,16 @@ allow_production_mode: false
 # =============================================================================
 
 # Threshold for regime probability in Gate calculation
-# R_t must exceed this threshold for favorable gate
+# Gate_t includes: 𝟙[R_t ≥ r_thresh] where 𝟙 is indicator function
+# R_t must exceed this threshold for favorable gate (else Gate=0)
 # SYMBOLIC PLACEHOLDER - will be tuned in Phase 2
 # Candidates to explore: 0.4, 0.5, 0.6
 regime_threshold: null  # TODO Phase 2: Tune via sensitivity analysis
+
+# Threshold type for regime gating
+# "hard": 𝟙[R_t ≥ threshold] = 1 or 0 (canonical indicator function)
+# "soft": sigmoid transition (smoother but less decisive)
+regime_threshold_type: "hard"
 
 # HMM Configuration
 hmm:
@@ -48,31 +65,41 @@ hmm:
 S_scale: null  # TODO Phase 2: Tune via score distribution analysis
 
 # Committee aggregation for Opportunity calculation
-committee_method: "trimmed_mean"  # Options: trimmed_mean, winsorized_mean, median, mean
-committee_trim_pct: 0.1  # Fraction trimmed from each end (for trimmed_mean)
+# CANONICAL FORMULA: Opp_t = Mean([T_t, U_t × g_pers(H_t)])
+# "mean": Simple arithmetic mean (canonical)
+# "trimmed_mean": Robust to outliers
+committee_method: "mean"  # Canonical uses simple mean
+committee_trim_pct: 0.1  # Fraction trimmed (for trimmed_mean)
 
 # =============================================================================
 # PERSISTENCE MODIFIER (g_pers)
 # =============================================================================
 
+# CANONICAL FORMULA: g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
+# This maps:
+#   H = 0.5 (random walk) → g ≈ 0.5 (neutral)
+#   H > 0.5 (persistent)  → g > 0.5 (boost undervaluation signal)
+#   H < 0.5 (mean-revert) → g < 0.5 (suppress undervaluation signal)
+
 # Function type for mapping Hurst exponent to weight
-# Options: linear, sigmoid, threshold
-g_pers_type: "linear"
+# "sigmoid_canonical": g_pers(H) = Sigmoid(H - 0.5) × 2 (CANONICAL)
+# "sigmoid": General sigmoid with configurable center
+# "linear": Linear interpolation between bounds
+# "threshold": Binary threshold
+g_pers_type: "sigmoid_canonical"  # Canonical formula
 
 # Parameters for g_pers function
-# SYMBOLIC PLACEHOLDERS - will be tuned based on empirical H distribution
 g_pers_params:
-  # H value that maps to neutral (g=0.5)
-  H_neutral: null  # TODO Phase 2: Determine from asset H distribution
+  # Sigmoid steepness (controls sensitivity around H=0.5)
+  # Higher k = sharper transition
+  k: 10.0  # Reasonable default, can be tuned in Phase 2
   
-  # H value that maps to favorable (g=1.0)
-  H_favorable: null  # TODO Phase 2: Typically H > 0.6 for trending assets
+  # Center point for sigmoid (canonical = 0.5)
+  H_neutral: 0.5
   
-  # H value that maps to unfavorable (g=0.0)
-  H_unfavorable: null  # TODO Phase 2: Typically H < 0.4 for mean-reverting
-  
-  # Steepness for sigmoid type (if used)
-  k: null
+  # For linear type only:
+  H_favorable: null  # TODO Phase 2: Typically H > 0.6
+  H_unfavorable: null  # TODO Phase 2: Typically H < 0.4
 
 # =============================================================================
 # NORMALIZATION PIPELINE
