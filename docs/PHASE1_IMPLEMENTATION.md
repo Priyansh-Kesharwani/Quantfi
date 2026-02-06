@@ -6,6 +6,40 @@
 
 Phase 1 implements the **Composite_DCA_State_Score ∈ [0, 100]** that describes market state to modulate DCA (Dollar Cost Averaging) intensity. The key principle is that **baseline DCA always stays ON** - the score only modifies intensity, never stops DCA entirely.
 
+## Mathematical Framework
+
+### Canonical Composite Formula
+
+```
+Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
+Opp_t = Mean([T_t, U_t × g_pers(H_t)])
+RawFavor_t = Opp_t × Gate_t
+CompositeScore_t = 100 × clip(0.5 + (RawFavor_t − 0.5) × S_scale, 0, 1)
+```
+
+### Persistence Modifier (g_pers)
+
+```
+g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
+```
+
+This maps:
+- **H = 0.5 (random walk)** → g ≈ 0.5 (neutral)
+- **H > 0.5 (persistent/trending)** → g > 0.5 (boost undervaluation signal)
+- **H < 0.5 (mean-reverting)** → g < 0.5 (suppress undervaluation signal)
+
+### Latent Factor Indicators
+
+| Symbol | Name | Range | Interpretation |
+|--------|------|-------|----------------|
+| T_t | Trend strength | [0,1] | Directional clarity (ADX, EMA slope) |
+| U_t | Undervaluation | [0,1] | Z-VWAP deviation (negative Z → favorable) |
+| H_t | Hurst exponent | (0,1) | Persistence: >0.5=trending, <0.5=mean-reverting |
+| R_t | Regime probability | [0,1] | P(StableExpansion) from HMM |
+| V_t | Volatility regime | [0,1] | Inverse percentile (quiet → high) |
+| L_t | Liquidity | [0,1] | Amihud inverted (liquid → high) |
+| C_t | Coupling | [0,1] | Correlation inverted (decoupled → high) |
+
 ## Architecture
 
 ```
