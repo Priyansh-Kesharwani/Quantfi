@@ -1,20 +1,22 @@
 """
-Phase 1 Market State Indicator Engine
+Market State Indicator Engine - Phase 2
 
-This package implements the Phase 1 indicators for the Composite DCA State Score.
-The composite describes market state (not predict returns) to modulate DCA intensity.
+Complete indicator suite for the Composite DCA State Score.
 
-Modules:
---------
-- hurst: Wavelet-based Hurst exponent estimator (persistence/mean-reversion)
-- hmm_regime: HMM-based regime detection (P(StableExpansion))
-- vwap_z: VWAP-based valuation Z-score
-- volatility: Realized volatility and percentile calculations
-- liquidity: Amihud illiquidity measure
-- coupling: Systemic coupling via shrinkage covariance
-- normalization: ECDF → Z → Sigmoid pipeline
-- committee: Robust aggregation (trimmed mean)
-- composite: Phase 1 symbolic composite score
+Components:
+- T_t: Trend strength (trend.py)
+- U_t: Undervaluation (undervaluation.py)  
+- H_t: Hurst exponent (hurst.py)
+- V_t: Volatility regime (volatility.py)
+- L_t: Liquidity (liquidity.py)
+- C_t: Systemic coupling (coupling.py)
+- R_t: Regime probability (hmm_regime.py)
+
+Utilities:
+- normalization.py: ECDF -> Z -> Sigmoid pipeline
+- committee.py: Robust aggregation
+- composite.py: Final composite score calculation
+- indicator_engine.py: Unified indicator computation
 
 Non-Negotiable Rules:
 --------------------
@@ -24,51 +26,113 @@ Non-Negotiable Rules:
 4. Reproducibility: All functions must be deterministic with seeded RNG
 5. Explainability: All functions return (value, metadata) tuples
 
-Author: Phase 1 Implementation
+Author: Phase 1/2 Implementation
 Date: 2026-02-07
 """
 
-from indicators.hurst import estimate_hurst
-from indicators.hmm_regime import infer_regime_prob
+# Hurst exponent
+from indicators.hurst import estimate_hurst, hurst_exponent
+
+# HMM Regime
+from indicators.hmm_regime import infer_regime_prob, regime_probability, HMMRegimeConfig
+
+# VWAP-Z
 from indicators.vwap_z import compute_vwap_z
-from indicators.volatility import realized_vol, volatility_percentile
-from indicators.liquidity import amihud_illiquidity
-from indicators.coupling import systemic_coupling
+
+# Volatility
+from indicators.volatility import realized_vol, volatility_percentile, volatility_regime_score
+
+# Liquidity
+from indicators.liquidity import amihud_illiquidity, liquidity_score
+
+# Coupling
+from indicators.coupling import coupling_score, systemic_coupling
+
+# Normalization
 from indicators.normalization import (
     expanding_percentile,
     percentile_to_z,
     z_to_sigmoid,
     polarity_align,
-    normalize_to_score
+    normalize_to_score,
+    batch_normalize
 )
+
+# Committee aggregation
 from indicators.committee import agg_committee
-from indicators.composite import compute_composite_score, Phase1Composite
+
+# Composite
+from indicators.composite import (
+    g_pers, compute_gate, compute_opportunity, compute_composite_score,
+    Phase1Config, CompositeResult, Phase1Composite
+)
+
+# Trend (Phase 2)
+from indicators.trend import (
+    trend_strength_score, adx_indicator, macd_histogram, ema_slope
+)
+
+# Undervaluation (Phase 2)
+from indicators.undervaluation import (
+    undervaluation_score, price_vwap_zscore, drawdown_score
+)
+
+# Unified Engine (Phase 2)
+from indicators.indicator_engine import (
+    IndicatorEngine, IndicatorConfig, IndicatorResult, compute_all_indicators
+)
 
 __all__ = [
     # Hurst
     "estimate_hurst",
-    # HMM
+    "hurst_exponent",
+    # HMM Regime
     "infer_regime_prob",
+    "regime_probability",
+    "HMMRegimeConfig",
     # VWAP
     "compute_vwap_z",
     # Volatility
     "realized_vol",
     "volatility_percentile",
+    "volatility_regime_score",
     # Liquidity
     "amihud_illiquidity",
+    "liquidity_score",
     # Coupling
     "systemic_coupling",
+    "coupling_score",
     # Normalization
     "expanding_percentile",
     "percentile_to_z",
     "z_to_sigmoid",
     "polarity_align",
     "normalize_to_score",
+    "batch_normalize",
     # Committee
     "agg_committee",
     # Composite
+    "g_pers",
+    "compute_gate",
+    "compute_opportunity",
     "compute_composite_score",
+    "Phase1Config",
+    "CompositeResult",
     "Phase1Composite",
+    # Trend
+    "trend_strength_score",
+    "adx_indicator",
+    "macd_histogram",
+    "ema_slope",
+    # Undervaluation
+    "undervaluation_score",
+    "price_vwap_zscore",
+    "drawdown_score",
+    # Engine
+    "IndicatorEngine",
+    "IndicatorConfig",
+    "IndicatorResult",
+    "compute_all_indicators",
 ]
 
-__version__ = "0.1.0-phase1"
+__version__ = "0.2.0-phase2"
