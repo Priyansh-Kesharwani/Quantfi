@@ -1,25 +1,10 @@
-"""
-Unit Tests for Composite Score Pipeline
-
-Tests the full Phase 1 composite score calculation.
-
-NON-NEGOTIABLE:
-- All tests use seeded RNG for reproducibility  
-- No network access
-- Deterministic fixtures
-- Assert score in [0, 100] with anchor at 50
-
-Author: Phase 1 Implementation
-Date: 2026-02-07
-"""
-
 import pytest
 import numpy as np
 import pandas as pd
 import sys
 from pathlib import Path
 
-# Add project root to path
+                          
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -69,7 +54,7 @@ class TestGPersPersistenceModifier:
         g = g_pers(0.6, g_type="sigmoid", params={"H_neutral": 0.5, "k": 10.0})
         
         assert 0 < g < 1
-        # H > 0.5 should give g > 0.5
+                                     
         assert g > 0.5
     
     def test_output_bounded(self):
@@ -100,25 +85,25 @@ class TestComputeGate:
         """Neutral inputs (0.5) should produce moderate gate."""
         Gate, meta = compute_gate(C_t=0.5, L_t=0.5, R_t=0.5)
         
-        expected = 0.5 * 0.5 * 0.5  # = 0.125
+        expected = 0.5 * 0.5 * 0.5           
         np.testing.assert_almost_equal(Gate, expected, decimal=3)
     
     def test_regime_threshold_applied(self):
         """Regime threshold should affect gate when provided."""
-        # Without threshold
+                           
         Gate_no_thresh, _ = compute_gate(C_t=0.5, L_t=0.5, R_t=0.4, regime_threshold=None)
         
-        # With threshold at 0.5 (R_t=0.4 is below threshold)
+                                                            
         Gate_with_thresh, _ = compute_gate(C_t=0.5, L_t=0.5, R_t=0.4, regime_threshold=0.5)
         
-        # Gate with threshold should be lower (R_t penalized)
+                                                             
         assert Gate_with_thresh < Gate_no_thresh
     
     def test_nan_inputs_default_to_neutral(self):
         """NaN inputs should default to 0.5."""
         Gate, meta = compute_gate(C_t=np.nan, L_t=0.8, R_t=0.8)
         
-        # C_t becomes 0.5, so Gate = 0.5 * 0.8 * 0.8 = 0.32
+                                                           
         expected = 0.5 * 0.8 * 0.8
         np.testing.assert_almost_equal(Gate, expected, decimal=3)
 
@@ -140,12 +125,12 @@ class TestComputeOpportunity:
     
     def test_hurst_affects_undervaluation_weight(self):
         """High Hurst should give more weight to undervaluation."""
-        # Same T and U, different H
+                                   
         Opp_high_H, _ = compute_opportunity(T_t=0.5, U_t=0.8, H_t=0.7)
         Opp_low_H, _ = compute_opportunity(T_t=0.5, U_t=0.8, H_t=0.3)
         
-        # High H means more weight on U, so Opp should differ
-        # (High H increases g_pers, which multiplies U)
+                                                             
+                                                       
         assert Opp_high_H != Opp_low_H
 
 
@@ -162,22 +147,22 @@ class TestCompositeScore:
     
     def test_neutral_inputs_return_around_fifty(self):
         """All neutral (0.5) inputs should return score ≈ 50."""
-        config = Phase1Config(S_scale=1.0)  # Need explicit scale
+        config = Phase1Config(S_scale=1.0)                       
         
         result = compute_composite_score(
             T_t=0.5, U_t=0.5, V_t=0.5, L_t=0.5, C_t=0.5, H_t=0.5, R_t=0.5,
             config=config
         )
         
-        # With all inputs at 0.5, RawFavor should be around 0.5 * (0.5^3) = 0.0625
-        # Actually: Opp = committee([0.5, 0.5*0.5]) = committee([0.5, 0.25]) ≈ 0.375
-        # Gate = 0.5 * 0.5 * 0.5 = 0.125
-        # RawFavor = 0.375 * 0.125 = 0.047
-        # Score = 100 * (0.5 + (0.047 - 0.5) * 1.0) = 100 * 0.047 = 4.7
-        # This is expected behavior - neutral gate dampens the score significantly
+                                                                                  
+                                                                                    
+                                        
+                                          
+                                                                       
+                                                                                  
         
-        # The anchor at 50 means when RawFavor = 0.5, score = 50
-        # But neutral inputs don't give RawFavor = 0.5 due to Gate multiplication
+                                                                
+                                                                                 
         assert result.score >= 0 and result.score <= 100
     
     def test_favorable_inputs_return_above_fifty(self):
@@ -189,8 +174,8 @@ class TestCompositeScore:
             config=config
         )
         
-        # High Gate + High Opp should give score above baseline
-        # Not necessarily > 50 due to multiplicative nature of Gate
+                                                               
+                                                                   
         assert result.score >= 0
     
     def test_unfavorable_inputs_return_below_fifty(self):
@@ -202,7 +187,7 @@ class TestCompositeScore:
             config=config
         )
         
-        # Very low gate will produce very low score
+                                                   
         assert result.score < 50
     
     def test_result_contains_all_components(self):
@@ -242,7 +227,7 @@ class TestCompositeScore:
         result1 = compute_composite_score(**kwargs, config=config1)
         result2 = compute_composite_score(**kwargs, config=config2)
         
-        # Different S_scale should produce different scores
+                                                           
         assert result1.score != result2.score
 
 
@@ -271,11 +256,11 @@ class TestCommitteeIntegration:
     
     def test_committee_trimmed_mean(self):
         """Committee should use trimmed mean by default."""
-        scores = [0.7, 0.65, 0.8, 0.3, 0.72]  # 0.3 is outlier
+        scores = [0.7, 0.65, 0.8, 0.3, 0.72]                  
         
         agg, meta = agg_committee(scores, method="trimmed_mean")
         
-        # Trimmed mean should reduce influence of 0.3
+                                                     
         assert 0.6 < agg < 0.8
         assert meta["method"] == "trimmed_mean"
     

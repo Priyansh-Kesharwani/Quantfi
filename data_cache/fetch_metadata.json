@@ -1,0 +1,146 @@
+{
+  "SI_F_1wk": {
+    "symbol": "SI=F",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.272076",
+    "rows": 1328,
+    "start_date": "2000-08-28 00:00:00-04:00",
+    "end_date": "2026-02-02 00:00:00-05:00"
+  },
+  "GC_F_1wk": {
+    "symbol": "GC=F",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.272251",
+    "rows": 1328,
+    "start_date": "2000-08-28 00:00:00-04:00",
+    "end_date": "2026-02-02 00:00:00-05:00"
+  },
+  "SI_F_1d": {
+    "symbol": "SI=F",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.419712",
+    "rows": 6385,
+    "start_date": "2000-08-30 00:00:00-04:00",
+    "end_date": "2026-02-06 00:00:00-05:00"
+  },
+  "GC_F_1d": {
+    "symbol": "GC=F",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.425731",
+    "rows": 6383,
+    "start_date": "2000-08-30 00:00:00-04:00",
+    "end_date": "2026-02-06 00:00:00-05:00"
+  },
+  "SPY_1wk": {
+    "symbol": "SPY",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.616170",
+    "rows": 1724,
+    "start_date": "1993-01-25 00:00:00-05:00",
+    "end_date": "2026-02-02 00:00:00-05:00"
+  },
+  "SPY_1d": {
+    "symbol": "SPY",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.727666",
+    "rows": 8313,
+    "start_date": "1993-01-29 00:00:00-05:00",
+    "end_date": "2026-02-06 00:00:00-05:00"
+  },
+  "AAPL_1wk": {
+    "symbol": "AAPL",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.780357",
+    "rows": 2357,
+    "start_date": "1980-12-08 00:00:00-05:00",
+    "end_date": "2026-02-02 00:00:00-05:00"
+  },
+  "NFLX_1d": {
+    "symbol": "NFLX",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:48.879556",
+    "rows": 5966,
+    "start_date": "2002-05-23 00:00:00-04:00",
+    "end_date": "2026-02-06 00:00:00-05:00"
+  },
+  "NFLX_1wk": {
+    "symbol": "NFLX",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.011278",
+    "rows": 1238,
+    "start_date": "2002-05-20 00:00:00-04:00",
+    "end_date": "2026-02-02 00:00:00-05:00"
+  },
+  "AAPL_1d": {
+    "symbol": "AAPL",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.022626",
+    "rows": 11380,
+    "start_date": "1980-12-12 00:00:00-05:00",
+    "end_date": "2026-02-06 00:00:00-05:00"
+  },
+  "RELIANCE.NS_1d": {
+    "symbol": "RELIANCE.NS",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.117685",
+    "rows": 7556,
+    "start_date": "1996-01-01 00:00:00+05:30",
+    "end_date": "2026-02-06 00:00:00+05:30"
+  },
+  "RELIANCE.NS_1wk": {
+    "symbol": "RELIANCE.NS",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.221647",
+    "rows": 1571,
+    "start_date": "1996-01-01 00:00:00+05:30",
+    "end_date": "2026-02-02 00:00:00+05:30"
+  },
+  "TCS.NS_1wk": {
+    "symbol": "TCS.NS",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.291702",
+    "rows": 1226,
+    "start_date": "2002-08-12 00:00:00+05:30",
+    "end_date": "2026-02-02 00:00:00+05:30"
+  },
+  "_NSEI_1wk": {
+    "symbol": "^NSEI",
+    "interval": "1wk",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.402878",
+    "rows": 960,
+    "start_date": "2007-09-17 00:00:00+05:30",
+    "end_date": "2026-02-02 00:00:00+05:30"
+  },
+  "TCS.NS_1d": {
+    "symbol": "TCS.NS",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.420586",
+    "rows": 5832,
+    "start_date": "2002-08-12 00:00:00+05:30",
+    "end_date": "2026-02-06 00:00:00+05:30"
+  },
+  "_NSEI_1d": {
+    "symbol": "^NSEI",
+    "interval": "1d",
+    "source": "yfinance",
+    "timestamp": "2026-02-07T02:41:49.444521",
+    "rows": 4512,
+    "start_date": "2007-09-17 00:00:00+05:30",
+    "end_date": "2026-02-06 00:00:00+05:30"
+  }
+}

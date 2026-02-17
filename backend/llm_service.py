@@ -1,32 +1,41 @@
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    HAS_LLM = True
+except ImportError:
+    HAS_LLM = False
+
 import os
 import json
 from typing import List, Dict
 import logging
+from app_config import get_backend_config
 
 logger = logging.getLogger(__name__)
+CFG = get_backend_config()
 
 class LLMService:
-    """LLM service for scoring explanations and news classification"""
     
     def __init__(self):
         self.api_key = os.environ.get('EMERGENT_LLM_KEY')
         
     async def generate_score_explanation(self, symbol: str, score: float, breakdown: Dict, top_factors: List[str]) -> str:
-        """
-        Generate plain-English explanation of DCA score using GPT-5.2
-        """
+        zone = self._get_zone_name(score)
+        fallback = self._build_template_explanation(symbol, score, zone, breakdown, top_factors)
+        
+        if not HAS_LLM or not self.api_key or self.api_key == 'placeholder':
+            return fallback
+        
         try:
             chat = LlmChat(
                 api_key=self.api_key,
                 session_id=f"score-explain-{symbol}",
                 system_message="You are a quantitative financial analyst. Provide concise, clear explanations of DCA scoring for investors. Focus on facts, not advice."
-            ).with_model("openai", "gpt-5.2")
+            ).with_model(CFG.llm_explain_provider, CFG.llm_explain_model)
             
             prompt = f"""Explain this DCA favorability score for {symbol}:
 
 Composite Score: {score:.1f}/100
-Zone: {self._get_zone_name(score)}
+Zone: {zone}
 
 Breakdown:
 - Technical & Momentum: {breakdown['technical_momentum']:.1f}/100
@@ -45,19 +54,41 @@ Provide a 2-3 sentence explanation focusing on what's driving the score and what
             return response
         except Exception as e:
             logger.error(f"Error generating explanation: {str(e)}")
-            return f"Score of {score:.1f}/100 indicates a {self._get_zone_name(score)} opportunity for dollar-cost averaging."
+            return fallback
+    
+    @staticmethod
+    def _build_template_explanation(symbol: str, score: float, zone: str, breakdown: Dict, top_factors: List[str]) -> str:
+        parts = [f"DCA score for {symbol} is {score:.1f}/100 ({zone})."]
+        
+        scores_map = {
+            'Technical momentum': breakdown.get('technical_momentum', 50),
+            'Volatility opportunity': breakdown.get('volatility_opportunity', 50),
+            'Statistical deviation': breakdown.get('statistical_deviation', 50),
+            'Macro & FX': breakdown.get('macro_fx', 50),
+        }
+        best = max(scores_map, key=scores_map.get)
+        parts.append(f"The strongest driver is {best} at {scores_map[best]:.0f}/100.")
+        
+        if top_factors:
+            parts.append(f"Key factor: {top_factors[0]}.")
+        
+        return " ".join(parts)
     
     async def classify_news_event(self, title: str, description: str) -> Dict:
-        """
-        Classify news event using Claude Sonnet 4.5
-        Returns: {event_type, affected_assets, impact_scores, summary}
-        """
+        fallback = {
+            'event_type': 'general',
+            'affected_assets': [],
+            'impact_scores': {},
+            'summary': description[:CFG.llm_summary_max_chars]
+        }
+        if not HAS_LLM or not self.api_key or self.api_key == 'placeholder':
+            return fallback
         try:
             chat = LlmChat(
                 api_key=self.api_key,
                 session_id=f"news-classify",
                 system_message="You are a financial news analyst. Classify news events and assess their impact on assets."
-            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+            ).with_model(CFG.llm_news_provider, CFG.llm_news_model)
             
             prompt = f"""Classify this news event:
 
@@ -67,7 +98,7 @@ Description: {description}
 Respond ONLY with valid JSON in this exact format:
 {{
   "event_type": "<one of: rate_change, sanction, trade_restriction, mining_regulation, war, election, general>",
-  "affected_assets": ["<list of: GOLD, SILVER, or specific equity symbols>"],
+  "affected_assets": ["<list of affected asset ticker symbols>"],
   "impact_scores": {{"<asset>": <confidence 0-1>}},
   "summary": "<one sentence summary>"
 }}
@@ -75,17 +106,15 @@ Respond ONLY with valid JSON in this exact format:
 Example:
 {{
   "event_type": "rate_change",
-  "affected_assets": ["GOLD", "SILVER"],
-  "impact_scores": {{"GOLD": 0.8, "SILVER": 0.7}},
-  "summary": "Fed announces rate cut affecting precious metals."
+  "affected_assets": ["SPY", "TLT"],
+  "impact_scores": {{"SPY": 0.8, "TLT": 0.7}},
+  "summary": "Central bank policy change affecting broad markets."
 }}"""
             
             message = UserMessage(text=prompt)
             response = await chat.send_message(message)
             
-            # Parse JSON response
             try:
-                # Extract JSON from response (may have markdown formatting)
                 json_str = response.strip()
                 if '```json' in json_str:
                     json_str = json_str.split('```json')[1].split('```')[0].strip()
@@ -96,28 +125,18 @@ Example:
                 return result
             except json.JSONDecodeError:
                 logger.warning(f"Failed to parse JSON from LLM response: {response}")
-                return {
-                    'event_type': 'general',
-                    'affected_assets': [],
-                    'impact_scores': {},
-                    'summary': description[:100]
-                }
+                return fallback
         except Exception as e:
             logger.error(f"Error classifying news: {str(e)}")
-            return {
-                'event_type': 'general',
-                'affected_assets': [],
-                'impact_scores': {},
-                'summary': description[:100]
-            }
+            return fallback
     
     @staticmethod
     def _get_zone_name(score: float) -> str:
-        if score >= 81:
+        if score >= CFG.score_zone_strong_buy:
             return 'strong buy-the-dip'
-        elif score >= 61:
+        elif score >= CFG.score_zone_favorable:
             return 'favorable accumulation'
-        elif score >= 31:
+        elif score >= CFG.score_zone_neutral:
             return 'neutral'
         else:
             return 'unfavorable'

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export const api = {
@@ -25,6 +25,12 @@ export const api = {
   // News
   getNews: (limit = 20) => axios.get(`${API}/news?limit=${limit}`),
   refreshNews: () => axios.post(`${API}/news/refresh`),
+  // Per-asset news headlines — TODO Phase 2: backend endpoint
+  getNewsForAsset: (symbol, limit = 2) => axios.get(`${API}/news/asset/${symbol}?limit=${limit}`),
+
+  // Sentiment
+  getSentiment: (symbol) => axios.get(`${API}/sentiment/${symbol}`),
+  runSentiment: (symbol) => axios.post(`${API}/sentiment/${symbol}`),
 
   // Settings
   getSettings: () => axios.get(`${API}/settings`),

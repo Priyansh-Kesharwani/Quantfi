@@ -2,6 +2,9 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
+from app_config import get_backend_config
+
+CFG = get_backend_config()
 
 class Asset(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -9,9 +12,9 @@ class Asset(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     name: str
-    asset_type: str  # 'metal', 'equity', 'indian_equity'
-    exchange: Optional[str] = None  # 'NSE', 'BSE', 'NASDAQ', 'NYSE', etc.
-    currency: str = 'USD'  # 'USD', 'INR'
+    asset_type: str                                      
+    exchange: Optional[str] = None                                        
+    currency: str = 'USD'                
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -62,8 +65,8 @@ class DCAScore(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     timestamp: datetime
-    composite_score: float  # 0-100
-    zone: str  # 'unfavorable', 'neutral', 'favorable', 'strong_buy'
+    composite_score: float         
+    zone: str                                                       
     breakdown: ScoreBreakdown
     explanation: str
     top_factors: List[str]
@@ -77,9 +80,9 @@ class NewsEvent(BaseModel):
     source: str
     url: str
     published_at: datetime
-    event_type: str  # 'rate_change', 'sanction', 'trade_restriction', 'mining_regulation', 'war', 'election'
+    event_type: str                                                                                          
     affected_assets: List[str]
-    impact_scores: Dict[str, float]  # {symbol: confidence_score}
+    impact_scores: Dict[str, float]                              
     summary: Optional[str] = None
 
 class BacktestConfig(BaseModel):
@@ -87,12 +90,22 @@ class BacktestConfig(BaseModel):
     start_date: datetime
     end_date: datetime
     dca_amount: float
-    dca_cadence: str  # 'weekly' or 'monthly'
-    buy_dip_threshold: Optional[float] = 60  # Score threshold for extra buying
+    dca_cadence: str                         
+    buy_dip_threshold: Optional[float] = CFG.backtest_buy_dip_threshold_default
+
+
+class EquityPoint(BaseModel):
+    date: str
+    portfolio_value: float
+    total_invested: float
+    price: float
+    score: Optional[float] = None
+    is_dip_buy: bool = False
+
 
 class BacktestResult(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     config: BacktestConfig
@@ -104,6 +117,13 @@ class BacktestResult(BaseModel):
     annualized_return_pct: float
     num_regular_dca: int
     num_dip_buys: int
+    max_drawdown_pct: float = 0.0
+    avg_cost_basis: float = 0.0
+    data_points: int = 0
+    data_source: str = "yfinance"
+    data_start: Optional[str] = None
+    data_end: Optional[str] = None
+    equity_curve: List[EquityPoint] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserSettings(BaseModel):
@@ -111,21 +131,12 @@ class UserSettings(BaseModel):
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     default_dca_cadence: str = 'monthly'
-    default_dca_amount: float = 5000
-    dip_alert_threshold: float = 70
-    score_weights: Dict[str, float] = {
-        'technical_momentum': 0.4,
-        'volatility_opportunity': 0.2,
-        'statistical_deviation': 0.2,
-        'macro_fx': 0.2
-    }
+    default_dca_amount: float = CFG.user_default_dca_amount
+    dip_alert_threshold: float = CFG.user_default_dip_alert_threshold
+    score_weights: Dict[str, float] = Field(default_factory=lambda: dict(CFG.default_score_weights))
 
-
-# PHASE1: indicator hook - Phase 1 Indicator Models
-# These models support the Phase 1 Market State Indicator Engine
 
 class Phase1IndicatorMeta(BaseModel):
-    """Metadata for explainability and audit trail"""
     model_config = ConfigDict(extra="ignore")
     
     window_used: int
@@ -137,42 +148,36 @@ class Phase1IndicatorMeta(BaseModel):
 
 
 class Phase1NormalizedComponent(BaseModel):
-    """A normalized component score with metadata"""
     model_config = ConfigDict(extra="ignore")
     
     raw_value: float
-    normalized_value: float  # In [0, 1]
+    normalized_value: float             
     percentile: float
     ecdf_sample_size: int
     meta: Phase1IndicatorMeta
 
 
 class Phase1CompositeResult(BaseModel):
-    """Full Phase 1 composite score with intermediates for audit"""
     model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     
-    # Normalized components (all in [0, 1])
-    T_t: float  # Trend
-    U_t: float  # Undervaluation (VWAP Z)
-    V_t: float  # Volatility regime
-    L_t: float  # Liquidity
-    C_t: float  # Systemic coupling
-    H_t: float  # Hurst exponent
-    R_t: float  # HMM regime probability
+    T_t: float         
+    U_t: float                           
+    V_t: float                     
+    L_t: float             
+    C_t: float                     
+    H_t: float                  
+    R_t: float                          
     
-    # Intermediate calculations
-    g_pers_H: float  # Persistence modifier
-    Gate_t: float    # C_t * L_t * R_t_thresholded
-    Opp_t: float     # Committee aggregation
-    RawFavor_t: float  # Opp_t * Gate_t
+    g_pers_H: float                        
+    Gate_t: float                                 
+    Opp_t: float                            
+    RawFavor_t: float                  
     
-    # Final score
-    composite_score: float  # In [0, 100], anchored at 50
+    composite_score: float                               
     
-    # Metadata
-    config_used: Dict[str, Optional[float]] = {}  # Symbolic placeholders
+    config_used: Dict[str, Optional[float]] = {}
     notes: str = ""

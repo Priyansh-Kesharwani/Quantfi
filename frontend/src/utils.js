@@ -44,15 +44,7 @@ export const getZoneLabel = (zone) => {
     'neutral': 'NEUTRAL',
     'unfavorable': 'UNFAVORABLE'
   };
-  return labels[zone] || zone.toUpperCase();
+  return labels[zone] || (zone || 'UNKNOWN').toUpperCase();
 };
 
-export const getAssetSymbol = (symbol) => {
-  const map = {
-    'GOLD': 'XAU',
-    'SILVER': 'XAG',
-    'GC=F': 'GOLD',
-    'SI=F': 'SILVER'
-  };
-  return map[symbol] || symbol;
-};
+export const getAssetSymbol = (symbol) => symbol;

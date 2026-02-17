@@ -1,0 +1,8 @@
+{"ts": "2026-02-13T21:17:12.635457", "G_t": 0.95, "conf": 0.7, "agreement": 0.6, "factors": 5, "citations": 3, "valid": true}
+{"ts": "2026-02-13T21:18:14.173443", "G_t": 0.95, "conf": 0.7, "agreement": 0.6, "factors": 5, "citations": 3, "valid": true}
+{"ts": "2026-02-13T21:19:20.540839", "G_t": 1.03, "conf": 0.82, "agreement": 0.7, "factors": 5, "citations": 1, "valid": true}
+{"ts": "2026-02-14T07:39:21.998491", "G_t": 0.95, "conf": 0.7, "agreement": 0.6, "factors": 5, "citations": 2, "valid": true}
+{"ts": "2026-02-14T08:50:01.910291", "G_t": 1.03, "conf": 0.8, "agreement": 0.7, "factors": 5, "citations": 1, "valid": true}
+{"ts": "2026-02-14T09:10:49.346431", "symbol": "NFLX", "G_t": 1.05, "conf": 0.6, "agreement": 0.7, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.6664, "avg_quality": 0.5261, "confidence_penalized": false}
+{"ts": "2026-02-14T09:11:51.006931", "symbol": "NFLX", "G_t": 1.05, "conf": 0.6, "agreement": 0.7, "factors": 5, "citations": 2, "valid": true, "avg_relevance": 0.6664, "avg_quality": 0.5256, "confidence_penalized": false}
+{"ts": "2026-02-14T09:12:17.822228", "symbol": "ORCL", "G_t": 1.05, "conf": 0.6, "agreement": 0.7, "factors": 5, "citations": 2, "valid": true, "avg_relevance": 0.6481, "avg_quality": 0.491, "confidence_penalized": false}

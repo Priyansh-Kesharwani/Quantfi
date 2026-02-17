@@ -1,6 +1,7 @@
 import React from 'react';
+import AssetNewsWidget from './AssetNewsWidget';
 
-const AssetCard = ({ asset, score, price, indicators }) => {
+const AssetCard = ({ asset, score, price, indicators, onClick }) => {
   if (!asset) return null;
   
   const scoreValue = score?.composite_score || 0;
@@ -24,11 +25,15 @@ const AssetCard = ({ asset, score, price, indicators }) => {
       'neutral': 'NEUTRAL',
       'unfavorable': 'UNFAVORABLE'
     };
-    return labels[zone] || zone.toUpperCase();
+    return labels[zone] || (zone || 'UNKNOWN').toUpperCase();
   };
   
   return (
-    <div className="glass-effect rounded-sm p-6 hover:border-primary/30 transition-all h-full" data-testid={`asset-card-${asset.symbol}`}>
+    <div
+      className="glass-effect rounded-sm p-6 hover:border-primary/30 transition-all h-full cursor-pointer"
+      onClick={onClick}
+      data-testid={`asset-card-${asset.symbol}`}
+    >
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-xl font-bold tracking-tight" data-testid={`asset-symbol-${asset.symbol}`}>
@@ -81,6 +86,9 @@ const AssetCard = ({ asset, score, price, indicators }) => {
           </div>
         )}
       </div>
+
+      {/* Asset News Headlines */}
+      <AssetNewsWidget symbol={asset.symbol} compact={true} limit={1} />
     </div>
   );
 };

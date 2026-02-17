@@ -1,24 +1,10 @@
-"""
-Unit Tests for VWAP Z-Score Indicator
-
-Tests the VWAP-based valuation Z-score calculation.
-
-NON-NEGOTIABLE:
-- All tests use seeded RNG for reproducibility
-- No network access
-- Deterministic fixtures
-
-Author: Phase 1 Implementation
-Date: 2026-02-07
-"""
-
 import pytest
 import numpy as np
 import pandas as pd
 import sys
 from pathlib import Path
 
-# Add project root to path
+                          
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -33,17 +19,17 @@ class TestVWAPCalculation:
         np.random.seed(42)
         n = 100
         
-        # Create prices that end below VWAP
-        prices = np.linspace(110, 90, n)  # Declining prices
+                                           
+        prices = np.linspace(110, 90, n)                    
         volumes = np.full(n, 1_000_000)
         
         Z_t, meta = compute_vwap_z(prices, volumes, window=20)
         
-        # Last Z should be negative (price below fair value)
+                                                            
         valid_Z = Z_t[~np.isnan(Z_t)]
         assert len(valid_Z) > 0
         
-        # Recent Z values should be negative for declining price
+                                                                
         recent_Z = valid_Z[-10:]
         assert np.mean(recent_Z) < 0, f"Declining prices should have negative Z, got {np.mean(recent_Z):.3f}"
     
@@ -52,8 +38,8 @@ class TestVWAPCalculation:
         np.random.seed(43)
         n = 100
         
-        # Create prices that end above VWAP
-        prices = np.linspace(90, 110, n)  # Rising prices
+                                           
+        prices = np.linspace(90, 110, n)                 
         volumes = np.full(n, 1_000_000)
         
         Z_t, meta = compute_vwap_z(prices, volumes, window=20)
@@ -61,7 +47,7 @@ class TestVWAPCalculation:
         valid_Z = Z_t[~np.isnan(Z_t)]
         assert len(valid_Z) > 0
         
-        # Recent Z values should be positive for rising price
+                                                             
         recent_Z = valid_Z[-10:]
         assert np.mean(recent_Z) > 0, f"Rising prices should have positive Z, got {np.mean(recent_Z):.3f}"
     
@@ -70,7 +56,7 @@ class TestVWAPCalculation:
         np.random.seed(44)
         n = 100
         
-        # Stable prices with small noise
+                                        
         base_price = 100
         prices = base_price + np.random.randn(n) * 0.5
         volumes = np.full(n, 1_000_000) + np.random.randn(n) * 100_000
@@ -81,7 +67,7 @@ class TestVWAPCalculation:
         valid_Z = Z_t[~np.isnan(Z_t)]
         assert len(valid_Z) > 0
         
-        # Z should be relatively small for stable prices
+                                                        
         assert np.abs(np.mean(valid_Z)) < 2, f"Stable prices should have small Z, got {np.mean(valid_Z):.3f}"
     
     def test_output_shape_matches_input(self):
@@ -103,16 +89,16 @@ class TestVWAPFallback:
         np.random.seed(45)
         prices = np.linspace(100, 110, 100)
         
-        # No volume provided
+                            
         Z_t, meta = compute_vwap_z(prices, volume_series=None, window=20)
         
         assert meta["method"] == "sma_fallback"
-        assert "TODO" in meta["notes"] or "volume" in meta["notes"].lower()
+        assert "volume" in meta["notes"].lower() or "sma" in meta["notes"].lower()
     
     def test_insufficient_volume_uses_sma_fallback(self):
         """Insufficient volume data should trigger SMA fallback."""
         prices = np.linspace(100, 110, 100)
-        volumes = np.full(100, np.nan)  # All NaN volume
+        volumes = np.full(100, np.nan)                  
         
         Z_t, meta = compute_vwap_z(prices, volumes, window=20)
         
@@ -122,14 +108,14 @@ class TestVWAPFallback:
         """SMA fallback should still produce valid Z-scores."""
         np.random.seed(46)
         n = 100
-        prices = np.linspace(90, 110, n)  # Rising
+        prices = np.linspace(90, 110, n)          
         
         Z_t, meta = compute_vwap_z(prices, volume_series=None, window=20)
         
         valid_Z = Z_t[~np.isnan(Z_t)]
         assert len(valid_Z) > 0
         
-        # Rising prices should have positive Z even with SMA fallback
+                                                                     
         recent_Z = valid_Z[-10:]
         assert np.mean(recent_Z) > 0
 
@@ -142,20 +128,20 @@ class TestUndervaluationScore:
         np.random.seed(47)
         n = 100
         
-        # Declining prices (negative Z = undervalued)
+                                                     
         prices = np.linspace(110, 90, n)
         volumes = np.full(n, 1_000_000)
         
-        # Get raw Z
+                   
         Z_t, _ = compute_vwap_z(prices, volumes, window=20)
         
-        # Get undervaluation score (inverted Z)
+                                               
         U_t, meta = vwap_undervaluation_score(prices, volumes, window=20)
         
         valid_Z = Z_t[~np.isnan(Z_t)]
         valid_U = U_t[~np.isnan(U_t)]
         
-        # U should be approximately -Z
+                                      
         if len(valid_Z) > 0 and len(valid_U) > 0:
             np.testing.assert_array_almost_equal(valid_U, -valid_Z, decimal=5)
     
@@ -164,7 +150,7 @@ class TestUndervaluationScore:
         np.random.seed(48)
         n = 100
         
-        # Declining prices = undervalued
+                                        
         prices = np.linspace(110, 90, n)
         volumes = np.full(n, 1_000_000)
         
@@ -173,7 +159,7 @@ class TestUndervaluationScore:
         valid_U = U_t[~np.isnan(U_t)]
         recent_U = valid_U[-10:]
         
-        # Undervalued should have positive score
+                                                
         assert np.mean(recent_U) > 0, f"Undervalued asset should have positive U, got {np.mean(recent_U):.3f}"
 
 
@@ -188,7 +174,7 @@ class TestVWAPWithFixtures:
             df = pd.read_csv(fixture_path, parse_dates=["date"])
             return df["close"].values, df["volume"].values
         else:
-            # Generate synthetic data
+                                     
             np.random.seed(42)
             n = 50
             prices = 100 + np.cumsum(np.random.randn(n) * 2)
@@ -203,10 +189,10 @@ class TestVWAPWithFixtures:
         
         valid_Z = Z_t[~np.isnan(Z_t)]
         
-        # Should have some valid values
+                                       
         assert len(valid_Z) > 0
         
-        # Z-scores should be reasonable (within ±10 for typical data)
+                                                                     
         assert np.all(np.abs(valid_Z) < 10), "Z-scores should be reasonable"
 
 
@@ -245,17 +231,17 @@ class TestVWAPEdgeCases:
         Z_t, meta = compute_vwap_z(prices, volumes, window=20)
         
         assert len(Z_t) == 3
-        # Should be all NaN for short series
+                                            
         assert np.all(np.isnan(Z_t))
     
     def test_zero_volume_handled(self):
         """Zero volume should not crash."""
         prices = np.linspace(100, 110, 50)
-        volumes = np.zeros(50)  # All zero
+        volumes = np.zeros(50)            
         
         Z_t, meta = compute_vwap_z(prices, volumes, window=10)
         
-        # Should fall back to SMA
+                                 
         assert meta["method"] == "sma_fallback"
     
     def test_window_larger_than_data_returns_nan(self):
@@ -265,7 +251,7 @@ class TestVWAPEdgeCases:
         
         Z_t, meta = compute_vwap_z(prices, volumes, window=50)
         
-        # All NaN because window > data length
+                                              
         assert np.all(np.isnan(Z_t))
 
 

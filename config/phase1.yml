@@ -1,184 +1,190 @@
-# Phase 1 Configuration
-# =====================
-# Composite DCA State Score Configuration
-#
-# MATHEMATICAL FRAMEWORK:
-# -----------------------
-# Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
-# Opp_t = Mean([T_t, U_t × g_pers(H_t)])
-# RawFavor_t = Opp_t × Gate_t
-# CompositeScore_t = 100 × clip(0.5 + (RawFavor_t − 0.5) × S_scale, 0, 1)
-#
-# where:
-#   g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
-#   𝟙[·] = indicator function (1 if condition true, else 0)
-#
-# NON-NEGOTIABLE RULES:
-# - DO NOT set numeric weights or thresholds here
-# - All values are SYMBOLIC PLACEHOLDERS until Phase 2 tuning
-# - Phase 2 will determine optimal values via walk-forward backtests
-#
-# Author: Phase 1 Implementation
-# Date: 2026-02-07
-
-# =============================================================================
-# SAFETY FLAGS
-# =============================================================================
-
-# CRITICAL: Set to false to prevent accidental production use
-# Must be explicitly set to true after Phase 2 validation
 allow_production_mode: false
-
-# =============================================================================
-# REGIME DETECTION
-# =============================================================================
-
-# Threshold for regime probability in Gate calculation
-# Gate_t includes: 𝟙[R_t ≥ r_thresh] where 𝟙 is indicator function
-# R_t must exceed this threshold for favorable gate (else Gate=0)
-# SYMBOLIC PLACEHOLDER - will be tuned in Phase 2
-# Candidates to explore: 0.4, 0.5, 0.6
-regime_threshold: null  # TODO Phase 2: Tune via sensitivity analysis
-
-# Threshold type for regime gating
-# "hard": 𝟙[R_t ≥ threshold] = 1 or 0 (canonical indicator function)
-# "soft": sigmoid transition (smoother but less decisive)
+regime_threshold: null
 regime_threshold_type: "hard"
-
-# HMM Configuration
 hmm:
-  n_states: 2  # Number of regime states
-  emission_type: "gaussian"  # TODO Phase 2: Replace with "student_t" for heavier tails
-  window: 252  # Rolling window for regime detection
-  jump_penalty: null  # TODO Phase 2: Add jump penalty for regime stability
-  seed: 42  # Random seed for reproducibility
-
-# =============================================================================
-# COMPOSITE SCORE
-# =============================================================================
-
-# Scale parameter for final score transformation
-# Controls sensitivity of score around the neutral point (50)
-# CompositeScore = 100 * clip(0.5 + (RawFavor - 0.5) * S_scale, 0, 1)
-# SYMBOLIC PLACEHOLDER - will be tuned in Phase 2
-# Candidates: 0.5 (compressed), 1.0 (linear), 2.0 (expanded)
-S_scale: null  # TODO Phase 2: Tune via score distribution analysis
-
-# Committee aggregation for Opportunity calculation
-# CANONICAL FORMULA: Opp_t = Mean([T_t, U_t × g_pers(H_t)])
-# "mean": Simple arithmetic mean (canonical)
-# "trimmed_mean": Robust to outliers
-committee_method: "mean"  # Canonical uses simple mean
-committee_trim_pct: 0.1  # Fraction trimmed (for trimmed_mean)
-
-# =============================================================================
-# PERSISTENCE MODIFIER (g_pers)
-# =============================================================================
-
-# CANONICAL FORMULA: g_pers(H_t) = Sigmoid(H_t - 0.5) × 2
-# This maps:
-#   H = 0.5 (random walk) → g ≈ 0.5 (neutral)
-#   H > 0.5 (persistent)  → g > 0.5 (boost undervaluation signal)
-#   H < 0.5 (mean-revert) → g < 0.5 (suppress undervaluation signal)
-
-# Function type for mapping Hurst exponent to weight
-# "sigmoid_canonical": g_pers(H) = Sigmoid(H - 0.5) × 2 (CANONICAL)
-# "sigmoid": General sigmoid with configurable center
-# "linear": Linear interpolation between bounds
-# "threshold": Binary threshold
-g_pers_type: "sigmoid_canonical"  # Canonical formula
-
-# Parameters for g_pers function
+  n_states: 2
+  emission_type: "gaussian"
+  window: 252
+  jump_penalty: null
+  seed: 42
+S_scale: null
+committee_method: "mean"
+committee_trim_pct: 0.1
+g_pers_type: "sigmoid_canonical"
 g_pers_params:
-  # Sigmoid steepness (controls sensitivity around H=0.5)
-  # Higher k = sharper transition
-  k: 10.0  # Reasonable default, can be tuned in Phase 2
-  
-  # Center point for sigmoid (canonical = 0.5)
+  k: 10.0
   H_neutral: 0.5
-  
-  # For linear type only:
-  H_favorable: null  # TODO Phase 2: Typically H > 0.6
-  H_unfavorable: null  # TODO Phase 2: Typically H < 0.4
-
-# =============================================================================
-# NORMALIZATION PIPELINE
-# =============================================================================
-
+  H_favorable: null
+  H_unfavorable: null
 normalization:
-  # Minimum observations before computing expanding percentile
   min_obs: 100
-  
-  # Sigmoid steepness parameter for Z → [0,1] transformation
   sigmoid_k: 1.0
-  
-  # Per-indicator polarity (true = higher raw value is favorable)
   polarity:
-    trend: true           # Higher trend score = favorable
-    undervaluation: true  # Higher undervaluation = favorable (already inverted from Z)
-    volatility: true      # Lower vol = favorable (score is inverted)
-    liquidity: true       # Higher liquidity = favorable
-    coupling: true        # Lower coupling = favorable (score is inverted)
-    hurst: true           # Higher H (persistence) = favorable for trending
-
-# =============================================================================
-# INDICATOR WINDOWS
-# =============================================================================
-
+    trend: true
+    undervaluation: true
+    volatility: true
+    liquidity: true
+    coupling: true
+    hurst: true
 windows:
-  hurst: 252             # Rolling window for Hurst estimation
-  hmm_regime: 252        # Window for HMM regime detection
-  vwap: 20               # VWAP calculation window
-  volatility: 21         # Realized volatility window
-  vol_percentile: 252    # Lookback for volatility percentile
-  liquidity: 21          # Amihud illiquidity window
-  liquidity_pct: 252     # Lookback for liquidity percentile
-  coupling: 63           # Window for coupling covariance
-
-# =============================================================================
-# LOGGING & AUDIT TRAIL
-# =============================================================================
-
+  hurst: 252
+  hmm_regime: 252
+  vwap: 20
+  volatility: 21
+  vol_percentile: 252
+  liquidity: 21
+  liquidity_pct: 252
+  coupling: 63
 logging:
-  # Whether to log all intermediate values for each computation
   log_intermediates: true
-  
-  # Path for indicator computation logs (relative to project root)
   log_path: "logs/phase1_indicator_runs.json"
-  
-  # Verbosity level: debug, info, warning, error
   level: "info"
-
-# =============================================================================
-# DATA PROVIDERS (Phase 1 uses fixtures)
-# =============================================================================
-
 data_providers:
-  # Use fixture data instead of live APIs
   use_fixtures: true
   fixture_path: "tests/fixtures/"
-  
-  # Provider API keys - LEAVE EMPTY for Phase 1
-  # TODO: Fill in for production (Phase 2+)
   api_keys:
-    # yfinance doesn't need a key
-    newsapi: null  # TODO: Get from newsapi.org
-    # TODO Phase 2: Add MCX/NSE data provider keys
+    newsapi: null
     mcx: null
     nse: null
-
-# =============================================================================
-# PHASE 2 TASKS (DO NOT IMPLEMENT YET)
-# =============================================================================
-# These are documented here for reference but should NOT be implemented in Phase 1
-
-# phase2_todos:
-#   - Tune regime_threshold via walk-forward backtest
-#   - Tune S_scale via score distribution analysis
-#   - Calibrate g_pers_params from empirical Hurst distributions
-#   - Replace GMM with full HMM + t-emissions
-#   - Add jump penalty for regime switching
-#   - Implement wavelet Hurst with pywt
-#   - Add slippage/cost modeling for DCA decisions
-#   - Integrate real MCX/NSE data providers
-#   - Build confidence intervals for composite score
+  symbol_aliases:
+    GOLD: "GC=F"
+    SILVER: "SI=F"
+    XAU: "GC=F"
+    XAG: "SI=F"
+    NIFTY: "^NSEI"
+    NIFTY50: "^NSEI"
+    SENSEX: "^BSESN"
+  exchange_suffixes:
+    NSE: ".NS"
+    BSE: ".BO"
+  news_rss_base: "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+  news_rss_business: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en"
+  news_per_asset: 8
+sentiment:
+  default_model: "groq/llama-3.3-70b-versatile"
+  fallback_model: "gemini/gemini-2.0-flash-lite"
+  timeout: 90
+  max_reddit_posts: 5
+  max_comments_per_post: 10
+  max_blog_articles: 5
+  max_knowledge_chars: 40000
+  blog_feeds: {}
+  default_subreddits:
+    - "investing"
+    - "StockMarket"
+    - "wallstreetbets"
+    - "economy"
+backend:
+  indicator_min_history_rows: 200
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  bollinger_period: 20
+  bollinger_std_dev: 2.0
+  atr_period: 14
+  atr_percentile_lookback: 252
+  z_score_periods: [20, 50, 100]
+  sma_short_period: 50
+  sma_long_period: 200
+  ema_period: 50
+  adx_period: 14
+  score_zone_strong_buy: 81
+  score_zone_favorable: 61
+  score_zone_neutral: 31
+  score_default_value: 50
+  score_top_factors_count: 3
+  macro_fx_historical_avg: 83.0
+  technical_rules:
+    sma_below_bonus: 15
+    sma_above_penalty: 5
+    rsi_oversold: 30
+    rsi_low: 40
+    rsi_overbought: 70
+    rsi_high: 60
+    rsi_oversold_bonus: 20
+    rsi_low_bonus: 10
+    rsi_overbought_penalty: 15
+    rsi_high_penalty: 5
+    macd_bull_bonus: 10
+    macd_bear_penalty: 10
+    bb_below_bonus: 15
+    bb_near_multiplier: 1.02
+    bb_near_bonus: 8
+    adx_low: 20
+    adx_high: 40
+    adx_low_bonus: 5
+    adx_high_penalty: 5
+  volatility_rules:
+    atr_high_percentile: 80
+    atr_mid_percentile: 60
+    atr_low_percentile: 30
+    atr_high_bonus: 20
+    atr_mid_bonus: 10
+    atr_low_penalty: 10
+    drawdown_severe: -20
+    drawdown_medium: -10
+    drawdown_light: -5
+    drawdown_flat: -1
+    drawdown_severe_bonus: 30
+    drawdown_medium_bonus: 20
+    drawdown_light_bonus: 10
+    drawdown_flat_penalty: 10
+  statistical_rules:
+    extreme_low_z: -2.0
+    strong_low_z: -1.5
+    moderate_low_z: -1.0
+    light_low_z: -0.5
+    high_z: 1.5
+    moderate_high_z: 1.0
+    extreme_low_bonus: 50
+    strong_low_bonus: 35
+    moderate_low_bonus: 20
+    light_low_bonus: 10
+    high_penalty: 30
+    moderate_high_penalty: 15
+  macro_fx_rules:
+    high_dev: 5.0
+    mid_dev: 2.0
+    low_dev: -2.0
+    very_low_dev: -5.0
+    high_penalty: 20
+    mid_penalty: 10
+    low_bonus: 10
+    very_low_bonus: 20
+  phase1_score_bands:
+    favorable: 70
+    slightly_favorable: 55
+    neutral: 45
+    slightly_unfavorable: 30
+  phase1_trend_sma_window: 50
+  fx_fallback_usd_inr: 83.5
+  latest_price_period: "5d"
+  history_period: "2y"
+  news_lookback_days: 7
+  news_page_size: 20
+  news_process_limit: 50
+  news_default_query: "financial markets OR economy OR interest rates"
+  cache_price_minutes: 5
+  cache_indicators_hours: 1
+  cache_scores_hours: 1
+  cache_news_hours: 3
+  backtest_padding_days: 300
+  backtest_buy_dip_threshold_default: 60
+  user_default_dca_amount: 5000
+  user_default_dip_alert_threshold: 70
+  llm_explain_provider: "openai"
+  llm_explain_model: "gpt-5.2"
+  llm_news_provider: "anthropic"
+  llm_news_model: "claude-sonnet-4-5-20250929"
+  llm_summary_max_chars: 100
+  default_score_weights:
+    technical_momentum: 0.4
+    volatility_opportunity: 0.2
+    statistical_deviation: 0.2
+    macro_fx: 0.2
+  tuned_score_weights:
+    technical_momentum: 0.25
+    volatility_opportunity: 0.25
+    statistical_deviation: 0.35
+    macro_fx: 0.15

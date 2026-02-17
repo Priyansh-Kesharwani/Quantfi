@@ -1,13 +1,3 @@
-"""
-Score Runner
-
-Batch execution of composite scoring across multiple assets with
-timeout handling and logging.
-
-Author: Phase 2 Implementation
-Date: 2026-02-07
-"""
-
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, Optional, List, Tuple
@@ -23,27 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 class TimeoutError(Exception):
-    """Raised when an operation times out."""
     pass
 
 
 def run_with_timeout(func, timeout_seconds: int, *args, **kwargs):
-    """
-    Run a function with a timeout.
-    
-    Parameters
-    ----------
-    func : callable
-        Function to run
-    timeout_seconds : int
-        Maximum execution time
-    *args, **kwargs
-        Passed to func
-    
-    Returns
-    -------
-    Result of func, or raises TimeoutError
-    """
     result = [None]
     error = [None]
     
@@ -69,32 +42,24 @@ def run_with_timeout(func, timeout_seconds: int, *args, **kwargs):
 
 @dataclass
 class BatchResult:
-    """Result of batch scoring across multiple assets."""
     
-    # Per-asset results
     results: Dict[str, 'ScorerResult'] = field(default_factory=dict)
     
-    # Failures
     failures: Dict[str, str] = field(default_factory=dict)
     
-    # Timing
     timings: Dict[str, float] = field(default_factory=dict)
     
-    # Metadata
     meta: Dict[str, Any] = field(default_factory=dict)
     
     @property
     def successful(self) -> List[str]:
-        """List of successfully scored assets."""
         return list(self.results.keys())
     
     @property
     def failed(self) -> List[str]:
-        """List of failed assets."""
         return list(self.failures.keys())
     
     def get_latest_scores(self) -> Dict[str, float]:
-        """Get latest score for each asset."""
         latest = {}
         for symbol, result in self.results.items():
             valid_scores = result.scores[~np.isnan(result.scores)]
@@ -103,7 +68,6 @@ class BatchResult:
         return latest
     
     def to_summary_df(self) -> pd.DataFrame:
-        """Create summary DataFrame."""
         rows = []
         
         for symbol in self.successful + self.failed:
@@ -129,7 +93,6 @@ class BatchResult:
         return pd.DataFrame(rows)
     
     def save_summary(self, path: str) -> None:
-        """Save summary to JSON."""
         summary = {
             "successful": self.successful,
             "failed": self.failed,
@@ -144,25 +107,6 @@ class BatchResult:
 
 
 class ScoreRunner:
-    """
-    Batch score runner with timeout handling.
-    
-    Example
-    -------
-    >>> from data import DataFetcher
-    >>> from score_engine import ScoreRunner, ScorerConfig
-    >>> 
-    >>> fetcher = DataFetcher()
-    >>> runner = ScoreRunner(
-    ...     config=ScorerConfig(r_thresh=0.5),
-    ...     transform_timeout=60,
-    ...     fetch_timeout=30
-    ... )
-    >>> 
-    >>> symbols = ['AAPL', 'XAU', 'RELIANCE.NS']
-    >>> result = runner.run_batch(fetcher, symbols)
-    >>> print(result.get_latest_scores())
-    """
     
     def __init__(
         self,
@@ -173,24 +117,6 @@ class ScoreRunner:
         max_retries: int = 1,
         log_path: Optional[str] = None
     ):
-        """
-        Initialize runner.
-        
-        Parameters
-        ----------
-        config : ScorerConfig
-            Scoring configuration
-        indicator_config : IndicatorConfig
-            Indicator configuration
-        transform_timeout : int
-            Timeout for indicator transformation (default: 60s)
-        fetch_timeout : int
-            Timeout for data fetching (default: 30s)
-        max_retries : int
-            Maximum retry attempts
-        log_path : str, optional
-            Path for run logs
-        """
         from .scorer import ScorerConfig
         
         self.config = config or ScorerConfig()
@@ -206,24 +132,6 @@ class ScoreRunner:
         symbol: str,
         period: str = "max"
     ) -> Tuple[Optional['ScorerResult'], Dict[str, Any]]:
-        """
-        Run scoring for a single asset.
-        
-        Parameters
-        ----------
-        fetcher : DataFetcher
-            Data fetcher instance
-        symbol : str
-            Asset symbol
-        period : str
-            Data period
-        
-        Returns
-        -------
-        Tuple[ScorerResult, Dict]
-            - Result (or None if failed)
-            - Metadata dict
-        """
         from .scorer import CompositeScorer
         
         start_time = time.time()
@@ -234,7 +142,6 @@ class ScoreRunner:
             "error": None
         }
         
-        # Fetch data with timeout
         try:
             df, fetch_meta = run_with_timeout(
                 fetcher.fetch_daily, 
@@ -259,7 +166,6 @@ class ScoreRunner:
             meta["error"] = f"Fetch error: {e}"
             return None, meta
         
-        # Compute scores with timeout
         try:
             scorer = CompositeScorer(self.config, self.indicator_config)
             
@@ -292,23 +198,6 @@ class ScoreRunner:
         symbols: List[str],
         period: str = "max"
     ) -> BatchResult:
-        """
-        Run scoring for multiple assets.
-        
-        Parameters
-        ----------
-        fetcher : DataFetcher
-            Data fetcher instance
-        symbols : List[str]
-            List of asset symbols
-        period : str
-            Data period for all assets
-        
-        Returns
-        -------
-        BatchResult
-            Batch results container
-        """
         logger.info(f"Starting batch scoring for {len(symbols)} assets...")
         
         batch = BatchResult(
@@ -332,7 +221,7 @@ class ScoreRunner:
                 else:
                     if attempt < self.max_retries:
                         logger.warning(f"Retry {attempt + 1} for {symbol}...")
-                        time.sleep(2 ** attempt)  # Exponential backoff
+                        time.sleep(2 ** attempt)                       
                     else:
                         batch.failures[symbol] = meta.get("error", "Unknown error")
                         batch.timings[symbol] = meta.get("elapsed_s", 0)
@@ -341,7 +230,6 @@ class ScoreRunner:
         batch.meta["n_successful"] = len(batch.successful)
         batch.meta["n_failed"] = len(batch.failed)
         
-        # Log results
         if self.log_path:
             self._save_log(batch)
         
@@ -353,7 +241,6 @@ class ScoreRunner:
         return batch
     
     def _save_log(self, batch: BatchResult) -> None:
-        """Save run log."""
         try:
             log_dir = Path(self.log_path).parent
             log_dir.mkdir(parents=True, exist_ok=True)

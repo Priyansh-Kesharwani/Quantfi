@@ -9,7 +9,7 @@ const isDevServer = process.env.NODE_ENV !== "production";
 // Environment variable overrides
 const config = {
   enableHealthCheck: process.env.ENABLE_HEALTH_CHECK === "true",
-  enableVisualEdits: isDevServer, // Only enable during dev server
+  enableVisualEdits: false, // Disabled: babel-metadata-plugin causes stack overflow on AssetDetail.js (Cursor IDE plugin, not app code)
 };
 
 // Conditionally load visual edits modules only in dev mode
@@ -33,6 +33,24 @@ if (config.enableHealthCheck) {
 }
 
 const webpackConfig = {
+  jest: {
+    configure: (jestConfig) => {
+      // Resolve the @ alias in tests
+      // react-router v7 uses package.json "exports" which Jest's resolver doesn't fully support.
+      // Map all sub-paths explicitly to the CJS dist files.
+      const rrBase = path.resolve(__dirname, 'node_modules/react-router/dist/development');
+      const rrdBase = path.resolve(__dirname, 'node_modules/react-router-dom/dist');
+      jestConfig.moduleNameMapper = {
+        ...jestConfig.moduleNameMapper,
+        '^@/(.*)$': '<rootDir>/src/$1',
+        '^react-router-dom$': path.join(rrdBase, 'index.js'),
+        '^react-router$': path.join(rrBase, 'index.js'),
+        '^react-router/dom$': path.join(rrBase, 'dom-export.js'),
+        '^react-router/(.+)$': path.join(rrBase, '$1.js'),
+      };
+      return jestConfig;
+    },
+  },
   eslint: {
     configure: {
       extends: ["plugin:react-hooks/recommended"],

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
+import Assets from './pages/Assets';
+import AssetDetail from './pages/AssetDetail';
 import BacktestLab from './pages/BacktestLab';
 import News from './pages/News';
 import Settings from './pages/Settings';
@@ -15,39 +17,80 @@ import api from './api';
 import { toast } from 'sonner';
 import '@/index.css';
 
+// Global refresh key to trigger reactive re-fetches across components
+// Incremented when assets change, dashboards/pages listen to this
 function App() {
   const [showAddAsset, setShowAddAsset] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [newAsset, setNewAsset] = useState({
     symbol: '',
     name: '',
-    asset_type: 'equity'
+    asset_type: 'equity',
+    exchange: '',
+    currency: 'USD'
   });
   const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
-    // Listen for add asset event
-    const handleAddAsset = () => setShowAddAsset(true);
-    window.addEventListener('addAsset', handleAddAsset);
-    return () => window.removeEventListener('addAsset', handleAddAsset);
+  // Trigger a reactive refresh across all child components
+  const triggerRefresh = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
   }, []);
 
+  useEffect(() => {
+    // Listen for add asset event (from empty dashboard CTA)
+    const handleOpenAddAsset = () => setShowAddAsset(true);
+    window.addEventListener('addAsset', handleOpenAddAsset);
+    // Listen for refreshDashboard event
+    const handleRefreshDashboard = () => triggerRefresh();
+    window.addEventListener('refreshDashboard', handleRefreshDashboard);
+    return () => {
+      window.removeEventListener('addAsset', handleOpenAddAsset);
+      window.removeEventListener('refreshDashboard', handleRefreshDashboard);
+    };
+  }, [triggerRefresh]);
+
   const handleAddAsset = async () => {
-    if (!newAsset.symbol || !newAsset.name) {
-      toast.error('Please fill all fields');
+    // Validate required fields
+    const symbol = newAsset.symbol.trim();
+    const name = newAsset.name.trim();
+
+    if (!symbol) {
+      toast.error('Symbol is required');
+      return;
+    }
+    if (!name) {
+      toast.error('Asset name is required');
+      return;
+    }
+    if (symbol.length > 20) {
+      toast.error('Symbol is too long');
       return;
     }
 
     setAdding(true);
     try {
-      await api.addAsset(newAsset);
-      toast.success(`${newAsset.symbol} added successfully`);
+      const payload = { symbol, name, asset_type: newAsset.asset_type };
+      if (newAsset.exchange) payload.exchange = newAsset.exchange;
+      if (newAsset.currency && newAsset.currency !== 'USD') payload.currency = newAsset.currency;
+
+      console.debug('[AddAsset] Submitting payload:', JSON.stringify(payload));
+      const response = await api.addAsset(payload);
+      console.debug('[AddAsset] Backend response:', response.status, response.data);
+
+      toast.success(`${symbol} added to watchlist`);
       setShowAddAsset(false);
-      setNewAsset({ symbol: '', name: '', asset_type: 'equity' });
-      // Refresh the page to show new asset
-      window.location.reload();
+      setNewAsset({ symbol: '', name: '', asset_type: 'equity', exchange: '', currency: 'USD' });
+
+      // Give the backend a moment to persist + trigger background data fetch
+      // Then reactively refresh all child pages (no hard reload)
+      setTimeout(() => {
+        console.debug('[AddAsset] Triggering dashboard refresh (refreshKey++)');
+        triggerRefresh();
+      }, 500);
     } catch (error) {
-      console.error('Error adding asset:', error);
-      toast.error('Failed to add asset');
+      console.error('[AddAsset] Error:', error?.response?.status, error?.response?.data || error.message);
+      const errMsg = error?.response?.data?.detail || 'Failed to add asset. Check the symbol and try again.';
+      toast.error(errMsg);
     } finally {
       setAdding(false);
     }
@@ -61,8 +104,10 @@ function App() {
           
           <main className="flex-1 ml-64" data-testid="main-content">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/backtest" element={<BacktestLab />} />
+              <Route path="/" element={<Dashboard refreshKey={refreshKey} />} />
+              <Route path="/assets" element={<Assets refreshKey={refreshKey} />} />
+              <Route path="/assets/:symbol" element={<AssetDetail />} />
+              <Route path="/backtest" element={<BacktestLab refreshKey={refreshKey} />} />
               <Route path="/news" element={<News />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
@@ -83,14 +128,14 @@ function App() {
                 </Label>
                 <Input
                   id="symbol"
-                  placeholder="e.g., GOLD, SILVER, AAPL, TSLA"
+                  placeholder="Yahoo Finance ticker symbol"
                   value={newAsset.symbol}
                   onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value.toUpperCase() })}
                   className="glass-effect"
                   data-testid="asset-symbol-input"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  For metals: GOLD or SILVER. For US stocks: use ticker symbol.
+                  Use the ticker symbol as listed on Yahoo Finance.
                 </p>
               </div>
 
@@ -114,16 +159,36 @@ function App() {
                 </Label>
                 <Select
                   value={newAsset.asset_type}
-                  onValueChange={(value) => setNewAsset({ ...newAsset, asset_type: value })}
+                  onValueChange={(value) => {
+                    setNewAsset({ ...newAsset, asset_type: value });
+                  }}
                 >
                   <SelectTrigger className="glass-effect" data-testid="asset-type-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="metal">Metal (Gold/Silver)</SelectItem>
-                    <SelectItem value="equity">US Equity</SelectItem>
+                    <SelectItem value="equity">Equity</SelectItem>
+                    <SelectItem value="etf">ETF</SelectItem>
+                    <SelectItem value="commodity">Commodity / Futures</SelectItem>
+                    <SelectItem value="crypto">Cryptocurrency</SelectItem>
+                    <SelectItem value="index">Index</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="exchange" className="text-sm text-muted-foreground mb-2 block">
+                  EXCHANGE (OPTIONAL)
+                </Label>
+                <Input
+                  id="exchange"
+                  placeholder="Leave blank for auto-detect"
+                  value={newAsset.exchange}
+                  onChange={(e) => setNewAsset({ ...newAsset, exchange: e.target.value.toUpperCase() })}
+                  className="glass-effect"
+                  data-testid="asset-exchange-select"
+                />
               </div>
 
               <Button

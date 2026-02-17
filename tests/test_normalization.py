@@ -1,23 +1,9 @@
-"""
-Unit Tests for Normalization Pipeline
-
-Tests the expanding ECDF → Z → Sigmoid normalization pipeline.
-
-NON-NEGOTIABLE:
-- All tests use seeded RNG for reproducibility
-- No network access
-- Deterministic fixtures
-
-Author: Phase 1 Implementation
-Date: 2026-02-07
-"""
-
 import pytest
 import numpy as np
 import sys
 from pathlib import Path
 
-# Add project root to path
+                          
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -41,38 +27,38 @@ class TestExpandingPercentile:
         
         pct_t, meta = expanding_percentile(values, min_obs=50)
         
-        # Check a specific point
+                                
         test_idx = 200
         current_value = values[test_idx]
         historical = values[:test_idx]
         
-        # Manual percentile calculation
+                                       
         expected_pct = np.sum(historical <= current_value) / len(historical)
         expected_pct = np.clip(expected_pct, 0.001, 0.999)
         
-        # Should match
+                      
         np.testing.assert_almost_equal(pct_t[test_idx], expected_pct, decimal=3)
     
     def test_adding_datapoint_updates_percentiles_deterministically(self):
         """Adding one datapoint should deterministically update percentiles."""
         np.random.seed(43)
         
-        # Initial data
+                      
         initial = np.random.randn(200)
         pct_initial, _ = expanding_percentile(initial, min_obs=50)
         
-        # Add one more datapoint
-        extended = np.append(initial, 0.5)  # Add a specific value
+                                
+        extended = np.append(initial, 0.5)                        
         pct_extended, _ = expanding_percentile(extended, min_obs=50)
         
-        # Historical percentiles should be the same
+                                                   
         np.testing.assert_array_equal(
             pct_initial[:200],
             pct_extended[:200],
             "Historical percentiles should not change"
         )
         
-        # New point should have a valid percentile
+                                                  
         assert not np.isnan(pct_extended[200])
     
     def test_warmup_period_is_nan(self):
@@ -83,10 +69,10 @@ class TestExpandingPercentile:
         
         pct_t, meta = expanding_percentile(values, min_obs=min_obs)
         
-        # First min_obs should be NaN
+                                     
         assert np.all(np.isnan(pct_t[:min_obs]))
         
-        # After min_obs, should have valid values
+                                                 
         assert not np.all(np.isnan(pct_t[min_obs:]))
     
     def test_output_in_valid_range(self):
@@ -98,20 +84,20 @@ class TestExpandingPercentile:
         
         valid_pct = pct_t[~np.isnan(pct_t)]
         
-        # Should be > 0 and < 1 (clipped)
+                                         
         assert np.all(valid_pct > 0), "Percentiles should be > 0"
         assert np.all(valid_pct < 1), "Percentiles should be < 1"
     
     def test_extreme_value_gets_high_percentile(self):
         """An extreme high value should have percentile near 1."""
         np.random.seed(46)
-        # Normal values followed by an extreme
+                                              
         values = np.random.randn(200)
-        values = np.append(values, 100)  # Extreme outlier
+        values = np.append(values, 100)                   
         
         pct_t, _ = expanding_percentile(values, min_obs=50)
         
-        # Last value (extreme) should have high percentile
+                                                          
         assert pct_t[-1] > 0.99
 
 
@@ -193,7 +179,7 @@ class TestZToSigmoid:
         sig_k1 = z_to_sigmoid(z, k=1.0)
         sig_k2 = z_to_sigmoid(z, k=2.0)
         
-        # k=2 should give value closer to 1 for positive Z
+                                                          
         assert sig_k2[0] > sig_k1[0]
     
     def test_preserves_nan(self):
@@ -241,27 +227,27 @@ class TestNormalizeToScore:
     def test_median_value_gets_neutral_score(self):
         """Median-ish value should get score near 0.5."""
         np.random.seed(48)
-        # Values centered around 0
+                                  
         raw_values = np.random.randn(500)
         
         score, meta = normalize_to_score(raw_values, min_obs=50)
         
         valid_scores = score[~np.isnan(score)]
         
-        # Average score should be near 0.5 for symmetric distribution
+                                                                     
         avg_score = np.mean(valid_scores)
         assert 0.4 < avg_score < 0.6, f"Average score should be ~0.5, got {avg_score:.3f}"
     
     def test_high_raw_value_gets_high_score_when_favorable(self):
         """High raw value should get high score when higher_is_favorable=True."""
         np.random.seed(49)
-        # Mostly normal, but end with high values
+                                                 
         raw_values = np.random.randn(400)
-        raw_values = np.append(raw_values, np.array([5.0] * 10))  # High values at end
+        raw_values = np.append(raw_values, np.array([5.0] * 10))                      
         
         score, meta = normalize_to_score(raw_values, min_obs=50, higher_is_favorable=True)
         
-        # Last scores should be high
+                                    
         assert score[-1] > 0.8
     
     def test_deterministic_with_same_input(self):
@@ -303,7 +289,7 @@ class TestBatchNormalize:
         assert "vwap_z" in normalized
         assert "volatility" in normalized
         
-        # All should be in [0, 1]
+                                 
         for name, values in normalized.items():
             valid = values[~np.isnan(values)]
             assert np.all(valid >= 0) and np.all(valid <= 1)

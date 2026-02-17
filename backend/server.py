@@ -11,7 +11,6 @@ from typing import List, Dict, Optional
 from datetime import datetime, timedelta, timezone
 import asyncio
 
-# Import our modules
 from models import (
     Asset, PriceData, IndicatorData, DCAScore, NewsEvent,
     BacktestConfig, BacktestResult, UserSettings
@@ -21,59 +20,91 @@ from scoring import ScoringEngine
 from data_providers import PriceProvider, FXProvider, NewsProvider
 from llm_service import LLMService
 from backtest import BacktestEngine
+from app_config import get_backend_config
+
+_sentiment_mod = None
+
+def _get_sentiment_mod():
+    global _sentiment_mod
+    if _sentiment_mod is None:
+        import importlib.util as ilu
+        import sys as _sys
+        sa_path = str(Path(__file__).parent.parent / "indicators" / "sentiment_agent.py")
+        spec = ilu.spec_from_file_location("sentiment_agent", sa_path)
+        mod = ilu.module_from_spec(spec)
+        _sys.modules["sentiment_agent"] = mod
+        spec.loader.exec_module(mod)
+        _sentiment_mod = mod
+    return _sentiment_mod
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Services
 llm_service = LLMService()
 news_provider = NewsProvider()
 
-# Create the main app
 app = FastAPI(title="Financial Analysis Platform")
 api_router = APIRouter(prefix="/api")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+CFG = get_backend_config()
 
-# ============= REQUEST/RESPONSE MODELS =============
 
 class AddAssetRequest(BaseModel):
     symbol: str
     name: str
-    asset_type: str  # 'metal', 'equity', 'indian_equity'
-    exchange: Optional[str] = None  # 'NSE', 'BSE', 'NASDAQ', 'NYSE'
-    currency: str = 'USD'  # 'USD' or 'INR'
+    asset_type: str                                      
+    exchange: Optional[str] = None                                  
+    currency: str = 'USD'                  
 
 class UpdatePricesRequest(BaseModel):
     symbol: str
 
 class BacktestRequest(BaseModel):
     symbol: str
-    start_date: str  # ISO format
-    end_date: str  # ISO format
+    start_date: str              
+    end_date: str              
     dca_amount: float
     dca_cadence: str
-    buy_dip_threshold: Optional[float] = 60
+    buy_dip_threshold: Optional[float] = CFG.backtest_buy_dip_threshold_default
 
-# ============= ASSET MANAGEMENT =============
 
 @api_router.post("/assets", response_model=Asset)
 async def add_asset(request: AddAssetRequest):
-    """Add asset to watchlist"""
-    # Check if exists
-    existing = await db.assets.find_one({'symbol': request.symbol.upper()}, {'_id': 0})
+    symbol = request.symbol.upper().strip()
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol is required")
+
+    existing = await db.assets.find_one({'symbol': symbol}, {'_id': 0})
     if existing:
-        return Asset(**existing)
+        if existing.get('is_active', True):
+            logger.info(f"Asset {symbol} already exists and is active")
+            return Asset(**existing)
+        else:
+            logger.info(f"Reactivating soft-deleted asset {symbol}")
+            await db.assets.update_one(
+                {'symbol': symbol},
+                {'$set': {
+                    'is_active': True,
+                    'name': request.name or existing.get('name', symbol),
+                    'asset_type': request.asset_type or existing.get('asset_type', 'equity'),
+                    'exchange': request.exchange or existing.get('exchange'),
+                    'currency': request.currency or existing.get('currency', 'USD'),
+                }}
+            )
+            reactivated = await db.assets.find_one({'symbol': symbol}, {'_id': 0})
+            if isinstance(reactivated.get('created_at'), str):
+                reactivated['created_at'] = datetime.fromisoformat(reactivated['created_at'])
+            asyncio.create_task(fetch_and_calculate_asset_data(symbol, request.exchange, request.currency))
+            return Asset(**reactivated)
     
     asset = Asset(
-        symbol=request.symbol.upper(),
+        symbol=symbol,
         name=request.name,
         asset_type=request.asset_type,
         exchange=request.exchange,
@@ -84,14 +115,13 @@ async def add_asset(request: AddAssetRequest):
     doc['created_at'] = doc['created_at'].isoformat()
     await db.assets.insert_one(doc)
     
-    # Trigger initial data fetch
-    asyncio.create_task(fetch_and_calculate_asset_data(request.symbol.upper(), request.exchange, request.currency))
+    asyncio.create_task(fetch_and_calculate_asset_data(symbol, request.exchange, request.currency))
     
+    logger.info(f"Added new asset {symbol} to watchlist")
     return asset
 
 @api_router.get("/assets", response_model=List[Asset])
 async def get_assets():
-    """Get all assets in watchlist"""
     assets = await db.assets.find({'is_active': True}, {'_id': 0}).to_list(100)
     for asset in assets:
         if isinstance(asset['created_at'], str):
@@ -100,7 +130,6 @@ async def get_assets():
 
 @api_router.delete("/assets/{symbol}")
 async def remove_asset(symbol: str):
-    """Remove asset from watchlist"""
     result = await db.assets.update_one(
         {'symbol': symbol.upper()},
         {'$set': {'is_active': False}}
@@ -109,17 +138,13 @@ async def remove_asset(symbol: str):
         raise HTTPException(status_code=404, detail="Asset not found")
     return {"status": "removed"}
 
-# ============= PRICE DATA =============
 
 @api_router.get("/prices/{symbol}")
 async def get_latest_price(symbol: str):
-    """Get latest price for an asset"""
-    # Get asset metadata for exchange info
     asset = await db.assets.find_one({'symbol': symbol.upper()}, {'_id': 0})
     exchange = asset.get('exchange') if asset else None
     currency = asset.get('currency', 'USD') if asset else 'USD'
     
-    # Try from cache first
     cached = await db.price_history.find_one(
         {'symbol': symbol.upper()},
         {'_id': 0},
@@ -128,35 +153,31 @@ async def get_latest_price(symbol: str):
     
     if cached and isinstance(cached.get('timestamp'), str):
         cached_time = datetime.fromisoformat(cached['timestamp'])
-        if datetime.now(timezone.utc) - cached_time.replace(tzinfo=timezone.utc) < timedelta(minutes=5):
+        if datetime.now(timezone.utc) - cached_time.replace(tzinfo=timezone.utc) < timedelta(minutes=CFG.cache_price_minutes):
             return cached
     
-    # Fetch fresh data
     price_data = PriceProvider.fetch_latest_price(symbol.upper(), exchange)
     if not price_data:
         raise HTTPException(status_code=404, detail="Unable to fetch price data")
     
-    # Handle currency conversion
+    usd_inr_rate = FXProvider.fetch_usd_inr_rate() or CFG.fx_fallback_usd_inr
+    
     if currency == 'INR':
-        # For Indian stocks, price is already in INR
-        price_usd = None  # Don't convert
         price_inr = price_data['price']
-        usd_inr_rate = None
+        price_usd = price_inr / usd_inr_rate
     else:
-        usd_inr_rate = FXProvider.fetch_usd_inr_rate() or 83.5
         price_usd = price_data['price']
         price_inr = price_data['price'] * usd_inr_rate
     
     price_obj = PriceData(
         symbol=symbol.upper(),
         timestamp=price_data['timestamp'],
-        price_usd=price_usd or price_inr / (usd_inr_rate or 83.5),  # Fallback conversion
+        price_usd=price_usd,
         price_inr=price_inr,
-        usd_inr_rate=usd_inr_rate or 83.5,
+        usd_inr_rate=usd_inr_rate,
         volume=price_data.get('volume')
     )
     
-    # Cache it
     doc = price_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     await db.price_history.insert_one(doc)
@@ -165,12 +186,10 @@ async def get_latest_price(symbol: str):
 
 @api_router.get("/prices/{symbol}/history")
 async def get_price_history(symbol: str, period: str = "1y"):
-    """Get historical price data"""
     df = PriceProvider.fetch_historical_data(symbol.upper(), period)
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail="No historical data available")
     
-    # Convert to JSON format
     history = []
     for date, row in df.iterrows():
         history.append({
@@ -184,12 +203,9 @@ async def get_price_history(symbol: str, period: str = "1y"):
     
     return {'symbol': symbol.upper(), 'history': history}
 
-# ============= INDICATORS =============
 
 @api_router.get("/indicators/{symbol}")
 async def get_indicators(symbol: str):
-    """Get technical indicators for an asset"""
-    # Check cache
     cached = await db.indicators.find_one(
         {'symbol': symbol.upper()},
         {'_id': 0},
@@ -198,11 +214,10 @@ async def get_indicators(symbol: str):
     
     if cached and isinstance(cached.get('timestamp'), str):
         cached_time = datetime.fromisoformat(cached['timestamp'])
-        if datetime.now(timezone.utc) - cached_time.replace(tzinfo=timezone.utc) < timedelta(hours=1):
+        if datetime.now(timezone.utc) - cached_time.replace(tzinfo=timezone.utc) < timedelta(hours=CFG.cache_indicators_hours):
             return cached
     
-    # Calculate fresh
-    df = PriceProvider.fetch_historical_data(symbol.upper(), '2y')
+    df = PriceProvider.fetch_historical_data(symbol.upper(), CFG.history_period)
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail="Unable to calculate indicators")
     
@@ -214,19 +229,15 @@ async def get_indicators(symbol: str):
         **indicators
     )
     
-    # Cache it
     doc = indicator_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     await db.indicators.insert_one(doc)
     
     return indicator_obj
 
-# ============= DCA SCORING =============
 
 @api_router.get("/scores/{symbol}")
 async def get_dca_score(symbol: str):
-    """Get DCA favorability score for an asset"""
-    # Check cache
     cached = await db.scores.find_one(
         {'symbol': symbol.upper()},
         {'_id': 0},
@@ -235,33 +246,27 @@ async def get_dca_score(symbol: str):
     
     if cached and isinstance(cached.get('timestamp'), str):
         cached_time = datetime.fromisoformat(cached['timestamp'])
-        if datetime.now(timezone.utc) - cached_time.replace(tzinfo=timezone.utc) < timedelta(hours=1):
-            # Parse nested objects
+        if datetime.now(timezone.utc) - cached_time.replace(tzinfo=timezone.utc) < timedelta(hours=CFG.cache_scores_hours):
             if 'breakdown' in cached and isinstance(cached['breakdown'], dict):
                 return cached
     
-    # Calculate fresh score
-    # Get indicators
-    df = PriceProvider.fetch_historical_data(symbol.upper(), '2y')
+    df = PriceProvider.fetch_historical_data(symbol.upper(), CFG.history_period)
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail="Unable to calculate score")
     
     indicators = TechnicalIndicators.calculate_all_indicators(df)
     current_price = float(df.iloc[-1]['Close'])
-    usd_inr_rate = FXProvider.fetch_usd_inr_rate() or 83.5
+    usd_inr_rate = FXProvider.fetch_usd_inr_rate() or CFG.fx_fallback_usd_inr
     
-    # Get user settings for weights
     settings_doc = await db.user_settings.find_one({}, {'_id': 0})
     weights = settings_doc.get('score_weights') if settings_doc else None
     
-    # Calculate composite score
     composite_score, breakdown, top_factors = ScoringEngine.calculate_composite_score(
         indicators, current_price, usd_inr_rate, weights
     )
     
     zone = ScoringEngine.get_zone(composite_score)
     
-    # Generate explanation using LLM
     explanation = await llm_service.generate_score_explanation(
         symbol.upper(),
         composite_score,
@@ -279,7 +284,6 @@ async def get_dca_score(symbol: str):
         top_factors=top_factors
     )
     
-    # Cache it
     doc = score_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     doc['breakdown'] = breakdown.model_dump()
@@ -287,11 +291,9 @@ async def get_dca_score(symbol: str):
     
     return score_obj
 
-# ============= BACKTESTING =============
 
 @api_router.post("/backtest", response_model=BacktestResult)
 async def run_backtest(request: BacktestRequest):
-    """Run DCA backtest"""
     try:
         config = BacktestConfig(
             symbol=request.symbol.upper(),
@@ -301,71 +303,104 @@ async def run_backtest(request: BacktestRequest):
             dca_cadence=request.dca_cadence,
             buy_dip_threshold=request.buy_dip_threshold
         )
-        
-        # Fetch historical data
-        period_days = (config.end_date - config.start_date).days
-        period = '10y' if period_days > 1825 else '5y' if period_days > 912 else '2y'
-        df = PriceProvider.fetch_historical_data(config.symbol, period)
-        
+
+        fetch_start = config.start_date - timedelta(days=CFG.backtest_padding_days)
+        df = PriceProvider.fetch_historical_data(
+            config.symbol,
+            period='max',
+            start_date=fetch_start,
+            end_date=config.end_date + timedelta(days=1),
+        )
+
         if df is None or df.empty:
-            raise HTTPException(status_code=404, detail="No historical data available")
-        
-        # Run backtest
+            raise HTTPException(
+                status_code=404,
+                detail=f"No real historical data available for {config.symbol}. "
+                       f"Check that the symbol is valid on Yahoo Finance."
+            )
+
+        logger.info(
+            f"Backtest: {config.symbol} | {len(df)} rows | "
+            f"{df.index.min().date()} → {df.index.max().date()}"
+        )
+
         result = BacktestEngine.run_backtest(config, df)
-        
-        # Save result
-        doc = result.model_dump()
-        doc['created_at'] = doc['created_at'].isoformat()
-        doc['config'] = {
-            'symbol': config.symbol,
-            'start_date': config.start_date.isoformat(),
-            'end_date': config.end_date.isoformat(),
-            'dca_amount': config.dca_amount,
-            'dca_cadence': config.dca_cadence,
-            'buy_dip_threshold': config.buy_dip_threshold
-        }
-        await db.backtest_results.insert_one(doc)
-        
+
+        try:
+            doc = result.model_dump()
+            doc['created_at'] = doc['created_at'].isoformat()
+            doc['config'] = {
+                'symbol': config.symbol,
+                'start_date': config.start_date.isoformat(),
+                'end_date': config.end_date.isoformat(),
+                'dca_amount': config.dca_amount,
+                'dca_cadence': config.dca_cadence,
+                'buy_dip_threshold': config.buy_dip_threshold
+            }
+            doc.pop('equity_curve', None)
+            await db.backtest_results.insert_one(doc)
+        except Exception as db_err:
+            logger.warning(f"Failed to save backtest to DB: {db_err}")
+
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Backtest error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ============= NEWS & EVENTS =============
 
 @api_router.get("/news")
 async def get_news(limit: int = 20):
-    """Get latest financial news"""
-    # Check cache first
     recent_news = await db.news_events.find(
         {},
         {'_id': 0}
     ).sort('published_at', -1).limit(limit).to_list(limit)
     
-    # If cache is recent enough, return it
     if recent_news and len(recent_news) > 0:
         latest = recent_news[0]
         if isinstance(latest.get('published_at'), str):
             latest_time = datetime.fromisoformat(latest['published_at'])
-            if datetime.now(timezone.utc) - latest_time.replace(tzinfo=timezone.utc) < timedelta(hours=3):
+            if datetime.now(timezone.utc) - latest_time.replace(tzinfo=timezone.utc) < timedelta(hours=CFG.cache_news_hours):
                 return {'news': recent_news}
     
-    # Fetch fresh news in background
     asyncio.create_task(fetch_and_classify_news())
     
     return {'news': recent_news}
 
+@api_router.get("/news/asset/{symbol}")
+async def get_news_for_asset(symbol: str, limit: int = 3):
+    symbol_upper = symbol.upper()
+    
+    query = {
+        '$or': [
+            {'affected_assets': symbol_upper},
+            {'title': {'$regex': symbol_upper.replace('.', '\\.'), '$options': 'i'}},
+            {'description': {'$regex': symbol_upper.replace('.', '\\.'), '$options': 'i'}},
+        ]
+    }
+    
+    results = await db.news_events.find(
+        query,
+        {'_id': 0}
+    ).sort('published_at', -1).limit(limit).to_list(limit)
+    
+    if not results:
+        results = await db.news_events.find(
+            {},
+            {'_id': 0}
+        ).sort('published_at', -1).limit(limit).to_list(limit)
+    
+    return {'symbol': symbol_upper, 'news': results}
+
 @api_router.post("/news/refresh")
 async def refresh_news():
-    """Manually trigger news refresh"""
     await fetch_and_classify_news()
     return {"status": "refreshed"}
 
-# ============= SETTINGS =============
 
 @api_router.get("/settings", response_model=UserSettings)
 async def get_settings():
-    """Get user settings"""
     settings = await db.user_settings.find_one({}, {'_id': 0})
     if not settings:
         settings = UserSettings().model_dump()
@@ -374,7 +409,6 @@ async def get_settings():
 
 @api_router.put("/settings", response_model=UserSettings)
 async def update_settings(settings: UserSettings):
-    """Update user settings"""
     doc = settings.model_dump()
     await db.user_settings.update_one(
         {},
@@ -383,32 +417,27 @@ async def update_settings(settings: UserSettings):
     )
     return settings
 
-# ============= DASHBOARD OVERVIEW =============
 
 @api_router.get("/dashboard")
 async def get_dashboard():
-    """Get complete dashboard data"""
     assets = await db.assets.find({'is_active': True}, {'_id': 0}).to_list(100)
     
     dashboard_data = []
     for asset in assets:
         symbol = asset['symbol']
         
-        # Get latest score
         score = await db.scores.find_one(
             {'symbol': symbol},
             {'_id': 0},
             sort=[('timestamp', -1)]
         )
         
-        # Get latest price
         price = await db.price_history.find_one(
             {'symbol': symbol},
             {'_id': 0},
             sort=[('timestamp', -1)]
         )
         
-        # Get indicators
         indicators = await db.indicators.find_one(
             {'symbol': symbol},
             {'_id': 0},
@@ -424,40 +453,35 @@ async def get_dashboard():
     
     return {'assets': dashboard_data}
 
-# ============= BACKGROUND TASKS =============
 
 async def fetch_and_calculate_asset_data(symbol: str, exchange: Optional[str] = None, currency: str = 'USD'):
-    """Fetch price, calculate indicators and score for an asset"""
     try:
         logger.info(f"Fetching data for {symbol}")
         
-        # Fetch price
         price_data = PriceProvider.fetch_latest_price(symbol, exchange)
         if price_data:
-            # Handle currency
             if currency == 'INR':
                 price_usd = None
                 price_inr = price_data['price']
                 usd_inr_rate = None
             else:
-                usd_inr_rate = FXProvider.fetch_usd_inr_rate() or 83.5
+                usd_inr_rate = FXProvider.fetch_usd_inr_rate() or CFG.fx_fallback_usd_inr
                 price_usd = price_data['price']
                 price_inr = price_data['price'] * usd_inr_rate
             
             price_obj = PriceData(
                 symbol=symbol,
                 timestamp=price_data['timestamp'],
-                price_usd=price_usd or price_inr / 83.5,
+                price_usd=price_usd or price_inr / CFG.fx_fallback_usd_inr,
                 price_inr=price_inr,
-                usd_inr_rate=usd_inr_rate or 83.5,
+                usd_inr_rate=usd_inr_rate or CFG.fx_fallback_usd_inr,
                 volume=price_data.get('volume')
             )
             doc = price_obj.model_dump()
             doc['timestamp'] = doc['timestamp'].isoformat()
             await db.price_history.insert_one(doc)
         
-        # Calculate indicators
-        df = PriceProvider.fetch_historical_data(symbol, '2y', exchange)
+        df = PriceProvider.fetch_historical_data(symbol, CFG.history_period, exchange)
         if df is not None and not df.empty:
             indicators = TechnicalIndicators.calculate_all_indicators(df)
             indicator_obj = IndicatorData(
@@ -469,9 +493,8 @@ async def fetch_and_calculate_asset_data(symbol: str, exchange: Optional[str] = 
             doc['timestamp'] = doc['timestamp'].isoformat()
             await db.indicators.insert_one(doc)
             
-            # Calculate score
             current_price = float(df.iloc[-1]['Close'])
-            usd_inr_rate = FXProvider.fetch_usd_inr_rate() or 83.5
+            usd_inr_rate = FXProvider.fetch_usd_inr_rate() or CFG.fx_fallback_usd_inr
             composite_score, breakdown, top_factors = ScoringEngine.calculate_composite_score(
                 indicators, current_price, usd_inr_rate
             )
@@ -499,60 +522,124 @@ async def fetch_and_calculate_asset_data(symbol: str, exchange: Optional[str] = 
         logger.error(f"Error in background task for {symbol}: {str(e)}")
 
 async def fetch_and_classify_news():
-    """Fetch and classify news events"""
+    import re
+    import html as html_mod
+    def _strip_html(s: str) -> str:
+        s = re.sub(r'<[^>]+>', '', s)
+        return html_mod.unescape(s).strip()
+
     try:
         logger.info("Fetching news")
-        articles = news_provider.fetch_latest_news()
-        
-        for article in articles[:10]:  # Limit to avoid rate limits
-            # Check if already processed
-            existing = await db.news_events.find_one({'url': article['url']})
+        assets = await db.assets.find({'is_active': True}, {'symbol': 1, '_id': 0}).to_list(100)
+        symbols = [a['symbol'] for a in assets]
+
+        if symbols:
+            articles = news_provider.fetch_news_for_assets(symbols, per_asset=5)
+        else:
+            articles = news_provider.fetch_latest_news()
+
+        for article in articles[:CFG.news_process_limit]:
+            url = article.get('url', '')
+            if not url:
+                continue
+            existing = await db.news_events.find_one({'url': url})
             if existing:
                 continue
-            
-            # Classify with LLM
-            classification = await llm_service.classify_news_event(
-                article['title'],
-                article['description'] or article['title']
-            )
-            
+
+            title = _strip_html(article.get('title', ''))
+            desc = _strip_html(article.get('description', '') or title)
+
+            classification = await llm_service.classify_news_event(title, desc)
+
+            matched_asset = article.get('_matched_asset', '')
+            affected = classification.get('affected_assets', [])
+            if matched_asset and matched_asset not in affected:
+                affected.append(matched_asset)
+
+            pub_raw = article.get('publishedAt', datetime.now(timezone.utc).isoformat())
+            try:
+                pub_dt = datetime.fromisoformat(pub_raw.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                pub_dt = datetime.now(timezone.utc)
+
             news_obj = NewsEvent(
-                title=article['title'],
-                description=article['description'] or article['title'],
-                source=article['source']['name'],
-                url=article['url'],
-                published_at=datetime.fromisoformat(article['publishedAt'].replace('Z', '+00:00')),
+                title=title,
+                description=desc,
+                source=article.get('source', {}).get('name', 'Unknown'),
+                url=url,
+                published_at=pub_dt,
                 event_type=classification.get('event_type', 'general'),
-                affected_assets=classification.get('affected_assets', []),
+                affected_assets=affected,
                 impact_scores=classification.get('impact_scores', {}),
-                summary=classification.get('summary', '')
+                summary=classification.get('summary', '') or desc[:200],
             )
-            
+
             doc = news_obj.model_dump()
             doc['published_at'] = doc['published_at'].isoformat()
             await db.news_events.insert_one(doc)
-        
-        logger.info("News fetch completed")
+
+        logger.info(f"News fetch completed, processed {len(articles)} articles")
     except Exception as e:
         logger.error(f"Error fetching news: {str(e)}")
 
-# ============= HEALTH CHECK =============
+
+@api_router.get("/sentiment/{symbol}")
+async def get_sentiment(symbol: str):
+    sym = symbol.upper()
+    cached = await db.sentiment.find_one(
+        {'symbol': sym}, {'_id': 0}, sort=[('timestamp', -1)]
+    )
+    if cached:
+        ts = cached.get('timestamp', '')
+        if isinstance(ts, str):
+            try:
+                age = datetime.now(timezone.utc) - datetime.fromisoformat(ts).replace(tzinfo=timezone.utc)
+                if age < timedelta(hours=CFG.cache_scores_hours):
+                    return cached
+            except Exception:
+                pass
+        return cached
+    return {"symbol": sym, "status": "not_analyzed", "G_t": 1.0, "confidence": 0}
+
+
+@api_router.post("/sentiment/{symbol}")
+async def run_sentiment(symbol: str):
+    sym = symbol.upper()
+    try:
+        sa = _get_sentiment_mod()
+        result = await sa.full_sentiment_analysis(sym)
+        doc = result.model_dump()
+        doc['symbol'] = sym
+        doc['timestamp'] = datetime.now(timezone.utc).isoformat()
+        doc['top_factors'] = [f.model_dump() for f in result.top_factors]
+        doc['citations'] = [c.model_dump() for c in result.citations]
+        store_doc = {k: v for k, v in doc.items()}
+        await db.sentiment.insert_one(store_doc)
+        doc.pop('_id', None)
+        return doc
+    except Exception as e:
+        logger.error(f"Sentiment analysis failed for {sym}: {e}")
+        return {
+            "symbol": sym, "G_t": 1.0, "raw_sentiment": 0.0,
+            "confidence": 0.0, "reasoning": f"Analysis unavailable: {str(e)}",
+            "top_factors": [], "citations": [],
+        }
+
 
 @api_router.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-# Include the router in the main app
 app.include_router(api_router)
 
-# PHASE1: indicator hook - Add Phase 1 development endpoints router here
-# from phase1_routes import phase1_router
-# app.include_router(phase1_router)
+
+_cors_raw = os.environ.get('CORS_ORIGINS', '*')
+_cors_origins = ['*'] if _cors_raw == '*' else [o.strip() for o in _cors_raw.split(',') if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=_cors_raw != '*',
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

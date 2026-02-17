@@ -1,0 +1,43 @@
+{
+  "symbol": "ORCL",
+  "name": "Oracle Corporation",
+  "quote_type": "EQUITY",
+  "sector": "Technology",
+  "industry": "Software - Infrastructure",
+  "exchange": "NYQ",
+  "currency": "USD",
+  "description": "Oracle Corporation offers products and services that address enterprise information technology environments worldwide. Its Oracle cloud software as a service offering include various cloud software applications, including Oracle Fusion cloud enterprise resource planning ERP, Oracle Fusion cloud enterprise performance management EPM, Oracle Fusion cloud supply chain and manufacturing management SCM, Oracle Fusion cloud human capital management HCM, and NetSuite applications suite, Oracle Health a",
+  "display_name": "US Tech Equity - Oracle",
+  "interpretation_guide": "Sentiment for Oracle Corporation is bullish when there are positive developments in the cloud software and enterprise technology sectors. Events such as increased adoption of cloud services, strategic partnerships, and innovative product launches are likely to boost sentiment. However, bearish sentiment may prevail in the face of intense competition, cybersecurity threats, or disappointing earnings reports. Unlike a generic stock, Oracle's sentiment is closely tied to the performance of the technology sector and the demand for cloud-based services. As a leader in the software infrastructure industry, Oracle's sentiment is also influenced by the overall health of the global economy and the trajectory of digital transformation.",
+  "key_factors": [
+    "US Economic Growth",
+    "Cloud Computing Adoption",
+    "Cybersecurity Threats",
+    "Global Trade Policies",
+    "Technological Advancements"
+  ],
+  "subreddits": [
+    "investing",
+    "stockmarket",
+    "tech",
+    "cloudcomputing",
+    "oracle",
+    "wallstreetbets",
+    "financialindependence"
+  ],
+  "news_keywords": [
+    "Oracle Corporation",
+    "Cloud Software",
+    "Enterprise Technology",
+    "Artificial Intelligence",
+    "Machine Learning",
+    "Cybersecurity",
+    "Digital Transformation",
+    "Earnings Report",
+    "Stock Price",
+    "Market Trends",
+    "Tech Industry",
+    "Software Infrastructure"
+  ],
+  "sentiment_inversion_events": []
+}

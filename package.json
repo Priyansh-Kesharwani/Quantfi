@@ -1,0 +1,14 @@
+{
+  "name": "quantfi",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:unit": "python3 -m pytest tests -q",
+    "test:frontend": "cd frontend && CI=true npx craco test --watchAll=false",
+    "test:e2e": "npx playwright test",
+    "test": "npm run test:unit && npm run test:frontend && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

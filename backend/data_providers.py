@@ -3,204 +3,246 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
 import os
-from newsapi import NewsApiClient
+import re
 import logging
-import time
-import random
+import urllib.request
+import xml.etree.ElementTree as ET
+import html as html_mod
+from urllib.parse import quote
+from email.utils import parsedate_to_datetime
+from app_config import get_backend_config
 
 logger = logging.getLogger(__name__)
+CFG = get_backend_config()
 
-# Mock data fallback for when yfinance fails
-MOCK_PRICES = {
-    'GOLD': {'price': 2050.0, 'high': 2055.0, 'low': 2045.0, 'open': 2048.0, 'volume': 125000},
-    'SILVER': {'price': 24.5, 'high': 24.6, 'low': 24.4, 'open': 24.45, 'volume': 85000},
-    'GC=F': {'price': 2050.0, 'high': 2055.0, 'low': 2045.0, 'open': 2048.0, 'volume': 125000},
-    'SI=F': {'price': 24.5, 'high': 24.6, 'low': 24.4, 'open': 24.45, 'volume': 85000},
-    'AAPL': {'price': 185.5, 'high': 186.2, 'low': 184.8, 'open': 185.0, 'volume': 55000000},
-    'TSLA': {'price': 245.2, 'high': 247.5, 'low': 243.1, 'open': 244.0, 'volume': 95000000},
-    'NFLX': {'price': 725.8, 'high': 730.2, 'low': 721.5, 'open': 724.0, 'volume': 3500000},
-    'GOOGL': {'price': 178.5, 'high': 180.1, 'low': 177.2, 'open': 178.0, 'volume': 25000000},
-    'MSFT': {'price': 415.2, 'high': 417.5, 'low': 413.0, 'open': 414.5, 'volume': 22000000},
-    # Indian stocks (NSE)
-    'RELIANCE.NS': {'price': 2925.0, 'high': 2940.0, 'low': 2910.0, 'open': 2920.0, 'volume': 8500000},
-    'TCS.NS': {'price': 3850.0, 'high': 3870.0, 'low': 3835.0, 'open': 3845.0, 'volume': 2500000},
-    'INFY.NS': {'price': 1580.0, 'high': 1595.0, 'low': 1570.0, 'open': 1575.0, 'volume': 6500000},
-    'HDFCBANK.NS': {'price': 1725.0, 'high': 1735.0, 'low': 1715.0, 'open': 1720.0, 'volume': 5500000},
-    'ICICIBANK.NS': {'price': 1180.0, 'high': 1190.0, 'low': 1175.0, 'open': 1178.0, 'volume': 7000000},
-}
 
-def generate_mock_history(symbol: str, days: int = 730) -> pd.DataFrame:
-    """Generate mock historical data for testing"""
-    base_price = MOCK_PRICES.get(symbol, MOCK_PRICES.get('GC=F'))['price']
-    
-    dates = pd.date_range(end=datetime.now(), periods=days, freq='D')
-    data = []
-    
-    current_price = base_price * 0.85  # Start 15% lower
-    for date in dates:
-        daily_change = random.uniform(-0.02, 0.02)
-        current_price *= (1 + daily_change)
-        
-        data.append({
-            'Open': current_price * 0.998,
-            'High': current_price * 1.005,
-            'Low': current_price * 0.995,
-            'Close': current_price,
-            'Volume': random.randint(50000, 200000)
-        })
-    
-    df = pd.DataFrame(data, index=dates)
-    return df
+class SymbolResolver:
+
+    _info_cache: Dict[str, Dict] = {}
+
+    @classmethod
+    def resolve(cls, symbol: str, exchange: Optional[str] = None) -> str:
+        aliases = getattr(CFG, 'symbol_aliases', None) or {}
+        upper = symbol.upper()
+        if upper in aliases:
+            return aliases[upper]
+
+        suffixes = getattr(CFG, 'exchange_suffixes', None) or {}
+        if exchange and exchange in suffixes:
+            sfx = suffixes[exchange]
+            return symbol if symbol.endswith(sfx) else f"{symbol}{sfx}"
+
+        return symbol
+
+    @classmethod
+    def get_info(cls, symbol: str) -> Dict:
+        if symbol in cls._info_cache:
+            return cls._info_cache[symbol]
+        try:
+            info = yf.Ticker(symbol).info or {}
+            cls._info_cache[symbol] = info
+            return info
+        except Exception:
+            return {}
+
+    @classmethod
+    def get_name(cls, symbol: str) -> str:
+        info = cls.get_info(symbol)
+        return info.get('longName') or info.get('shortName') or symbol
+
+    @classmethod
+    def get_news_keywords(cls, symbol: str) -> List[str]:
+        info = cls.get_info(symbol)
+        kw = []
+        name = info.get('longName') or info.get('shortName') or ''
+        if name:
+            kw.append(name)
+        kw.append(symbol.replace('=F', '').replace('-USD', '').replace('.NS', '').replace('.BO', ''))
+        sector = info.get('sector', '')
+        if sector:
+            kw.append(sector)
+        qt = info.get('quoteType', '')
+        if qt == 'FUTURE':
+            kw.append('futures commodity')
+        elif qt == 'CRYPTOCURRENCY':
+            kw.append('crypto')
+        elif qt == 'ETF':
+            kw.append('ETF fund')
+        return [k for k in kw if k]
+
 
 class PriceProvider:
-    """Abstraction for price data - currently using yfinance, easy to swap"""
-    
-    # Symbol mappings
-    SYMBOL_MAP = {
-        'GOLD': 'GC=F',  # Gold futures
-        'SILVER': 'SI=F',  # Silver futures
-        'XAU': 'GC=F',
-        'XAG': 'SI=F'
-    }
-    
-    # Indian stock suffix mapping
-    INDIAN_EXCHANGES = {
-        'NSE': '.NS',
-        'BSE': '.BO'
-    }
-    
+
     @classmethod
-    def get_symbol(cls, asset_symbol: str, exchange: Optional[str] = None) -> str:
-        """Convert our symbols to provider symbols"""
-        # Handle Indian stocks
-        if exchange in cls.INDIAN_EXCHANGES:
-            return f"{asset_symbol}{cls.INDIAN_EXCHANGES[exchange]}"
-        
-        # Handle mapped symbols (metals)
-        return cls.SYMBOL_MAP.get(asset_symbol.upper(), asset_symbol)
-    
-    @classmethod
-    def fetch_historical_data(cls, symbol: str, period: str = '2y', exchange: Optional[str] = None) -> Optional[pd.DataFrame]:
-        """
-        Fetch historical price data
-        period: '1y', '2y', '5y', '10y', 'max'
-        """
+    def fetch_historical_data(
+        cls,
+        symbol: str,
+        period: str = '2y',
+        exchange: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+    ) -> Optional[pd.DataFrame]:
+        provider_symbol = SymbolResolver.resolve(symbol, exchange)
+        logger.info(f"Fetching data for {provider_symbol} (period={period}, start={start_date}, end={end_date})")
+
         try:
-            provider_symbol = cls.get_symbol(symbol, exchange)
             ticker = yf.Ticker(provider_symbol)
-            df = ticker.history(period=period)
-            
-            if df.empty:
-                logger.warning(f"No data returned for {symbol}, using mock data")
-                # Use mock data as fallback
-                days_map = {'1mo': 30, '3mo': 90, '6mo': 180, '1y': 365, '2y': 730, '5y': 1825, '10y': 3650, 'max': 7300}
-                days = days_map.get(period, 730)
-                return generate_mock_history(provider_symbol, days)
-            
+            if start_date and end_date:
+                df = ticker.history(start=start_date, end=end_date, auto_adjust=True)
+            else:
+                df = ticker.history(period=period, auto_adjust=True)
+
+            if df is None or df.empty:
+                logger.error(f"No data for {provider_symbol}")
+                return None
+
+            df.columns = [c.title() if c[0].islower() else c for c in df.columns]
+            price_cols = [c for c in ['Open', 'High', 'Low', 'Close'] if c in df.columns]
+            if price_cols:
+                df = df.dropna(subset=price_cols, how='all')
+
+            logger.info(f"Fetched {len(df)} rows for {provider_symbol}: {df.index.min().date()} → {df.index.max().date()}")
             return df
         except Exception as e:
-            logger.error(f"Error fetching data for {symbol}: {str(e)}, using mock data")
-            # Fallback to mock data
-            days_map = {'1mo': 30, '3mo': 90, '6mo': 180, '1y': 365, '2y': 730, '5y': 1825, '10y': 3650, 'max': 7300}
-            days = days_map.get(period, 730)
-            provider_symbol = cls.get_symbol(symbol, exchange)
-            return generate_mock_history(provider_symbol, days)
-    
-    @classmethod
-    def fetch_latest_price(cls, symbol: str, exchange: Optional[str] = None) -> Optional[Dict]:
-        """
-        Fetch the latest price data
-        Returns: {price, volume, timestamp}
-        """
-        try:
-            provider_symbol = cls.get_symbol(symbol, exchange)
-            
-            # Try yfinance first
-            try:
-                ticker = yf.Ticker(provider_symbol)
-                df = ticker.history(period='1d')
-                
-                if not df.empty:
-                    latest = df.iloc[-1]
-                    return {
-                        'price': float(latest['Close']),
-                        'volume': float(latest['Volume']) if 'Volume' in latest else None,
-                        'timestamp': datetime.now(),
-                        'high': float(latest['High']),
-                        'low': float(latest['Low']),
-                        'open': float(latest['Open'])
-                    }
-            except Exception as yf_error:
-                logger.warning(f"yfinance failed for {symbol}: {str(yf_error)}")
-            
-            # Fallback to mock data
-            logger.warning(f"Using mock data for {symbol}")
-            if provider_symbol in MOCK_PRICES:
-                mock = MOCK_PRICES[provider_symbol]
-            elif symbol in MOCK_PRICES:
-                mock = MOCK_PRICES[symbol]
-            else:
-                logger.error(f"No mock data available for {symbol}")
-                return None
-                
-            return {
-                'price': mock['price'] * random.uniform(0.998, 1.002),
-                'volume': mock['volume'],
-                'timestamp': datetime.now(),
-                'high': mock['high'],
-                'low': mock['low'],
-                'open': mock['open']
-            }
-        except Exception as e:
-            logger.error(f"Critical error fetching price for {symbol}: {str(e)}")
+            logger.error(f"Fetch failed for {provider_symbol}: {e}")
             return None
 
+    @classmethod
+    def fetch_latest_price(cls, symbol: str, exchange: Optional[str] = None) -> Optional[Dict]:
+        try:
+            provider_symbol = SymbolResolver.resolve(symbol, exchange)
+            ticker = yf.Ticker(provider_symbol)
+            df = ticker.history(period=CFG.latest_price_period)
+
+            if df is not None and not df.empty:
+                latest = df.iloc[-1]
+                return {
+                    'price': float(latest['Close']),
+                    'volume': float(latest['Volume']) if 'Volume' in latest else None,
+                    'timestamp': datetime.now(),
+                    'high': float(latest['High']),
+                    'low': float(latest['Low']),
+                    'open': float(latest['Open']),
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Latest price error for {symbol}: {e}")
+            return None
+
+
 class FXProvider:
-    """USD-INR exchange rate provider"""
-    
+
     @classmethod
     def fetch_usd_inr_rate(cls) -> Optional[float]:
-        """
-        Fetch current USD-INR rate
-        """
         try:
             ticker = yf.Ticker('USDINR=X')
-            df = ticker.history(period='1d')
-            
-            if df.empty:
-                logger.warning("No USD-INR data, using fallback")
-                return 83.5  # Fallback rate
-            
-            return float(df.iloc[-1]['Close'])
+            df = ticker.history(period=CFG.latest_price_period)
+            if df is not None and not df.empty:
+                return float(df.iloc[-1]['Close'])
+            return CFG.fx_fallback_usd_inr
         except Exception as e:
-            logger.error(f"Error fetching USD-INR rate: {str(e)}")
-            return 83.5  # Fallback
+            logger.error(f"FX rate error: {e}")
+            return CFG.fx_fallback_usd_inr
+
 
 class NewsProvider:
-    """News data provider using NewsAPI"""
-    
+
     def __init__(self):
         api_key = os.environ.get('NEWS_API_KEY')
-        self.client = NewsApiClient(api_key=api_key) if api_key and api_key != 'placeholder_get_from_newsapi_org' else None
-    
-    def fetch_latest_news(self, query: str = 'gold OR silver OR federal reserve OR interest rates', page_size: int = 20) -> List[Dict]:
-        """
-        Fetch latest financial news
-        """
-        if not self.client:
-            logger.warning("News API key not configured")
-            return []
-        
-        try:
-            articles = self.client.get_everything(
-                q=query,
-                language='en',
-                sort_by='publishedAt',
-                page_size=page_size,
-                from_param=(datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-            )
-            
-            return articles.get('articles', [])
-        except Exception as e:
-            logger.error(f"Error fetching news: {str(e)}")
-            return []
+        placeholders = {'placeholder_get_from_newsapi_org', 'placeholder', 'your_key_here', ''}
+        self.client = None
+        if api_key and api_key not in placeholders:
+            try:
+                from newsapi import NewsApiClient
+                self.client = NewsApiClient(api_key=api_key)
+            except ImportError:
+                logger.warning("newsapi-python not installed")
+
+    def fetch_latest_news(
+        self,
+        query: str = CFG.news_default_query,
+        page_size: int = CFG.news_page_size,
+    ) -> List[Dict]:
+        if self.client:
+            try:
+                articles = self.client.get_everything(
+                    q=query,
+                    language='en',
+                    sort_by='publishedAt',
+                    page_size=page_size,
+                    from_param=(datetime.now() - timedelta(days=CFG.news_lookback_days)).strftime('%Y-%m-%d'),
+                )
+                result = articles.get('articles', [])
+                if result:
+                    return result
+            except Exception as e:
+                logger.warning(f"NewsAPI error: {e}, falling back to RSS")
+
+        return self._fetch_rss_news(query, page_size)
+
+    def fetch_news_for_assets(self, symbols: List[str], per_asset: int = 8) -> List[Dict]:
+        all_articles = []
+        seen_urls = set()
+        for sym in symbols:
+            keywords = SymbolResolver.get_news_keywords(sym)
+            query = ' '.join(keywords[:3]) if keywords else sym
+            articles = self._fetch_rss_news(query, per_asset)
+            for a in articles:
+                url = a.get('url', '')
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    a['_matched_asset'] = sym
+                    all_articles.append(a)
+        all_articles.sort(key=lambda a: a.get('publishedAt', ''), reverse=True)
+        return all_articles
+
+    @staticmethod
+    def _strip_html(s: str) -> str:
+        s = re.sub(r'<[^>]+>', '', s)
+        return html_mod.unescape(s).strip()
+
+    @staticmethod
+    def _fetch_rss_news(query: str, limit: int = 20) -> List[Dict]:
+        rss_base = getattr(CFG, 'news_rss_base', None) or "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+        rss_biz = getattr(CFG, 'news_rss_business', None) or ""
+
+        feeds = [rss_base.format(query=quote(query))]
+        if rss_biz:
+            feeds.append(rss_biz)
+
+        articles = []
+        for url in feeds:
+            try:
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    root = ET.fromstring(resp.read())
+                for item in root.iter('item'):
+                    title = NewsProvider._strip_html(item.findtext('title', ''))
+                    link = item.findtext('link', '')
+                    pub = item.findtext('pubDate', '')
+                    source_el = item.find('source')
+                    source_name = source_el.text if source_el is not None else ''
+                    desc = NewsProvider._strip_html(item.findtext('description', title))
+
+                    if pub:
+                        try:
+                            pub_dt = parsedate_to_datetime(pub).isoformat()
+                        except Exception:
+                            pub_dt = pub
+                    else:
+                        pub_dt = datetime.now().isoformat()
+
+                    articles.append({
+                        'title': title,
+                        'description': desc,
+                        'url': link,
+                        'publishedAt': pub_dt,
+                        'source': {'name': source_name or 'Google News'},
+                    })
+                if len(articles) >= limit:
+                    break
+            except Exception as e:
+                logger.warning(f"RSS error ({url[:60]}...): {e}")
+
+        logger.info(f"RSS fetched {len(articles)} articles")
+        return articles[:limit]

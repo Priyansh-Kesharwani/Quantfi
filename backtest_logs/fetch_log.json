@@ -1,0 +1,213 @@
+{
+  "timestamp": "2026-02-07T02:41:49.448711",
+  "summary": {
+    "total_tasks": 16,
+    "successful": 16,
+    "failed": 0,
+    "rate_limited_count": 0,
+    "total_rows": 68059,
+    "sources_used": [
+      "yfinance"
+    ],
+    "avg_elapsed_ms": 485.3125,
+    "rate_limiter_stats": {
+      "requests_last_minute": 16,
+      "limit": 30,
+      "consecutive_failures": 0
+    }
+  },
+  "results": {
+    "SI=F_1wk": {
+      "symbol": "SI=F",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 1328,
+      "elapsed_ms": 819,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/SI_F_1wk.csv"
+    },
+    "GC=F_1wk": {
+      "symbol": "GC=F",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 1328,
+      "elapsed_ms": 821,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/GC_F_1wk.csv"
+    },
+    "SI=F_1d": {
+      "symbol": "SI=F",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 6385,
+      "elapsed_ms": 968,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/SI_F_1d.csv"
+    },
+    "GC=F_1d": {
+      "symbol": "GC=F",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 6383,
+      "elapsed_ms": 976,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/GC_F_1d.csv"
+    },
+    "SPY_1wk": {
+      "symbol": "SPY",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 1724,
+      "elapsed_ms": 342,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/SPY_1wk.csv"
+    },
+    "SPY_1d": {
+      "symbol": "SPY",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 8313,
+      "elapsed_ms": 455,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/SPY_1d.csv"
+    },
+    "AAPL_1wk": {
+      "symbol": "AAPL",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 2357,
+      "elapsed_ms": 352,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/AAPL_1wk.csv"
+    },
+    "NFLX_1d": {
+      "symbol": "NFLX",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 5966,
+      "elapsed_ms": 272,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/NFLX_1d.csv"
+    },
+    "NFLX_1wk": {
+      "symbol": "NFLX",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 1238,
+      "elapsed_ms": 284,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/NFLX_1wk.csv"
+    },
+    "AAPL_1d": {
+      "symbol": "AAPL",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 11380,
+      "elapsed_ms": 609,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/AAPL_1d.csv"
+    },
+    "RELIANCE.NS_1d": {
+      "symbol": "RELIANCE.NS",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 7556,
+      "elapsed_ms": 337,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/RELIANCE.NS_1d.csv"
+    },
+    "RELIANCE.NS_1wk": {
+      "symbol": "RELIANCE.NS",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 1571,
+      "elapsed_ms": 333,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/RELIANCE.NS_1wk.csv"
+    },
+    "TCS.NS_1wk": {
+      "symbol": "TCS.NS",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 1226,
+      "elapsed_ms": 262,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/TCS.NS_1wk.csv"
+    },
+    "^NSEI_1wk": {
+      "symbol": "^NSEI",
+      "interval": "1wk",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 960,
+      "elapsed_ms": 181,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/_NSEI_1wk.csv"
+    },
+    "TCS.NS_1d": {
+      "symbol": "TCS.NS",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 5832,
+      "elapsed_ms": 426,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/TCS.NS_1d.csv"
+    },
+    "^NSEI_1d": {
+      "symbol": "^NSEI",
+      "interval": "1d",
+      "source": "yfinance",
+      "status": "success",
+      "rows": 4512,
+      "elapsed_ms": 328,
+      "retries": 0,
+      "rate_limited": false,
+      "error": null,
+      "cache_path": "data_cache/_NSEI_1d.csv"
+    }
+  }
+}

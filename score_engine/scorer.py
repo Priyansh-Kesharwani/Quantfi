@@ -1,22 +1,3 @@
-"""
-Composite Scorer
-
-Implements the composite score calculation with sklearn-like interface:
-- .fit(dataframe) to initialize with historical data
-- .transform() to compute scores
-
-Mathematical Formula:
---------------------
-g_pers(H_t) = sigmoid(H_t − 0.5) × 2
-Opp_t = mean([T_t, U_t × g_pers(H_t)])
-Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
-RawFavor_t = Opp_t × Gate_t
-CompositeScore_t = 100 × clip(0.5 + (RawFavor_t − 0.5) × S_scale, 0, 1)
-
-Author: Phase 2 Implementation
-Date: 2026-02-07
-"""
-
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, Optional, Tuple, List, NamedTuple
@@ -29,20 +10,17 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ScorerConfig:
-    """Configuration for composite scoring."""
     
-    # Regime threshold
-    r_thresh: float = 0.5  # R_t must exceed this for gate to be open
+    r_thresh: float = 0.5                                            
     
-    # Score scale
-    S_scale: float = 1.5  # Amplification around neutral
+    S_scale: float = 1.5                                
     
-    # Persistence function
-    g_pers_k: float = 10.0  # Sigmoid steepness
+    g_pers_k: float = 10.0                     
     
-    # Fill missing values
     fill_missing: bool = True
-    fill_value: float = 0.5  # Neutral
+    fill_value: float = 0.5           
+    
+    enable_geopolitics: bool = False
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -50,17 +28,15 @@ class ScorerConfig:
             "S_scale": self.S_scale,
             "g_pers_k": self.g_pers_k,
             "fill_missing": self.fill_missing,
-            "fill_value": self.fill_value
+            "fill_value": self.fill_value,
+            "enable_geopolitics": self.enable_geopolitics,
         }
 
 
 class ScorerResult(NamedTuple):
-    """Result of composite score computation."""
     
-    # Final scores
-    scores: np.ndarray  # CompositeScore_t [0, 100]
+    scores: np.ndarray                             
     
-    # Intermediate values
     T_t: np.ndarray
     U_t: np.ndarray
     H_t: np.ndarray
@@ -73,14 +49,11 @@ class ScorerResult(NamedTuple):
     Gate_t: np.ndarray
     RawFavor_t: np.ndarray
     
-    # Index
     index: Optional[pd.DatetimeIndex] = None
     
-    # Metadata
     meta: Dict[str, Any] = {}
     
     def to_dataframe(self) -> pd.DataFrame:
-        """Convert results to DataFrame."""
         data = {
             'CompositeScore': self.scores,
             'T_t': self.T_t,
@@ -98,11 +71,9 @@ class ScorerResult(NamedTuple):
         return pd.DataFrame(data, index=self.index)
     
     def get_valid_mask(self) -> np.ndarray:
-        """Get mask where scores are valid."""
         return ~np.isnan(self.scores)
     
     def summary(self) -> Dict[str, Any]:
-        """Get summary statistics."""
         valid = self.scores[~np.isnan(self.scores)]
         return {
             "n_total": len(self.scores),
@@ -116,42 +87,12 @@ class ScorerResult(NamedTuple):
 
 
 class CompositeScorer:
-    """
-    Composite DCA State Score calculator.
-    
-    Provides sklearn-like interface for score computation:
-    - .fit(df) to initialize with OHLCV data
-    - .transform() to compute scores
-    - .fit_transform(df) for one-shot computation
-    
-    Example
-    -------
-    >>> from score_engine import CompositeScorer, ScorerConfig
-    >>> config = ScorerConfig(r_thresh=0.5, S_scale=1.5)
-    >>> scorer = CompositeScorer(config)
-    >>> result = scorer.fit_transform(df)
-    >>> print(f"Latest score: {result.scores[-1]:.1f}")
-    
-    With debug mode:
-    >>> result = scorer.fit_transform(df, debug=True)
-    >>> breakdown = result.to_dataframe()
-    """
     
     def __init__(
         self,
         config: Optional[ScorerConfig] = None,
         indicator_config: Optional['IndicatorConfig'] = None
     ):
-        """
-        Initialize scorer.
-        
-        Parameters
-        ----------
-        config : ScorerConfig
-            Scoring configuration
-        indicator_config : IndicatorConfig
-            Indicator computation configuration
-        """
         self.config = config or ScorerConfig()
         self.indicator_config = indicator_config
         
@@ -167,34 +108,14 @@ class CompositeScorer:
         market_data: Optional[pd.DataFrame] = None,
         peer_data: Optional[Dict[str, pd.DataFrame]] = None
     ) -> 'CompositeScorer':
-        """
-        Fit scorer with historical data.
-        
-        Computes all indicator components.
-        
-        Parameters
-        ----------
-        df : pd.DataFrame
-            OHLCV data
-        market_data : pd.DataFrame, optional
-            Market benchmark data for coupling
-        peer_data : Dict[str, pd.DataFrame], optional
-            Peer asset data for coupling
-        
-        Returns
-        -------
-        self
-        """
         from indicators.indicator_engine import IndicatorEngine
         
         logger.info(f"Fitting scorer with {len(df)} observations...")
         
-        # Store data
         self._df = df
         self._market_data = market_data
         self._peer_data = peer_data
         
-        # Compute indicators
         engine = IndicatorEngine(self.indicator_config)
         self._indicators = engine.compute(df, market_data, peer_data)
         
@@ -204,19 +125,6 @@ class CompositeScorer:
         return self
     
     def transform(self, debug: bool = False) -> ScorerResult:
-        """
-        Transform fitted data to composite scores.
-        
-        Parameters
-        ----------
-        debug : bool
-            If True, include detailed component breakdown
-        
-        Returns
-        -------
-        ScorerResult
-            Computed scores and intermediates
-        """
         if not self._fitted:
             raise RuntimeError("Scorer not fitted. Call .fit() first.")
         
@@ -225,7 +133,6 @@ class CompositeScorer:
         
         logger.info(f"Computing composite scores for {n} observations...")
         
-        # Extract components with optional NaN filling
         T_t = self._fill_if_needed(ind.T_t)
         U_t = self._fill_if_needed(ind.U_t)
         H_t = self._fill_if_needed(ind.H_t)
@@ -234,35 +141,47 @@ class CompositeScorer:
         C_t = self._fill_if_needed(ind.C_t)
         R_t = self._fill_if_needed(ind.R_t)
         
-        # 1. Persistence modifier: g_pers(H_t) = sigmoid(H_t - 0.5) * 2
         k = self.config.g_pers_k
         z = k * (H_t - 0.5)
         g_pers_H = 2.0 / (1.0 + np.exp(-z))
         g_pers_H = np.clip(g_pers_H, 0.0, 1.0)
         
-        # 2. Opportunity: Opp_t = mean([T_t, U_t × g_pers(H_t)])
         U_weighted = U_t * g_pers_H
         Opp_t = (T_t + U_weighted) / 2.0
         
-        # 3. Gate: Gate_t = C_t × L_t × 𝟙[R_t ≥ r_thresh]
         R_threshold = np.where(R_t >= self.config.r_thresh, 1.0, 0.0)
         Gate_t = C_t * L_t * R_threshold
         
-        # 4. Raw favorability
         RawFavor_t = Opp_t * Gate_t
         
-        # 5. Final score: CompositeScore = 100 × clip(0.5 + (Raw - 0.5) × S_scale, 0, 1)
-        transformed = 0.5 + (RawFavor_t - 0.5) * self.config.S_scale
+        G_t = np.ones(n)                    
+        if self.config.enable_geopolitics and self._df is not None:
+            try:
+                from indicators.geopolitics import GeopoliticsEngine
+                geo_engine = GeopoliticsEngine()
+                if ind.index is not None:
+                    G_t = geo_engine.compute_G_t_series(
+                        dates=ind.index,
+                        symbol=getattr(self, '_symbol', 'GLOBAL'),
+                    )
+                logger.info(f"G_t applied: mean={np.mean(G_t):.3f}, range=[{np.min(G_t):.3f}, {np.max(G_t):.3f}]")
+            except Exception as e:
+                logger.warning(f"G_t computation failed, using neutral: {e}")
+                G_t = np.ones(n)
+        
+        S_effective = self.config.S_scale * G_t
+        transformed = 0.5 + (RawFavor_t - 0.5) * S_effective
         clipped = np.clip(transformed, 0.0, 1.0)
         scores = 100.0 * clipped
         
-        # Build metadata
         meta = {
             "config": self.config.to_dict(),
             "n_observations": n,
             "n_valid": int(np.sum(~np.isnan(scores))),
             "computed_at": datetime.utcnow().isoformat(),
-            "indicator_meta": ind.meta if debug else {}
+            "indicator_meta": ind.meta if debug else {},
+            "geopolitics_enabled": self.config.enable_geopolitics,
+            "G_t_mean": float(np.mean(G_t)),
         }
         
         result = ScorerResult(
@@ -293,40 +212,15 @@ class CompositeScorer:
         peer_data: Optional[Dict[str, pd.DataFrame]] = None,
         debug: bool = False
     ) -> ScorerResult:
-        """
-        Fit and transform in one step.
-        
-        Parameters
-        ----------
-        df : pd.DataFrame
-            OHLCV data
-        market_data : pd.DataFrame, optional
-            Market benchmark data
-        peer_data : Dict[str, pd.DataFrame], optional
-            Peer asset data
-        debug : bool
-            Include detailed breakdown
-        
-        Returns
-        -------
-        ScorerResult
-        """
         self.fit(df, market_data, peer_data)
         return self.transform(debug=debug)
     
     def _fill_if_needed(self, arr: np.ndarray) -> np.ndarray:
-        """Fill NaN values if configured."""
         if self.config.fill_missing:
             return np.where(np.isnan(arr), self.config.fill_value, arr)
         return arr
     
     def score_neutral(self) -> float:
-        """
-        Compute score with all neutral inputs.
-        
-        Should return ~50 (anchor point).
-        """
-        # All inputs at 0.5
         H_t = 0.5
         k = self.config.g_pers_k
         g_pers = 2.0 / (1.0 + np.exp(-k * (H_t - 0.5)))
@@ -352,21 +246,5 @@ def compute_composite_scores(
     config: Optional[ScorerConfig] = None,
     **kwargs
 ) -> ScorerResult:
-    """
-    Convenience function to compute composite scores.
-    
-    Parameters
-    ----------
-    df : pd.DataFrame
-        OHLCV data
-    config : ScorerConfig
-        Scoring configuration
-    **kwargs
-        Passed to CompositeScorer.fit_transform()
-    
-    Returns
-    -------
-    ScorerResult
-    """
     scorer = CompositeScorer(config)
     return scorer.fit_transform(df, **kwargs)
