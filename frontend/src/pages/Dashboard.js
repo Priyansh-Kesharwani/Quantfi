@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWatchlist } from '../contexts/WatchlistContext';
+import { StatCard, ScoreBar, ZoneBadge, RefreshButton } from '../components/shared';
 import api from '../api';
 import { formatCurrency, getScoreColor, getZoneLabel } from '../utils';
 import {
@@ -45,28 +47,6 @@ const TYPE_COLORS = {
   index: '#06B6D4',
   other: '#94A3B8',
 };
-
-/* ─── KPI Stat Card ─── */
-const StatCard = ({ icon: Icon, label, value, subValue, trend, trendPositive, className = '' }) => (
-  <div className={`glass-effect rounded-sm p-5 ${className}`}>
-    <div className="flex items-center gap-2 mb-3">
-      <div className="p-2 rounded bg-white/5">
-        <Icon className="w-4 h-4 text-primary" />
-      </div>
-      <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
-    </div>
-    <div className="text-2xl font-bold font-data">{value}</div>
-    <div className="flex items-center gap-2 mt-1">
-      {subValue && <span className="text-xs text-muted-foreground font-data">{subValue}</span>}
-      {trend != null && (
-        <span className={`flex items-center gap-0.5 text-xs font-bold ${trendPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-          {trendPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-          {trend}
-        </span>
-      )}
-    </div>
-  </div>
-);
 
 /* ─── DCA Opportunity Radar (Novel Feature) ─── */
 const OpportunityRadar = ({ assets }) => {
@@ -494,9 +474,7 @@ const QuickGlance = ({ assets, navigate }) => {
                     </span>
                   </td>
                   <td className="text-right py-3">
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold score-zone-${zone}`}>
-                      {getZoneLabel(zone)}
-                    </span>
+                    <ZoneBadge zone={zone} size="sm" />
                   </td>
                   <td className="text-right py-3">
                     <span className="text-xs font-data">
@@ -521,35 +499,10 @@ const QuickGlance = ({ assets, navigate }) => {
 /* ──────────────────────────────
    MAIN DASHBOARD COMPONENT
    ────────────────────────────── */
-const Dashboard = ({ refreshKey = 0 }) => {
+const Dashboard = () => {
   const navigate = useNavigate();
-  const [dashboardData, setDashboardData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { assets: dashboardData, loading, refreshing, error, refresh } = useWatchlist();
 
-  const fetchDashboard = async () => {
-    try {
-      const response = await api.getDashboard();
-      const assets = response.data.assets || [];
-      setDashboardData(assets);
-    } catch (error) {
-      console.error('[Dashboard] Error fetching:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboard();
-  }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDashboard();
-  };
-  
   /* ─── Computed Portfolio Metrics ─── */
   const metrics = useMemo(() => {
     let totalUSD = 0;
@@ -601,19 +554,53 @@ const Dashboard = ({ refreshKey = 0 }) => {
     );
   }
 
-  /* ─── Empty State ─── */
+  /* ─── Error State (e.g. backend not running) ─── */
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen" data-testid="error-dashboard">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
+          <h2 className="text-2xl font-bold mb-2">COULD NOT LOAD WATCHLIST</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Make sure the backend is running at {process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              className="px-6 py-3 bg-primary text-primary-foreground rounded font-medium hover:bg-primary/90 transition"
+              onClick={() => refresh()}
+              disabled={refreshing}
+            >
+              {refreshing ? 'RETRYING...' : 'RETRY'}
+            </button>
+            <button
+              className="px-6 py-3 border border-white/20 rounded font-medium hover:bg-white/5 transition"
+              onClick={() => window.dispatchEvent(new Event('addAsset'))}
+            >
+              ADD ASSET ANYWAY
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── Empty State (no assets yet) ─── */
   if (dashboardData.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen" data-testid="empty-dashboard">
         <div className="text-center max-w-md">
           <TrendingUp className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-2xl font-bold mb-2">NO ASSETS IN WATCHLIST</h2>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground mb-2">
             Add assets to your watchlist to start analyzing DCA opportunities.
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Click the button below or use &quot;+ ADD ASSET&quot; in the sidebar.
           </p>
           <button
             className="px-6 py-3 bg-primary text-primary-foreground rounded font-medium hover:bg-primary/90 transition"
-            onClick={() => window.dispatchEvent(new Event('addAsset'))}
+            onClick={() => window.dispatchEvent(new CustomEvent('addAsset'))}
             data-testid="add-first-asset-btn"
           >
             ADD YOUR FIRST ASSET
@@ -631,15 +618,11 @@ const Dashboard = ({ refreshKey = 0 }) => {
           <h1 className="text-4xl font-bold tracking-tight mb-1" data-testid="dashboard-title">DASHBOARD</h1>
           <p className="text-muted-foreground text-sm">Real-time DCA intelligence overview</p>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 glass-effect hover:bg-white/10 rounded transition"
-          data-testid="refresh-dashboard-btn"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span className="text-sm">REFRESH</span>
-        </button>
+        <RefreshButton
+          onClick={refresh}
+          loading={refreshing}
+          testId="refresh-dashboard-btn"
+        />
       </div>
 
       {/* ─── KPI Stats Row ─── */}
@@ -676,16 +659,13 @@ const Dashboard = ({ refreshKey = 0 }) => {
 
       {/* ─── Main Grid: Charts + Insights ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Performance Chart (spans 2 cols) */}
         <div className="lg:col-span-2">
           <PerformanceChart assets={dashboardData} />
-              </div>
-
-        {/* Recent News */}
+        </div>
         <div className="lg:col-span-1">
           <RecentNewsMini />
-                    </div>
-                  </div>
+        </div>
+      </div>
 
       {/* ─── Second Row: Radar + Health + Allocation ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
@@ -697,13 +677,11 @@ const Dashboard = ({ refreshKey = 0 }) => {
           totalCount={metrics.totalAssets}
         />
         <AllocationDonut assets={dashboardData} />
-                  </div>
+      </div>
 
       {/* ─── Smart Alerts ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <SmartAlerts assets={dashboardData} />
-
-        {/* Quick Glance Table */}
         <QuickGlance assets={dashboardData} navigate={navigate} />
       </div>
 

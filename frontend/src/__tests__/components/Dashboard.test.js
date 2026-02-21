@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Dashboard from '../../pages/Dashboard';
+import { WatchlistProvider } from '../../contexts/WatchlistContext';
 import api from '../../api';
 
 // Mock the api module
@@ -30,10 +31,12 @@ const MOCK_NEWS = {
   data: { news: [] }
 };
 
-const renderDashboard = (props = {}) => {
+const renderDashboard = () => {
   return render(
     <BrowserRouter>
-      <Dashboard refreshKey={0} {...props} />
+      <WatchlistProvider>
+        <Dashboard />
+      </WatchlistProvider>
     </BrowserRouter>
   );
 };
@@ -74,8 +77,11 @@ describe('Dashboard', () => {
       expect(screen.getByTestId('dashboard-main')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId('refresh-dashboard-btn'));
-    expect(api.getDashboard).toHaveBeenCalledTimes(2); // initial + refresh
+    fireEvent.click(screen.getByTestId('refresh-btn'));
+    // initial + refresh (context handles the re-fetch)
+    await waitFor(() => {
+      expect(api.getDashboard).toHaveBeenCalledTimes(2);
+    });
   });
 
   test('shows empty state when no assets', async () => {
@@ -94,19 +100,22 @@ describe('Dashboard', () => {
     });
   });
 
-  test('re-fetches when refreshKey changes', async () => {
-    const { rerender } = renderDashboard({ refreshKey: 0 });
+  test('renders KPI stat cards after loading', async () => {
+    renderDashboard();
     await waitFor(() => {
-      expect(api.getDashboard).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('dashboard-main')).toBeInTheDocument();
     });
+    // Should have stat cards rendered
+    const statCards = screen.getAllByTestId('stat-card');
+    expect(statCards.length).toBeGreaterThanOrEqual(4);
+  });
 
-    rerender(
-      <BrowserRouter>
-        <Dashboard refreshKey={1} />
-      </BrowserRouter>
-    );
+  test('renders zone badges in quick glance', async () => {
+    renderDashboard();
     await waitFor(() => {
-      expect(api.getDashboard).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('dashboard-main')).toBeInTheDocument();
     });
+    const badges = screen.getAllByTestId('zone-badge');
+    expect(badges.length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -10,10 +10,12 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta, timezone
 import asyncio
+import uuid
 
 from models import (
     Asset, PriceData, IndicatorData, DCAScore, NewsEvent,
-    BacktestConfig, BacktestResult, UserSettings
+    BacktestConfig, BacktestResult, UserSettings,
+    SimulationRequest, SimulationExitConfig,
 )
 from indicators import TechnicalIndicators
 from scoring import ScoringEngine
@@ -624,6 +626,162 @@ async def run_sentiment(symbol: str):
             "confidence": 0.0, "reasoning": f"Analysis unavailable: {str(e)}",
             "top_factors": [], "citations": [],
         }
+
+
+# ── Strategy Template Presets ─────────────────────────────────
+
+SIMULATION_TEMPLATES = {
+    "conservative": {
+        "entry_score_threshold": 80.0,
+        "exit_config": {
+            "atr_init_mult": 1.5, "atr_trail_mult": 2.0, "min_stop_pct": 5.0,
+            "score_rel_mult": 0.5, "score_abs_floor": 40.0, "max_holding_days": 20,
+        },
+        "max_positions": 6, "use_score_weighting": True, "slippage_bps": 5.0,
+    },
+    "balanced": {
+        "entry_score_threshold": 70.0,
+        "exit_config": {
+            "atr_init_mult": 2.0, "atr_trail_mult": 2.5, "min_stop_pct": 4.0,
+            "score_rel_mult": 0.4, "score_abs_floor": 35.0, "max_holding_days": 30,
+        },
+        "max_positions": 10, "use_score_weighting": True, "slippage_bps": 5.0,
+    },
+    "aggressive": {
+        "entry_score_threshold": 60.0,
+        "exit_config": {
+            "atr_init_mult": 2.5, "atr_trail_mult": 3.0, "min_stop_pct": 3.0,
+            "score_rel_mult": 0.3, "score_abs_floor": 30.0, "max_holding_days": 45,
+        },
+        "max_positions": 15, "use_score_weighting": True, "slippage_bps": 5.0,
+    },
+}
+
+
+@api_router.get("/simulation/templates")
+async def get_simulation_templates():
+    return {"templates": SIMULATION_TEMPLATES}
+
+
+@api_router.get("/simulation/cost-presets")
+async def get_cost_presets():
+    import sys, importlib.util as ilu
+    sim_path = str(Path(__file__).parent.parent / "backtester" / "portfolio_simulator.py")
+    spec = ilu.spec_from_file_location("portfolio_simulator", sim_path)
+    mod = ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return {"cost_presets": mod.COST_PRESETS}
+
+
+@api_router.post("/simulation/run")
+async def run_simulation(request: SimulationRequest):
+    import sys, importlib.util as ilu
+    sim_path = str(Path(__file__).parent.parent / "backtester" / "portfolio_simulator.py")
+    spec = ilu.spec_from_file_location("portfolio_simulator", sim_path)
+    mod = ilu.module_from_spec(spec)
+    sys.modules["portfolio_simulator"] = mod
+    spec.loader.exec_module(mod)
+
+    try:
+        # Apply template overrides if specified
+        tpl = {}
+        if request.template and request.template in SIMULATION_TEMPLATES:
+            tpl = SIMULATION_TEMPLATES[request.template]
+
+        exit_cfg_dict = (request.exit_config.model_dump() if request.exit_config
+                         else tpl.get("exit_config", {}))
+        exit_params = mod.ExitParams(**exit_cfg_dict) if exit_cfg_dict else mod.ExitParams()
+
+        symbols = [s.upper().strip() for s in request.symbols if s.strip()]
+        if not symbols:
+            raise HTTPException(status_code=400, detail="At least one symbol is required")
+
+        start_dt = datetime.fromisoformat(request.start_date)
+        end_dt = datetime.fromisoformat(request.end_date)
+
+        cost_free = getattr(request, "cost_free", False)
+        config = mod.SimConfig(
+            symbols=symbols,
+            start_date=start_dt,
+            end_date=end_dt,
+            initial_capital=request.initial_capital,
+            entry_score_threshold=tpl.get("entry_score_threshold", request.entry_score_threshold),
+            exit_params=exit_params,
+            max_positions=tpl.get("max_positions", request.max_positions),
+            use_score_weighting=tpl.get("use_score_weighting", request.use_score_weighting),
+            min_position_notional=request.min_position_notional,
+            slippage_bps=0.0 if cost_free else tpl.get("slippage_bps", request.slippage_bps),
+            cost_free=cost_free,
+            run_benchmarks=request.run_benchmarks,
+        )
+
+        # Build asset metadata from DB
+        asset_meta = {}
+        for sym in symbols:
+            doc = await db.assets.find_one({"symbol": sym}, {"_id": 0})
+            if doc:
+                asset_meta[sym] = {
+                    "asset_type": doc.get("asset_type", "equity"),
+                    "currency": doc.get("currency", "USD"),
+                    "exchange": doc.get("exchange"),
+                }
+            else:
+                asset_meta[sym] = {"asset_type": "equity", "currency": "USD"}
+
+        usd_inr = FXProvider.fetch_usd_inr_rate() or CFG.fx_fallback_usd_inr
+
+        logger.info(f"Simulation: {symbols} | {start_dt.date()} → {end_dt.date()} | capital={config.initial_capital}")
+
+        date_index, assets_data = mod.prepare_multi_asset_data(
+            symbols=symbols,
+            start_date=start_dt,
+            end_date=end_dt,
+            asset_meta=asset_meta,
+            usd_inr_rate=usd_inr,
+        )
+
+        simulator = mod.PortfolioSimulator(config)
+        result = simulator.run(date_index, assets_data)
+
+        # Optional: export trades to CSV for diagnostics
+        if getattr(request, "export_trades", False) and result.get("trades"):
+            run_id = getattr(request, "run_id", None) or str(uuid.uuid4())[:8]
+            debug_dir = Path(__file__).resolve().parent.parent / "validation" / "debug"
+            csv_path = debug_dir / f"trades_{run_id}.csv"
+            try:
+                written = mod.export_trades_csv(
+                    str(csv_path),
+                    trades=result["trades"],
+                    run_id=run_id,
+                )
+                result["trades_export_path"] = written
+            except Exception as export_err:
+                logger.warning(f"Trade export failed: {export_err}")
+
+        # Store result summary in DB
+        try:
+            store_doc = {
+                "symbols": symbols,
+                "config": config.to_dict(),
+                "total_return_pct": result["total_return_pct"],
+                "sharpe_ratio": result["sharpe_ratio"],
+                "max_drawdown_pct": result["max_drawdown_pct"],
+                "total_trades": result["total_trades"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.simulation_results.insert_one(store_doc)
+        except Exception as db_err:
+            logger.warning(f"Failed to save simulation to DB: {db_err}")
+
+        return result
+
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Simulation error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.get("/health")

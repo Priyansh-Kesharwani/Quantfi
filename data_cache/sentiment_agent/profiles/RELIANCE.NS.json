@@ -1,0 +1,36 @@
+{
+  "symbol": "RELIANCE.NS",
+  "name": "Reliance Industries Limited",
+  "quote_type": "EQUITY",
+  "sector": "Energy",
+  "industry": "Oil & Gas Refining & Marketing",
+  "exchange": "NSI",
+  "currency": "INR",
+  "description": "Reliance Industries Limited engages in the hydrocarbon exploration and production, oil and chemicals, retail, and digital service businesses worldwide. It operates through Oil to Chemicals, Oil and Gas, Retail, Digital Services, and Others segments. The company offers refining and marketing products, including liquefied petroleum gas, propylene, naphtha, gasoline, jet/aviation turbine fuel, kerosine oil, diesel, sulphur, and petroleum coke. It also provides polymers, including high-density and l",
+  "display_name": "Reliance Industries Limited",
+  "interpretation_guide": "Analyse sentiment SPECIFICALLY for Reliance Industries Limited (RELIANCE.NS). Sector: Energy, Industry: Oil & Gas Refining & Marketing. Focus on: company earnings, product launches, executive changes, regulatory actions, competitive dynamics, and analyst ratings that DIRECTLY affect Reliance Industries Limited. Sector-wide news should only be considered if it has a DIRECT causal link to Reliance Industries Limited.",
+  "key_factors": [
+    "Reliance Industries Limited earnings & revenue growth",
+    "Oil & Gas Refining & Marketing competitive landscape",
+    "Regulatory environment for Energy",
+    "Management decisions & strategic direction",
+    "Analyst ratings & institutional sentiment"
+  ],
+  "subreddits": [
+    "relianceindustrieslimited",
+    "energy",
+    "oil",
+    "investing",
+    "StockMarket"
+  ],
+  "news_keywords": [
+    "Reliance Industries Limited",
+    "RELIANCE.NS",
+    "RELIANCE",
+    "Reliance Industries Limited earnings",
+    "Reliance Industries Limited stock",
+    "RELIANCE.NS stock",
+    "Reliance Industries Limited Oil & Gas Refining & Marketing"
+  ],
+  "sentiment_inversion_events": []
+}

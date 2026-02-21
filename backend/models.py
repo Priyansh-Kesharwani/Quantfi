@@ -136,6 +136,36 @@ class UserSettings(BaseModel):
     score_weights: Dict[str, float] = Field(default_factory=lambda: dict(CFG.default_score_weights))
 
 
+# ── Portfolio Simulation Models ─────────────────────────────────
+
+class SimulationExitConfig(BaseModel):
+    atr_init_mult: float = 2.0
+    atr_trail_mult: float = 2.5
+    min_stop_pct: float = 4.0
+    score_rel_mult: float = 0.4
+    score_abs_floor: float = 35.0
+    max_holding_days: int = 30
+
+class SimulationRequest(BaseModel):
+    symbols: List[str]
+    start_date: str
+    end_date: str
+    initial_capital: float = 100000.0
+    entry_score_threshold: float = 70.0
+    exit_config: Optional[SimulationExitConfig] = None
+    max_positions: int = 10
+    use_score_weighting: bool = True
+    min_position_notional: float = 3000.0
+    slippage_bps: float = 5.0
+    run_benchmarks: bool = True
+    template: Optional[str] = None   # "conservative" | "balanced" | "aggressive"
+    cost_free: bool = False          # If True, zero costs and slippage (diagnostic baseline)
+    export_trades: bool = False      # If True, write trades to validation/debug/trades_{run_id}.csv
+    run_id: Optional[str] = None     # Optional id for export filename; generated if not provided
+
+
+# ── Phase 1 Advanced Indicators ────────────────────────────────
+
 class Phase1IndicatorMeta(BaseModel):
     model_config = ConfigDict(extra="ignore")
     

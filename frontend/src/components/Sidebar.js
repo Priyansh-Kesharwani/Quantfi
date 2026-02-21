@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, TrendingUp, LineChart, Newspaper, Settings, Plus } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, LineChart, Newspaper, Settings, Plus, Activity } from 'lucide-react';
 
 const Sidebar = ({ onAddAsset }) => {
   const location = useLocation();
@@ -8,12 +8,12 @@ const Sidebar = ({ onAddAsset }) => {
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'DASHBOARD', description: 'Portfolio overview' },
     { path: '/assets', icon: TrendingUp, label: 'ASSETS', description: 'All watchlist assets' },
-    { path: '/backtest', icon: LineChart, label: 'BACKTEST LAB', description: 'DCA simulations' },
+    { path: '/backtest', icon: LineChart, label: 'BACKTEST LAB', description: 'Single-asset DCA backtest' },
+    { path: '/simulation', icon: Activity, label: 'PORTFOLIO SIM', description: 'Multi-asset simulation' },
     { path: '/news', icon: Newspaper, label: 'NEWS & EVENTS', description: 'Market headlines' },
     { path: '/settings', icon: Settings, label: 'SETTINGS', description: 'Preferences' },
   ];
 
-  // Determine active state — /assets/:symbol should highlight ASSETS, not DASHBOARD
   const getIsActive = (path) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);

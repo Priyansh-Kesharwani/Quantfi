@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useWatchlist } from '../contexts/WatchlistContext';
+import { RefreshButton, FilterTabs } from '../components/shared';
 import api from '../api';
 import { RefreshCw, ExternalLink, TrendingUp, AlertTriangle, Globe, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
 const News = () => {
+  const { assetList } = useWatchlist();
   const [news, setNews] = useState([]);
-  const [assets, setAssets] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -13,12 +15,8 @@ const News = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [newsRes, assetsRes] = await Promise.allSettled([
-          api.getNews(50),
-          api.getAssets(),
-        ]);
-        if (newsRes.status === 'fulfilled') setNews(newsRes.value.data.news || []);
-        if (assetsRes.status === 'fulfilled') setAssets(assetsRes.value.data || []);
+        const newsRes = await api.getNews(50);
+        setNews(newsRes.data.news || []);
       } catch (e) {
         toast.error('Failed to load news');
       } finally {
@@ -41,6 +39,11 @@ const News = () => {
       setRefreshing(false);
     }
   };
+
+  const filterOptions = [
+    { key: 'ALL', label: 'ALL' },
+    ...assetList.map(a => ({ key: a.symbol, label: a.symbol })),
+  ];
 
   const filtered = filter === 'ALL'
     ? news
@@ -75,41 +78,19 @@ const News = () => {
   }
 
   return (
-    <div className="p-8" data-testid="news-page">
+    <div className="p-6 lg:p-8 max-w-[1600px] mx-auto" data-testid="news-page">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-4xl font-bold tracking-tight mb-2" data-testid="news-title">NEWS & GEOPOLITICAL EVENTS</h1>
           <p className="text-muted-foreground text-sm">Asset-relevant news from your watchlist</p>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 glass-effect hover:bg-white/10 rounded transition"
-          data-testid="refresh-news-btn"
-        >
-          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-          REFRESH
-        </button>
+        <RefreshButton onClick={handleRefresh} loading={refreshing} />
       </div>
 
-      {/* Asset Filter Tabs */}
+      {/* Asset Filter Tabs — now from WatchlistContext */}
       <div className="flex items-center gap-2 mb-6 flex-wrap" data-testid="news-filter-tabs">
         <Filter className="w-4 h-4 text-muted-foreground" />
-        <button
-          onClick={() => setFilter('ALL')}
-          className={`px-3 py-1 rounded text-xs font-bold transition ${filter === 'ALL' ? 'bg-primary text-primary-foreground' : 'glass-effect hover:bg-white/10'}`}
-        >
-          ALL
-        </button>
-        {assets.map(a => (
-          <button
-            key={a.symbol}
-            onClick={() => setFilter(a.symbol)}
-            className={`px-3 py-1 rounded text-xs font-bold transition ${filter === a.symbol ? 'bg-primary text-primary-foreground' : 'glass-effect hover:bg-white/10'}`}
-          >
-            {a.symbol}
-          </button>
-        ))}
+        <FilterTabs options={filterOptions} value={filter} onChange={setFilter} size="md" />
       </div>
 
       {filtered.length === 0 ? (
@@ -139,11 +120,9 @@ const News = () => {
                       {formatAge(article.published_at)}
                     </span>
                   </div>
-
                   <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                     {article.summary || article.description}
                   </p>
-
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] px-1.5 py-0.5 glass-effect rounded font-bold">
@@ -159,13 +138,7 @@ const News = () => {
                       ))}
                     </div>
                     {article.url && (
-                      <a
-                        href={article.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[10px] text-primary hover:underline shrink-0"
-                        data-testid={`news-link-${index}`}
-                      >
+                      <a href={article.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-primary hover:underline shrink-0" data-testid={`news-link-${index}`}>
                         READ MORE <ExternalLink className="w-3 h-3" />
                       </a>
                     )}

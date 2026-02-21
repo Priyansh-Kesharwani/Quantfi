@@ -1,0 +1,136 @@
+# ============================================================
+# Phase 3 — Real-World Validation & Parameter Tuning Config
+# ============================================================
+# All configurable knobs for data acquisition, nested CV tuning,
+# execution-risk modeling, walk-forward evaluation, and reporting.
+# ============================================================
+
+determinism:
+  rng_seed: 42
+
+# ── Data Sources ──────────────────────────────────────────
+data:
+  providers:
+    primary: "yfinance"                # polygon | tiingo | yfinance
+    fallback: ["alpha_vantage"]
+  snapshot_dir: "data_snapshots"
+  raw_dir: "raw_data"
+  assets:
+    - symbol: "SPY"
+      intervals: ["1d"]
+      min_history_years: 10
+    - symbol: "AAPL"
+      intervals: ["1d"]
+      min_history_years: 10
+    - symbol: "GLD"
+      intervals: ["1d"]
+      min_history_years: 10
+  required_columns: ["open", "high", "low", "close", "volume"]
+  max_nan_pct: 0.001
+
+# ── Walk-Forward (Outer Loop) ─────────────────────────────
+walkforward:
+  train_window: 756               # ~3 years daily
+  test_window: 252                # ~1 year daily
+  slide_window: 252               # slide by 1 year
+  expanding: true
+  embargo_pct: 0.01               # 1% of bars as embargo
+
+# ── Purged K-Fold (Inner Loop) ────────────────────────────
+inner_cv:
+  n_splits: 5
+  embargo_bars: 20
+
+# ── Hyperparameter Tuning ─────────────────────────────────
+tuning:
+  method: "random_search"          # grid | random_search | bayesian
+  n_trials: 50                     # number of random/bayesian trials
+  lambda_var: 0.5                  # regularizer: penalize IC variance
+  objective: "sortino"             # sortino | ir | ic
+  search_space:
+    lookback_short:  [10, 20, 40]
+    lookback_medium: [40, 80, 120]
+    lookback_long:   [120, 200, 252]
+    k_pers:          [1.0, 3.0, 5.0, 8.0, 10.0, 12.0]
+    S_scale:         [0.5, 0.8, 1.0, 1.2, 1.5, 2.0, 3.0]
+    S_scale_exit:    [0.5, 0.8, 1.0, 1.2, 1.5, 2.0, 3.0]
+    ofi_window:      [5, 10, 20, 40, 60]
+    ldc_kappa:       [0.5, 1.0, 2.0, 3.0]
+    ldc_feature_window: [3, 5, 8, 16, 32]
+    hawkes_decay:    [0.5, 1.0, 2.0, 5.0]
+
+# ── Execution Risk Model ──────────────────────────────────
+execution:
+  slippage:
+    k_impact: 0.001               # Kyle impact coefficient
+    gamma: 0.5                    # impact exponent
+    sigma_slip: 0.0001            # Gaussian noise std
+    order_size_pct: 0.01          # order size as fraction of ADV
+  latency:
+    mean_latency_ms: 50           # mean latency for intraday
+    jitter: true
+  transaction_costs:
+    commission_bps: 2.0           # 2 basis points per side
+    spread_bps: 1.0               # effective half-spread
+
+# ── Hawkes Stress-Test ────────────────────────────────────
+hawkes_stress:
+  regimes:
+    - name: "bursty"
+      mu: 0.1
+      alpha: 0.8
+      beta: 1.0
+      T: 500.0
+    - name: "dense"
+      mu: 3.0
+      alpha: 0.1
+      beta: 1.0
+      T: 500.0
+    - name: "near_critical"
+      mu: 0.5
+      alpha: 0.98
+      beta: 1.0
+      T: 500.0
+    - name: "sparse"
+      mu: 0.02
+      alpha: 0.3
+      beta: 1.0
+      T: 500.0
+  rmse_threshold: 0.10
+  lob_depth_levels: 5             # synthetic LOB depth
+
+# ── Robustness Tests ──────────────────────────────────────
+robustness:
+  subsample_fraction: 0.5
+  subsample_n_trials: 20
+  block_bootstrap_n: 200
+  block_bootstrap_block_size: 20
+  threshold_sweep: [50, 55, 60, 65, 70, 75, 80, 85, 90]
+  ablation_components:
+    - "ofi"
+    - "hawkes"
+    - "ldc"
+    - "hurst"
+  adversarial:
+    sparse_volume_fraction: 0.1   # reduce volume to 10%
+    gap_fraction: 0.05            # remove 5% of bars
+    ofi_spike_magnitude: 10.0     # inject false OFI spikes
+
+# ── Scoring ───────────────────────────────────────────────
+scoring:
+  entry_threshold: 70
+  exit_threshold: 70
+  forward_horizons: [5, 10, 20]
+
+# ── Reporting ─────────────────────────────────────────────
+reporting:
+  output_dir: "validation/reports"
+  metrics_dir: "validation/metrics"
+  tuning_dir: "validation/outputs"
+
+# ── Resource Limits ───────────────────────────────────────
+resources:
+  base_timeout_s: 30
+  per_bar_timeout_s: 0.005
+  max_parallel_folds: 4
+  max_memory_gb: 8

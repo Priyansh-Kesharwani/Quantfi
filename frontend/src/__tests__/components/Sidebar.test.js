@@ -18,11 +18,12 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('app-title')).toHaveTextContent('QUANTFI');
   });
 
-  test('renders all 5 navigation items', () => {
+  test('renders all 6 navigation items (including Validation Lab)', () => {
     renderSidebar();
     expect(screen.getByTestId('nav-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('nav-assets')).toBeInTheDocument();
     expect(screen.getByTestId('nav-backtest-lab')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-validation-lab')).toBeInTheDocument();
     expect(screen.getByTestId('nav-news-&-events')).toBeInTheDocument();
     expect(screen.getByTestId('nav-settings')).toBeInTheDocument();
   });
@@ -32,6 +33,7 @@ describe('Sidebar', () => {
     expect(screen.getByText('DASHBOARD')).toBeInTheDocument();
     expect(screen.getByText('ASSETS')).toBeInTheDocument();
     expect(screen.getByText('BACKTEST LAB')).toBeInTheDocument();
+    expect(screen.getByText('VALIDATION LAB')).toBeInTheDocument();
     expect(screen.getByText('NEWS & EVENTS')).toBeInTheDocument();
     expect(screen.getByText('SETTINGS')).toBeInTheDocument();
   });

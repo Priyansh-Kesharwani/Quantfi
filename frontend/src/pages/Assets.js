@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import { useWatchlist } from '../contexts/WatchlistContext';
+import { ScoreBar, ZoneBadge, RefreshButton, FilterTabs } from '../components/shared';
 import { formatCurrency, getScoreColor, getZoneLabel } from '../utils';
 import {
   RefreshCw, TrendingUp, Search, Filter, LayoutGrid,
@@ -115,9 +116,7 @@ const AssetGridCard = ({ item, onNavigate, onRemove }) => {
           <p className="text-xs text-muted-foreground truncate">{asset.name}</p>
           <span className="text-[10px] text-muted-foreground/60">{(asset.asset_type || '').toUpperCase()}</span>
         </div>
-        <div className={`px-2.5 py-1 rounded text-[10px] font-bold whitespace-nowrap score-zone-${zone || 'neutral'}`}>
-          {getZoneLabel(zone)}
-        </div>
+        <ZoneBadge zone={zone} size="md" />
       </div>
 
       {!hasData ? (
@@ -140,20 +139,7 @@ const AssetGridCard = ({ item, onNavigate, onRemove }) => {
             </div>
           </div>
 
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-muted-foreground">DCA SCORE</span>
-              <span className="text-xl font-bold font-data" style={{ color: getScoreColor(scoreValue) }}>
-                {scoreValue.toFixed(0)}
-              </span>
-            </div>
-            <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="h-full transition-all duration-300"
-                style={{ width: `${scoreValue}%`, backgroundColor: getScoreColor(scoreValue) }}
-              />
-            </div>
-          </div>
+          <ScoreBar value={scoreValue} label="DCA SCORE" showValue height="h-1.5" className="mb-3" />
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             {indicators?.rsi_14 != null && (
@@ -225,9 +211,7 @@ const AssetTableRow = ({ item, onNavigate, onRemove }) => {
         </div>
       </td>
       <td className="py-4 text-right">
-        <span className={`text-[10px] px-2 py-0.5 rounded font-bold score-zone-${zone}`}>
-          {getZoneLabel(zone)}
-        </span>
+        <ZoneBadge zone={zone} size="sm" />
       </td>
       <td className="py-4 text-right font-data text-sm">
         {indicators?.rsi_14 != null ? indicators.rsi_14.toFixed(1) : '—'}
@@ -264,49 +248,23 @@ const AssetTableRow = ({ item, onNavigate, onRemove }) => {
 /* ──────────────────────────────
    MAIN ASSETS PAGE
    ────────────────────────────── */
-const Assets = ({ refreshKey = 0 }) => {
+const Assets = () => {
   const navigate = useNavigate();
-  const [dashboardData, setDashboardData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { assets: dashboardData, loading, refreshing, refresh, removeAsset } = useWatchlist();
 
   /* ─── View State ─── */
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [zoneFilter, setZoneFilter] = useState('all');
   const [sortBy, setSortBy] = useState('score_desc');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
-  const fetchDashboard = async () => {
-    try {
-      const response = await api.getDashboard();
-      const assets = response.data.assets || [];
-      setDashboardData(assets);
-    } catch (error) {
-      console.error('[Assets] Error fetching:', error);
-      toast.error('Failed to load assets data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboard();
-  }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchDashboard();
-  };
-
   const handleRemoveAsset = async (symbol) => {
     if (!window.confirm(`Remove ${symbol} from watchlist?`)) return;
     try {
-      await api.removeAsset(symbol);
+      await removeAsset(symbol);
       toast.success(`${symbol} removed from watchlist`);
-      setDashboardData(prev => prev.filter(item => item.asset.symbol !== symbol));
     } catch (err) {
       toast.error('Failed to remove asset');
     }
@@ -316,7 +274,6 @@ const Assets = ({ refreshKey = 0 }) => {
   const filteredAssets = useMemo(() => {
     let result = [...dashboardData];
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(item =>
@@ -325,17 +282,14 @@ const Assets = ({ refreshKey = 0 }) => {
       );
     }
 
-    // Category filter
     if (categoryFilter !== 'all') {
       result = result.filter(item => item.asset.asset_type === categoryFilter);
     }
 
-    // Zone filter
     if (zoneFilter !== 'all') {
       result = result.filter(item => item.score?.zone === zoneFilter);
     }
 
-    // Sort
     const [key, dir] = sortBy.split('_');
     result.sort((a, b) => {
       let aVal, bVal;
@@ -361,8 +315,7 @@ const Assets = ({ refreshKey = 0 }) => {
           bVal = b.indicators?.drawdown_pct ?? 0;
           break;
         default:
-          aVal = 0;
-          bVal = 0;
+          aVal = 0; bVal = 0;
       }
       return dir === 'asc' ? aVal - bVal : bVal - aVal;
     });
@@ -376,7 +329,6 @@ const Assets = ({ refreshKey = 0 }) => {
     searchQuery.trim() ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
-  /* ─── Loading ─── */
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen" data-testid="loading-assets">
@@ -388,7 +340,6 @@ const Assets = ({ refreshKey = 0 }) => {
     );
   }
 
-  /* ─── Empty State ─── */
   if (dashboardData.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen" data-testid="empty-assets">
@@ -431,22 +382,13 @@ const Assets = ({ refreshKey = 0 }) => {
             <Plus className="w-4 h-4" />
             ADD ASSET
           </button>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 glass-effect hover:bg-white/10 rounded transition"
-            data-testid="refresh-assets-btn"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="text-sm">REFRESH</span>
-          </button>
+          <RefreshButton onClick={refresh} loading={refreshing} />
         </div>
       </div>
 
-      {/* ─── Score Heatmap (Novel) ─── */}
       <ScoreHeatmap assets={dashboardData} />
 
-      {/* ─── Toolbar: Search + Filters + Sort + View Toggle ─── */}
+      {/* ─── Toolbar ─── */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 mb-6">
         {/* Search */}
         <div className="relative flex-1 max-w-sm">
@@ -460,53 +402,23 @@ const Assets = ({ refreshKey = 0 }) => {
             data-testid="asset-search-input"
           />
           {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
         {/* Category Tabs */}
-        <div className="flex items-center gap-1 flex-wrap">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.key}
-              onClick={() => setCategoryFilter(cat.key)}
-              className={`px-3 py-1.5 rounded text-xs font-bold transition ${
-                categoryFilter === cat.key
-                  ? 'bg-primary text-primary-foreground'
-                  : 'glass-effect hover:bg-white/10'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        <FilterTabs options={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} size="md" />
 
         {/* Zone Filter */}
         <div className="flex items-center gap-1">
           <Filter className="w-4 h-4 text-muted-foreground mr-1" />
-          {ZONE_FILTERS.map(z => (
-            <button
-              key={z.key}
-              onClick={() => setZoneFilter(z.key)}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold transition ${
-                zoneFilter === z.key
-                  ? z.key === 'all' ? 'bg-primary text-primary-foreground' : z.color + ' ring-1 ring-current'
-                  : z.key === 'all' ? 'glass-effect hover:bg-white/10' : 'glass-effect hover:bg-white/10 text-muted-foreground'
-              }`}
-            >
-              {z.label}
-            </button>
-          ))}
+          <FilterTabs options={ZONE_FILTERS} value={zoneFilter} onChange={setZoneFilter} />
         </div>
 
         {/* Sort + View Toggle */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Sort Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
@@ -522,9 +434,7 @@ const Assets = ({ refreshKey = 0 }) => {
                   <button
                     key={opt.key}
                     onClick={() => { setSortBy(opt.key); setShowSortDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 text-xs hover:bg-white/10 transition ${
-                      sortBy === opt.key ? 'text-primary font-bold' : ''
-                    }`}
+                    className={`w-full text-left px-3 py-2 text-xs hover:bg-white/10 transition ${sortBy === opt.key ? 'text-primary font-bold' : ''}`}
                   >
                     {opt.label}
                   </button>
@@ -533,69 +443,40 @@ const Assets = ({ refreshKey = 0 }) => {
             )}
           </div>
 
-          {/* View Toggle */}
           <div className="flex items-center glass-effect rounded overflow-hidden">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 transition ${viewMode === 'grid' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              title="Grid view"
-            >
+            <button onClick={() => setViewMode('grid')} className={`p-2 transition ${viewMode === 'grid' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`} title="Grid view">
               <LayoutGrid className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 transition ${viewMode === 'list' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              title="List view"
-            >
+            <button onClick={() => setViewMode('list')} className={`p-2 transition ${viewMode === 'list' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`} title="List view">
               <LayoutList className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Active Filters Badge */}
       {activeFiltersCount > 0 && (
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-muted-foreground">{activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''} active</span>
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setCategoryFilter('all');
-              setZoneFilter('all');
-            }}
-            className="text-xs text-primary hover:underline"
-          >
-            Clear all
-          </button>
+          <button onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setZoneFilter('all'); }} className="text-xs text-primary hover:underline">Clear all</button>
         </div>
       )}
 
-      {/* ─── No Results ─── */}
       {filteredAssets.length === 0 && (
         <div className="glass-effect rounded-sm p-12 text-center">
           <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-xl font-bold mb-2">NO MATCHING ASSETS</h3>
-          <p className="text-muted-foreground text-sm">
-            Try adjusting your search or filters to find assets.
-          </p>
+          <p className="text-muted-foreground text-sm">Try adjusting your search or filters.</p>
         </div>
       )}
 
-      {/* ─── Grid View ─── */}
       {viewMode === 'grid' && filteredAssets.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" data-testid="asset-grid">
           {filteredAssets.map(item => (
-            <AssetGridCard
-              key={item.asset.symbol}
-              item={item}
-              onNavigate={navigate}
-              onRemove={handleRemoveAsset}
-            />
+            <AssetGridCard key={item.asset.symbol} item={item} onNavigate={navigate} onRemove={handleRemoveAsset} />
           ))}
         </div>
       )}
 
-      {/* ─── List/Table View ─── */}
       {viewMode === 'list' && filteredAssets.length > 0 && (
         <div className="glass-effect rounded-sm overflow-hidden" data-testid="asset-table">
           <div className="overflow-x-auto">
@@ -614,12 +495,7 @@ const Assets = ({ refreshKey = 0 }) => {
               </thead>
               <tbody>
                 {filteredAssets.map(item => (
-                  <AssetTableRow
-                    key={item.asset.symbol}
-                    item={item}
-                    onNavigate={navigate}
-                    onRemove={handleRemoveAsset}
-                  />
+                  <AssetTableRow key={item.asset.symbol} item={item} onNavigate={navigate} onRemove={handleRemoveAsset} />
                 ))}
               </tbody>
             </table>

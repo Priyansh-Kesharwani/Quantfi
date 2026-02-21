@@ -1,0 +1,29 @@
+{
+  "symbol": "GC=F",
+  "name": "Gold Apr 26",
+  "quote_type": "FUTURE",
+  "sector": "",
+  "industry": "",
+  "exchange": "CMX",
+  "currency": "USD",
+  "description": "",
+  "display_name": "Gold Apr 26",
+  "interpretation_guide": "Analyse sentiment for Gold Apr 26 (GC) commodity futures. Focus on: supply/demand fundamentals, inventory reports, producer actions, weather/geopolitical events affecting supply chains, and import/export policies. General market sentiment is secondary to commodity-specific fundamentals.",
+  "key_factors": [],
+  "subreddits": [
+    "commodities",
+    "Futures",
+    "gc",
+    "investing",
+    "StockMarket"
+  ],
+  "news_keywords": [
+    "Gold Apr 26",
+    "GC=F",
+    "GC",
+    "GC futures",
+    "GC commodity",
+    "GC supply demand"
+  ],
+  "sentiment_inversion_events": []
+}

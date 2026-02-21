@@ -16,14 +16,22 @@ from indicators.normalization import (
     z_to_sigmoid,
     polarity_align,
     normalize_to_score,
-    batch_normalize
+    batch_normalize,
+    expanding_ecdf_sigmoid,
 )
+
+from indicators.ofi import compute_ofi, compute_ofi_reversal
+
+from indicators.hawkes import estimate_hawkes, hawkes_lambda_decay
+
+from indicators.ldc import LDC, lorentzian_distance, build_templates_from_labels
 
 from indicators.committee import agg_committee
 
 from indicators.composite import (
     g_pers, compute_gate, compute_opportunity, compute_composite_score,
-    Phase1Config, CompositeResult, Phase1Composite
+    Phase1Config, CompositeResult, Phase1Composite,
+    compose_scores, PhaseAConfig, load_phaseA_config,
 )
 
 from indicators.trend import (
@@ -110,6 +118,18 @@ __all__ = [
     "LLMConfig",
     "CollectionLimits",
     "TierWeights",
+    # Phase A — Microstructure
+    "expanding_ecdf_sigmoid",
+    "compute_ofi",
+    "compute_ofi_reversal",
+    "estimate_hawkes",
+    "hawkes_lambda_decay",
+    "LDC",
+    "lorentzian_distance",
+    "build_templates_from_labels",
+    "compose_scores",
+    "PhaseAConfig",
+    "load_phaseA_config",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"  # Phase A

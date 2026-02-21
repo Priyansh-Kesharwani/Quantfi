@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import yaml
 from typing import Tuple, Dict, Any, Optional, List, NamedTuple
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -355,3 +357,299 @@ class Phase1Composite:
             T_t=0.5, U_t=0.5, V_t=0.5, L_t=0.5, C_t=0.5,
             H_t=0.5, R_t=0.5
         )
+
+
+# ====================================================================
+# Phase A — Entry / Exit Score Composer  (compose_scores)
+# ====================================================================
+
+@dataclass
+class PhaseAConfig:
+    """Configuration for Phase A Entry/Exit score composition."""
+
+    # ── Entry score knobs ──────────────────────────────────
+    committee_method: str = "trimmed_mean"
+    committee_trim_pct: float = 0.1
+    regime_threshold: Optional[float] = None
+    regime_threshold_type: str = "hard"
+    S_scale: float = 1.0
+    g_pers_type: str = "sigmoid_canonical"
+    g_pers_params: Dict[str, Optional[float]] = field(default_factory=lambda: {
+        "k": 10.0,
+        "H_neutral": 0.5,
+        "H_favorable": None,
+        "H_unfavorable": None,
+    })
+
+    # ── Exit score knobs ───────────────────────────────────
+    gamma_1: float = 0.4    # TBL flag weight
+    gamma_2: float = 0.35   # OFI reversal weight
+    gamma_3: float = 0.25   # Hawkes λ-decay weight
+    S_scale_exit: float = 1.0
+
+    # ── Logging ────────────────────────────────────────────
+    log_intermediates: bool = True
+    log_path: str = "logs/phaseA_indicator_runs.json"
+
+    @classmethod
+    def from_yaml(cls, path: str) -> "PhaseAConfig":
+        with open(path, "r") as f:
+            raw = yaml.safe_load(f)
+        entry = raw.get("composite", {}).get("entry", {})
+        exit_ = raw.get("composite", {}).get("exit", {})
+        log_cfg = raw.get("logging", {})
+        return cls(
+            committee_method=entry.get("committee_method", "trimmed_mean"),
+            committee_trim_pct=entry.get("committee_trim_pct", 0.1),
+            regime_threshold=entry.get("regime_threshold"),
+            regime_threshold_type=entry.get("regime_threshold_type", "hard"),
+            S_scale=entry.get("S_scale", 1.0),
+            g_pers_type=entry.get("g_pers_type", "sigmoid_canonical"),
+            g_pers_params=entry.get("g_pers_params", {}),
+            gamma_1=exit_.get("gamma_1", 0.4),
+            gamma_2=exit_.get("gamma_2", 0.35),
+            gamma_3=exit_.get("gamma_3", 0.25),
+            S_scale_exit=exit_.get("S_scale_exit", 1.0),
+            log_intermediates=log_cfg.get("log_intermediates", True),
+            log_path=log_cfg.get("log_path", "logs/phaseA_indicator_runs.json"),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "committee_method": self.committee_method,
+            "committee_trim_pct": self.committee_trim_pct,
+            "regime_threshold": self.regime_threshold,
+            "regime_threshold_type": self.regime_threshold_type,
+            "S_scale": self.S_scale,
+            "g_pers_type": self.g_pers_type,
+            "g_pers_params": self.g_pers_params,
+            "gamma_1": self.gamma_1,
+            "gamma_2": self.gamma_2,
+            "gamma_3": self.gamma_3,
+            "S_scale_exit": self.S_scale_exit,
+        }
+
+
+def _compute_entry_series(
+    components: Dict[str, pd.Series],
+    config: PhaseAConfig,
+) -> Tuple[pd.Series, pd.DataFrame]:
+    """Vectorised Entry Score computation.
+
+    Formula (per spec):
+        Opp_t = trimmed_mean([ T_t, U_t · g_pers, P_move_t, OFI_t ])
+        Gate_t = 𝟙{R_t ≥ r_thresh} · (1 − S_t) · C_t
+        RawFavor_t = Opp_t · Gate_t
+        Entry = 100 · clip(0.5 + (RawFavor − 0.5) · S_scale, 0, 1)
+    """
+    idx = None
+    for s in components.values():
+        if hasattr(s, "index"):
+            idx = s.index
+            break
+
+    n = len(next(iter(components.values())))
+
+    T_t = components.get("T_t", pd.Series(np.full(n, 0.5), index=idx))
+    U_t = components.get("U_t", pd.Series(np.full(n, 0.5), index=idx))
+    H_t = components.get("H_t", pd.Series(np.full(n, 0.5), index=idx))
+    R_t = components.get("R_t", pd.Series(np.full(n, 0.5), index=idx))
+    C_t = components.get("C_t", pd.Series(np.full(n, 0.5), index=idx))
+    OFI_t = components.get("OFI_t", pd.Series(np.full(n, 0.5), index=idx))
+    P_move_t = components.get("P_move_t", pd.Series(np.full(n, 0.5), index=idx))
+    S_t = components.get("S_t", pd.Series(np.full(n, 0.0), index=idx))  # sentiment risk
+
+    # g_pers(H) — vectorised
+    g_H = pd.Series(
+        [g_pers(h, config.g_pers_type, config.g_pers_params) for h in H_t],
+        index=idx,
+    )
+
+    U_weighted = U_t * g_H
+
+    # Opportunity: trimmed mean of [T, U_weighted, P_move, OFI]
+    opp_stack = pd.DataFrame({
+        "T_t": T_t.values,
+        "U_w": U_weighted.values,
+        "P_move": P_move_t.values,
+        "OFI": OFI_t.values,
+    }, index=idx)
+
+    if config.committee_method == "trimmed_mean":
+        from scipy.stats import trim_mean
+        Opp_t = opp_stack.apply(
+            lambda row: trim_mean(row.dropna().values, config.committee_trim_pct),
+            axis=1,
+        )
+    else:
+        Opp_t = opp_stack.mean(axis=1)
+
+    # Gate
+    if config.regime_threshold is not None:
+        if config.regime_threshold_type == "hard":
+            R_pass = (R_t >= config.regime_threshold).astype(float)
+        else:
+            k_soft = 10.0
+            R_pass = 1.0 / (1.0 + np.exp(-k_soft * (R_t - config.regime_threshold)))
+    else:
+        R_pass = R_t
+
+    Gate_t = R_pass * (1.0 - S_t) * C_t
+
+    RawFavor = Opp_t * Gate_t
+
+    transformed = 0.5 + (RawFavor - 0.5) * config.S_scale
+    Entry = 100.0 * transformed.clip(0.0, 1.0)
+
+    breakdown = pd.DataFrame({
+        "T_t": T_t.values,
+        "U_t": U_t.values,
+        "g_H": g_H.values,
+        "U_weighted": U_weighted.values,
+        "OFI_t": OFI_t.values,
+        "P_move_t": P_move_t.values,
+        "Opp_t": Opp_t.values,
+        "R_t": R_t.values,
+        "R_pass": R_pass if isinstance(R_pass, pd.Series) else pd.Series(R_pass, index=idx),
+        "C_t": C_t.values,
+        "S_t": S_t.values,
+        "Gate_t": Gate_t.values,
+        "RawFavor": RawFavor.values,
+        "Entry_Score": Entry.values,
+    }, index=idx)
+
+    return Entry, breakdown
+
+
+def _compute_exit_series(
+    components: Dict[str, pd.Series],
+    config: PhaseAConfig,
+) -> pd.Series:
+    """Vectorised Exit Score computation.
+
+    Formula (per spec):
+        Exit_raw = γ₁ · TBL_flag + γ₂ · OFI_rev + γ₃ · λ_decay
+        Exit = 100 · clip(0.5 + (Exit_raw − 0.5) · S_scale_exit, 0, 1)
+    """
+    idx = None
+    for s in components.values():
+        if hasattr(s, "index"):
+            idx = s.index
+            break
+
+    n = len(next(iter(components.values())))
+
+    TBL_flag = components.get("TBL_flag", pd.Series(np.full(n, 0.5), index=idx))
+    OFI_rev = components.get("OFI_rev", pd.Series(np.full(n, 0.5), index=idx))
+    lambda_decay = components.get("lambda_decay", pd.Series(np.full(n, 0.5), index=idx))
+
+    Exit_raw = (
+        config.gamma_1 * TBL_flag
+        + config.gamma_2 * OFI_rev
+        + config.gamma_3 * lambda_decay
+    )
+
+    transformed = 0.5 + (Exit_raw - 0.5) * config.S_scale_exit
+    Exit = 100.0 * np.clip(transformed, 0.0, 1.0)
+
+    return pd.Series(Exit, index=idx, name="Exit_Score")
+
+
+def compose_scores(
+    components: Dict[str, pd.Series],
+    config: Optional[dict] = None,
+) -> Tuple[pd.Series, pd.Series, pd.DataFrame]:
+    """Phase A composite score engine.
+
+    Computes both Entry_Score and Exit_Score from a dictionary of
+    pre-normalised component series.
+
+    Parameters
+    ----------
+    components : dict
+        Keys used by the Entry formula:
+            T_t, U_t, H_t, R_t, C_t, OFI_t, P_move_t, S_t
+        Keys used by the Exit formula:
+            TBL_flag, OFI_rev, lambda_decay
+        Missing keys default to 0.5 (neutral).
+    config : dict or None
+        Raw config dict (e.g. from YAML).  Merged into PhaseAConfig.
+
+    Returns
+    -------
+    Entry_Score : pd.Series   — values in [0, 100]
+    Exit_Score  : pd.Series   — values in [0, 100]
+    breakdown_df : pd.DataFrame — intermediate values for audit
+    """
+    if config is None:
+        cfg = PhaseAConfig()
+    elif isinstance(config, PhaseAConfig):
+        cfg = config
+    else:
+        # Build from raw dict (supports flat or nested YAML shapes)
+        entry_cfg = config.get("composite", config).get("entry", config) if isinstance(config.get("composite", None), dict) else config
+        exit_cfg = config.get("composite", config).get("exit", config) if isinstance(config.get("composite", None), dict) else config
+        cfg = PhaseAConfig(
+            committee_method=entry_cfg.get("committee_method", "trimmed_mean"),
+            committee_trim_pct=entry_cfg.get("committee_trim_pct", 0.1),
+            regime_threshold=entry_cfg.get("regime_threshold"),
+            regime_threshold_type=entry_cfg.get("regime_threshold_type", "hard"),
+            S_scale=entry_cfg.get("S_scale", 1.0),
+            g_pers_type=entry_cfg.get("g_pers_type", "sigmoid_canonical"),
+            g_pers_params=entry_cfg.get("g_pers_params", {}),
+            gamma_1=exit_cfg.get("gamma_1", 0.4),
+            gamma_2=exit_cfg.get("gamma_2", 0.35),
+            gamma_3=exit_cfg.get("gamma_3", 0.25),
+            S_scale_exit=exit_cfg.get("S_scale_exit", 1.0),
+        )
+
+    Entry_Score, breakdown = _compute_entry_series(components, cfg)
+    Exit_Score = _compute_exit_series(components, cfg)
+
+    breakdown["Exit_Score"] = Exit_Score.values
+
+    return Entry_Score, Exit_Score, breakdown
+
+
+# ====================================================================
+# Phase A — Unified YAML Config Loader
+# ====================================================================
+
+def load_phaseA_config(path: str = "config/phaseA.yml") -> Dict[str, Any]:
+    """Load the full Phase A YAML config into a flat dictionary of
+    indicator-level and composite-level params.
+
+    Returns a dict with keys::
+
+        seed, normalization.min_obs, normalization.sigmoid_k,
+        ofi.window, ofi.normalize, ofi.polarity,
+        hawkes.decay, hawkes.dt, hawkes.max_iter, …,
+        ldc.kappa, ldc.gamma_default, ldc.feature_window,
+        composite  →  PhaseAConfig instance,
+        snapshots  →  dict,
+        logging    →  dict.
+
+    Usage::
+
+        cfg = load_phaseA_config()
+        ofi = compute_ofi(df,
+                          window=cfg["ofi"]["window"],
+                          normalize=cfg["ofi"]["normalize"],
+                          min_obs=cfg["normalization"]["min_obs"])
+    """
+    with open(path, "r") as f:
+        raw = yaml.safe_load(f)
+
+    # Build PhaseAConfig from the composite/logging sections
+    composite_cfg = PhaseAConfig.from_yaml(path)
+
+    return {
+        "seed": raw.get("seed", 42),
+        "normalization": raw.get("normalization", {}),
+        "ofi": raw.get("ofi", {}),
+        "hawkes": raw.get("hawkes", {}),
+        "ldc": raw.get("ldc", {}),
+        "composite": composite_cfg,
+        "snapshots": raw.get("snapshots", {}),
+        "logging": raw.get("logging", {}),
+    }

@@ -39,6 +39,14 @@ from .dca_portfolio_sim import (
     generate_dca_report
 )
 
+from .portfolio_simulator import (
+    PortfolioSimulator,
+    SimConfig,
+    ExitParams,
+    prepare_multi_asset_data,
+    COST_PRESETS,
+)
+
 __all__ = [
     'DiagnosticBacktester',
     'BacktestConfig',
@@ -66,4 +74,9 @@ __all__ = [
     'PortfolioSimResult',
     'simulate_multi_asset_dca',
     'generate_dca_report',
+    'PortfolioSimulator',
+    'SimConfig',
+    'ExitParams',
+    'prepare_multi_asset_data',
+    'COST_PRESETS',
 ]

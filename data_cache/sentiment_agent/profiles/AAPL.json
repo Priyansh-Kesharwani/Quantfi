@@ -1,0 +1,37 @@
+{
+  "symbol": "AAPL",
+  "name": "Apple Inc.",
+  "quote_type": "EQUITY",
+  "sector": "Technology",
+  "industry": "Consumer Electronics",
+  "exchange": "NMS",
+  "currency": "USD",
+  "description": "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide. The company offers iPhone, a line of smartphones; Mac, a line of personal computers; iPad, a line of multi-purpose tablets; and wearables, home, and accessories comprising AirPods, Apple Vision Pro, Apple TV, Apple Watch, Beats products, and HomePod, as well as Apple branded and third-party accessories. It also provides AppleCare support and cloud services; and operates v",
+  "display_name": "Apple Inc.",
+  "interpretation_guide": "Analyse sentiment SPECIFICALLY for Apple Inc. (AAPL). Sector: Technology, Industry: Consumer Electronics. Focus on: company earnings, product launches, executive changes, regulatory actions, competitive dynamics, and analyst ratings that DIRECTLY affect Apple Inc.. Sector-wide news should only be considered if it has a DIRECT causal link to Apple Inc..",
+  "key_factors": [
+    "Apple Inc. earnings & revenue growth",
+    "Consumer Electronics competitive landscape",
+    "Regulatory environment for Technology",
+    "Management decisions & strategic direction",
+    "Analyst ratings & institutional sentiment"
+  ],
+  "subreddits": [
+    "apple",
+    "AAPL",
+    "technology",
+    "gadgets",
+    "investing",
+    "StockMarket"
+  ],
+  "news_keywords": [
+    "Apple Inc.",
+    "AAPL",
+    "Apple",
+    "Apple earnings",
+    "Apple stock",
+    "AAPL stock",
+    "Apple Consumer Electronics"
+  ],
+  "sentiment_inversion_events": []
+}

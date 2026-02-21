@@ -1,0 +1,70 @@
+# ============================================================
+# Phase A — Microstructure-Enhanced Signal Architecture Config
+# ============================================================
+# All configurable knobs for OFI, Hawkes, LDC, normalization,
+# and the Entry/Exit composite score engine.
+# ============================================================
+
+seed: 42
+
+# ── Normalization Pipeline ──────────────────────────────────
+normalization:
+  min_obs: 100
+  sigmoid_k: 1.0
+  ecdf_clip_lo: 0.001
+  ecdf_clip_hi: 0.999
+
+# ── Order Flow Imbalance (OFI) ──────────────────────────────
+ofi:
+  window: 20
+  normalize: true
+  polarity: 1          # +1 = higher OFI is favorable
+
+# ── Hawkes Intensity λ ──────────────────────────────────────
+hawkes:
+  decay: 1.0           # β — exponential kernel decay
+  dt: 1.0              # time-step discretisation
+  max_iter: 200        # MLE optimiser iterations
+  mu_init: 0.1         # initial baseline intensity
+  alpha_init: 0.5      # initial excitation parameter
+  tol: 1.0e-6          # convergence tolerance
+
+# ── Lorentzian Distance Classifier (LDC) ────────────────────
+ldc:
+  kappa: 1.0           # sigmoid steepness for score mapping
+  gamma_default: 1.0   # default scale per feature dimension
+  feature_window: 5    # lookback window for feature extraction
+
+# ── Composite Score Engine ──────────────────────────────────
+composite:
+  # Entry score
+  entry:
+    committee_method: "trimmed_mean"
+    committee_trim_pct: 0.1
+    regime_threshold: null
+    regime_threshold_type: "hard"
+    S_scale: 1.0
+    g_pers_type: "sigmoid_canonical"
+    g_pers_params:
+      k: 10.0
+      H_neutral: 0.5
+      H_favorable: null
+      H_unfavorable: null
+
+  # Exit score
+  exit:
+    gamma_1: 0.4       # TBL flag weight
+    gamma_2: 0.35      # OFI reversal weight
+    gamma_3: 0.25      # Hawkes lambda decay weight
+    S_scale_exit: 1.0
+
+# ── Data Snapshots ──────────────────────────────────────────
+snapshots:
+  output_dir: "data_snapshots"
+  verification_file: "verification_snapshot.parquet"
+
+# ── Logging ─────────────────────────────────────────────────
+logging:
+  log_intermediates: true
+  log_path: "logs/phaseA_indicator_runs.json"
+  level: "info"

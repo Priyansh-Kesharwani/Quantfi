@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from typing import Tuple, Dict, Any, Optional
 from scipy import stats
 import logging
@@ -140,3 +141,51 @@ def batch_normalize(
         metas[name] = meta
     
     return normalized, metas
+
+
+# ── Phase A convenience wrapper ─────────────────────────────
+def expanding_ecdf_sigmoid(
+    series: pd.Series,
+    k: float = 1.0,
+    polarity: int = 1,
+    min_obs: int = 100
+) -> pd.Series:
+    """Full expanding-ECDF → inverse-normal → sigmoid pipeline.
+
+    Steps (per the Phase A spec):
+      1. Expanding ECDF  →  p_t ∈ (0, 1)
+      2. Inverse-normal  →  z_t = Φ⁻¹(p_t)
+      3. Sigmoid          →  s_t = 1 / (1 + e^{-k·z_t})
+      4. Polarity align   →  flip if polarity == -1
+
+    Parameters
+    ----------
+    series : pd.Series or array-like
+        Raw indicator values (UTC-indexed preferred).
+    k : float
+        Sigmoid steepness parameter.
+    polarity : int
+        +1 keeps the score direction; -1 inverts (lower raw → higher score).
+    min_obs : int
+        Minimum observations before first valid output.
+
+    Returns
+    -------
+    pd.Series
+        Normalized scores in (0, 1), NaN during warm-up.
+    """
+    if isinstance(series, pd.Series):
+        index = series.index
+        values = series.values.astype(np.float64)
+    else:
+        values = np.asarray(series, dtype=np.float64)
+        index = None
+
+    higher_is_favorable = (polarity >= 0)
+    score_arr, _meta = normalize_to_score(
+        values, min_obs=min_obs, k=k, higher_is_favorable=higher_is_favorable
+    )
+
+    if index is not None:
+        return pd.Series(score_arr, index=index, name="ecdf_sigmoid")
+    return pd.Series(score_arr, name="ecdf_sigmoid")

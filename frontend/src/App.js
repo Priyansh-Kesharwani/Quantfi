@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { WatchlistProvider } from './contexts/WatchlistContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
@@ -8,6 +9,7 @@ import AssetDetail from './pages/AssetDetail';
 import BacktestLab from './pages/BacktestLab';
 import News from './pages/News';
 import Settings from './pages/Settings';
+import PortfolioSim from './pages/PortfolioSim';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
@@ -17,11 +19,8 @@ import api from './api';
 import { toast } from 'sonner';
 import '@/index.css';
 
-// Global refresh key to trigger reactive re-fetches across components
-// Incremented when assets change, dashboards/pages listen to this
 function App() {
   const [showAddAsset, setShowAddAsset] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [newAsset, setNewAsset] = useState({
     symbol: '',
     name: '',
@@ -31,41 +30,19 @@ function App() {
   });
   const [adding, setAdding] = useState(false);
 
-  // Trigger a reactive refresh across all child components
-  const triggerRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-  }, []);
-
   useEffect(() => {
-    // Listen for add asset event (from empty dashboard CTA)
     const handleOpenAddAsset = () => setShowAddAsset(true);
     window.addEventListener('addAsset', handleOpenAddAsset);
-    // Listen for refreshDashboard event
-    const handleRefreshDashboard = () => triggerRefresh();
-    window.addEventListener('refreshDashboard', handleRefreshDashboard);
-    return () => {
-      window.removeEventListener('addAsset', handleOpenAddAsset);
-      window.removeEventListener('refreshDashboard', handleRefreshDashboard);
-    };
-  }, [triggerRefresh]);
+    return () => window.removeEventListener('addAsset', handleOpenAddAsset);
+  }, []);
 
   const handleAddAsset = async () => {
-    // Validate required fields
     const symbol = newAsset.symbol.trim();
     const name = newAsset.name.trim();
 
-    if (!symbol) {
-      toast.error('Symbol is required');
-      return;
-    }
-    if (!name) {
-      toast.error('Asset name is required');
-      return;
-    }
-    if (symbol.length > 20) {
-      toast.error('Symbol is too long');
-      return;
-    }
+    if (!symbol) { toast.error('Symbol is required'); return; }
+    if (!name) { toast.error('Asset name is required'); return; }
+    if (symbol.length > 20) { toast.error('Symbol is too long'); return; }
 
     setAdding(true);
     try {
@@ -73,22 +50,16 @@ function App() {
       if (newAsset.exchange) payload.exchange = newAsset.exchange;
       if (newAsset.currency && newAsset.currency !== 'USD') payload.currency = newAsset.currency;
 
-      console.debug('[AddAsset] Submitting payload:', JSON.stringify(payload));
-      const response = await api.addAsset(payload);
-      console.debug('[AddAsset] Backend response:', response.status, response.data);
-
+      await api.addAsset(payload);
       toast.success(`${symbol} added to watchlist`);
       setShowAddAsset(false);
       setNewAsset({ symbol: '', name: '', asset_type: 'equity', exchange: '', currency: 'USD' });
 
-      // Give the backend a moment to persist + trigger background data fetch
-      // Then reactively refresh all child pages (no hard reload)
+      // Trigger global refresh so WatchlistContext re-fetches
       setTimeout(() => {
-        console.debug('[AddAsset] Triggering dashboard refresh (refreshKey++)');
-        triggerRefresh();
+        window.dispatchEvent(new Event('refreshDashboard'));
       }, 500);
     } catch (error) {
-      console.error('[AddAsset] Error:', error?.response?.status, error?.response?.data || error.message);
       const errMsg = error?.response?.data?.detail || 'Failed to add asset. Check the symbol and try again.';
       toast.error(errMsg);
     } finally {
@@ -99,24 +70,27 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <BrowserRouter>
-        <div className="flex">
-          <Sidebar onAddAsset={() => setShowAddAsset(true)} />
-          
-          <main className="flex-1 ml-64" data-testid="main-content">
-            <Routes>
-              <Route path="/" element={<Dashboard refreshKey={refreshKey} />} />
-              <Route path="/assets" element={<Assets refreshKey={refreshKey} />} />
-              <Route path="/assets/:symbol" element={<AssetDetail />} />
-              <Route path="/backtest" element={<BacktestLab refreshKey={refreshKey} />} />
-              <Route path="/news" element={<News />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </main>
-        </div>
+        <WatchlistProvider>
+          <div className="flex">
+            <Sidebar onAddAsset={() => setShowAddAsset(true)} />
+            
+            <main className="flex-1 ml-64" data-testid="main-content">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/assets" element={<Assets />} />
+                <Route path="/assets/:symbol" element={<AssetDetail />} />
+                <Route path="/backtest" element={<BacktestLab />} />
+                <Route path="/simulation" element={<PortfolioSim />} />
+                <Route path="/news" element={<News />} />
+                <Route path="/settings" element={<Settings />} />
+              </Routes>
+            </main>
+          </div>
+        </WatchlistProvider>
 
-        {/* Add Asset Dialog */}
+        {/* Add Asset Dialog — high z-index so it appears above sidebar */}
         <Dialog open={showAddAsset} onOpenChange={setShowAddAsset}>
-          <DialogContent className="glass-effect" data-testid="add-asset-dialog">
+          <DialogContent className="glass-effect z-[100]" data-testid="add-asset-dialog">
             <DialogHeader>
               <DialogTitle className="text-2xl">ADD ASSET TO WATCHLIST</DialogTitle>
             </DialogHeader>
@@ -159,9 +133,7 @@ function App() {
                 </Label>
                 <Select
                   value={newAsset.asset_type}
-                  onValueChange={(value) => {
-                    setNewAsset({ ...newAsset, asset_type: value });
-                  }}
+                  onValueChange={(value) => setNewAsset({ ...newAsset, asset_type: value })}
                 >
                   <SelectTrigger className="glass-effect" data-testid="asset-type-select">
                     <SelectValue />
