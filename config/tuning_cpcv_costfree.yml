@@ -1,0 +1,34 @@
+# Cost-free CPCV tuning pass — diagnostic config
+# Confirms whether cost drag is the primary GT-Score killer.
+# Usage: python scripts/tune.py --config config/tuning_cpcv_costfree.yml --output-dir validation/outputs/costfree --seed 42
+
+cost_free: true
+
+data:
+  symbols: ["SPY", "AAPL"]
+  start_date: "2018-01-01"
+  end_date: "2024-01-01"
+
+cpcv:
+  n_folds: 5
+  k_test: 2
+  horizon_bars: 20
+  embargo_bars: 24
+
+mfbo:
+  n_trials: 30
+  search_space:
+    entry_score_threshold: [50, 55, 60, 65, 70, 75, 80]
+    max_positions: [3, 5, 10, 15]
+    max_holding_days: [30, 60, 90, 120, 180]
+    atr_trail_mult: [2.0, 2.5, 3.0]
+    use_atr_stop: [true, false]
+    min_holding_days: [0, 5, 10]
+  fidelity_spec:
+    low:
+      cost: 1.0
+    high:
+      cost: 5.0
+
+dsr_min: 0.05
+output_dir: validation/outputs/costfree

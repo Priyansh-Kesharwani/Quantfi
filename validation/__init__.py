@@ -42,6 +42,9 @@ from validation.tuning import (
     TuningConfig, TuningResult, TuningTrialResult,
     run_tuning, parameter_sensitivity, ablation_study,
 )
+from validation.validator import CPCVConfig, CPCVSplit, generate_cpcv_splits, write_splits_metadata
+from validation.objective import compute_gt_score, compute_dsr, equity_curve_from_result
+from validation.orchestrator import run_orchestrator, OrchestratorResult
 
 __all__ = [
     # Metrics
@@ -86,6 +89,16 @@ __all__ = [
     "run_tuning",
     "parameter_sensitivity",
     "ablation_study",
+    # CPCV / GT-Score / MFBO
+    "CPCVConfig",
+    "CPCVSplit",
+    "generate_cpcv_splits",
+    "write_splits_metadata",
+    "compute_gt_score",
+    "compute_dsr",
+    "equity_curve_from_result",
+    "run_orchestrator",
+    "OrchestratorResult",
 ]
 
 __version__ = "0.2.0"

@@ -154,6 +154,126 @@ class BlockBootstrap:
         return float(point), float(lower), float(upper)
 
 
+BAR_PER_YEAR = 252
+IN_SAMPLE_YEARS_DEFAULT = 2
+OOS_YEARS_DEFAULT = 1
+ROLL_YEARS_DEFAULT = 1
+
+
+def wfo_rolling_2y1y_splits(
+    n_bars: int,
+    bars_per_year: int = BAR_PER_YEAR,
+    in_sample_years: int = IN_SAMPLE_YEARS_DEFAULT,
+    oos_years: int = OOS_YEARS_DEFAULT,
+    roll_years: int = ROLL_YEARS_DEFAULT,
+) -> List[Tuple[int, int, int, int]]:
+    in_sample_bars = in_sample_years * bars_per_year
+    oos_bars = oos_years * bars_per_year
+    roll_bars = roll_years * bars_per_year
+    if n_bars < in_sample_bars + oos_bars:
+        return []
+    out: List[Tuple[int, int, int, int]] = []
+    test_start = in_sample_bars
+    while test_start + oos_bars <= n_bars:
+        train_start = test_start - in_sample_bars
+        train_end = test_start
+        test_end = test_start + oos_bars
+        out.append((train_start, train_end, test_start, test_end))
+        test_start += roll_bars
+    return out
+
+
+def _wfer_from_equity_curve(equity_curve: List[Dict[str, Any]], annualization: float = 252.0) -> float:
+    if not equity_curve or len(equity_curve) < 2:
+        return 0.0
+    eq = np.array([float(x.get("equity", 0)) for x in equity_curve])
+    eq = np.maximum(eq, 1e-12)
+    ret = np.diff(eq) / eq[:-1]
+    downside = ret[ret < 0]
+    if len(downside) == 0 or np.std(downside) <= 0:
+        return np.inf if np.mean(ret) > 0 else 0.0
+    return float(np.mean(ret) / np.std(downside) * np.sqrt(annualization))
+
+
+@dataclass
+class WFOFoldResult:
+    fold_idx: int
+    train_start: int
+    train_end: int
+    test_start: int
+    test_end: int
+    train_dates: Optional[Tuple[str, str]] = None
+    test_dates: Optional[Tuple[str, str]] = None
+    wfer: float = 0.0
+    oos_sortino: float = 0.0
+    equity_curve: Optional[List[Dict[str, Any]]] = None
+    error: Optional[str] = None
+
+
+def run_wfo_rolling_harness(
+    date_index: pd.DatetimeIndex,
+    assets: Any,
+    run_backtest_fn: Any,
+    symbols: List[str],
+    config: Dict[str, Any],
+    in_sample_years: int = IN_SAMPLE_YEARS_DEFAULT,
+    oos_years: int = OOS_YEARS_DEFAULT,
+    roll_years: int = ROLL_YEARS_DEFAULT,
+    bars_per_year: int = BAR_PER_YEAR,
+) -> List[WFOFoldResult]:
+    n_bars = len(date_index)
+    splits = wfo_rolling_2y1y_splits(
+        n_bars,
+        bars_per_year=bars_per_year,
+        in_sample_years=in_sample_years,
+        oos_years=oos_years,
+        roll_years=roll_years,
+    )
+    results: List[WFOFoldResult] = []
+    for fold_idx, (train_start, train_end, test_start, test_end) in enumerate(splits):
+        try:
+            res = run_backtest_fn(
+                date_index=date_index,
+                assets=assets,
+                config=config,
+                test_start=test_start,
+                test_end=test_end,
+                symbols=symbols,
+            )
+            ec = res.get("equity_curve") or []
+            wfer = _wfer_from_equity_curve(ec, annualization=float(bars_per_year))
+            train_dates = (
+                str(date_index[train_start])[:10],
+                str(date_index[train_end - 1])[:10],
+            )
+            test_dates = (
+                str(date_index[test_start])[:10],
+                str(date_index[test_end - 1])[:10],
+            )
+            results.append(WFOFoldResult(
+                fold_idx=fold_idx,
+                train_start=train_start,
+                train_end=train_end,
+                test_start=test_start,
+                test_end=test_end,
+                train_dates=train_dates,
+                test_dates=test_dates,
+                wfer=wfer,
+                oos_sortino=wfer,
+                equity_curve=ec,
+            ))
+        except Exception as e:
+            results.append(WFOFoldResult(
+                fold_idx=fold_idx,
+                train_start=train_start,
+                train_end=train_end,
+                test_start=test_start,
+                test_end=test_end,
+                error=str(e),
+            ))
+    return results
+
+
 @dataclass
 class FoldResult:
     fold_idx: int

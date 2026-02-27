@@ -4,6 +4,60 @@ This document is the **architecture reference** for the Quantfi DCA Intelligence
 
 ---
 
+## Layered architecture (refactored)
+
+The codebase is organized in four layers. Dependency flow is one-way: interfaces → services → domain; infrastructure implements domain protocols.
+
+```mermaid
+flowchart TB
+  subgraph interfaces [Interfaces]
+    API[FastAPI Routers]
+    DTOs[Request/Response DTOs]
+  end
+
+  subgraph services [Services]
+    AssetSvc[AssetDataService]
+    ScoreSvc[ScoringFacade]
+    BacktestSvc[BacktestService]
+    NewsSvc[NewsClassificationService]
+    SimSvc[SimulationService]
+  end
+
+  subgraph domain [Domain]
+    Entities[Entities and Value Objects]
+    IPrice[IPriceProvider]
+    IScoring[IScoringEngine]
+    IIndicators[IIndicators]
+  end
+
+  subgraph infrastructure [Infrastructure]
+    MongoRepo[MongoDB]
+    PriceAdapter[PriceAdapter]
+    NewsAdapter[NewsAdapter]
+    ConfigLoader[ConfigLoader]
+  end
+
+  API --> AssetSvc
+  API --> ScoreSvc
+  API --> BacktestSvc
+  API --> NewsSvc
+  API --> SimSvc
+  AssetSvc --> IPrice
+  ScoreSvc --> IScoring
+  BacktestSvc --> IPrice
+  AssetSvc --> MongoRepo
+  PriceAdapter --> IPrice
+  NewsAdapter --> domain
+  Services --> ConfigLoader
+```
+
+- **Domain** (`domain/`): Protocols (IPriceProvider, IScoringEngine, IIndicators, etc.); no FastAPI or DB imports.
+- **Infrastructure** (`infrastructure/`): PriceAdapter, FXAdapter, NewsAdapter (yfinance/NewsAPI), ConfigLoader for YAML.
+- **Services** (`services/`): AssetDataService, ScoringFacade, BacktestService, NewsClassificationService, SimulationService; orchestrate domain and infrastructure.
+- **Interfaces** (`backend/`): FastAPI app, routes in `backend/routes/`, DTOs in `backend/models.py`. Composition root and DI in `backend/container.py`; see [docs/PATTERNS.md](PATTERNS.md) and [docs/REFACTOR_SUMMARY.md](REFACTOR_SUMMARY.md).
+
+---
+
 ## How to use this document
 
 | You want to… | Jump to |
@@ -94,7 +148,8 @@ flowchart TB
 
 **Entry and routing**
 
-- [backend/server.py](backend/server.py): FastAPI app, `api_router` with prefix `/api`, CORS, Motor MongoDB client.
+- [backend/server.py](backend/server.py): FastAPI app created via `create_app()`; includes router from `create_api_router()`, CORS, lifespan (MongoDB client and Container). Run from repo root with `PYTHONPATH=.` and `uvicorn backend.server:app`.
+- Routes are split into [backend/routes/](backend/routes/): assets, prices, indicators, scores, backtest, news, settings, dashboard, sentiment, simulation, health. Each route uses `Depends(get_container)` to obtain the Container; the Container holds the DB and all services/adapters.
 - All HTTP endpoints live under `/api` (e.g. `/api/assets`, `/api/dashboard`, `/api/backtest`).
 
 **Core modules**

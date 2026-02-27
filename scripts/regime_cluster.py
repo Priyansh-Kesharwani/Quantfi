@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Regime clustering and regime-sliced IC/deciles.
 
@@ -69,8 +70,8 @@ def main():
     if not horizons:
         horizons = [5, 20, 60]
 
-    from data_providers import PriceProvider
-    from backtest import BacktestEngine
+    from backend.data_providers import PriceProvider
+    from backend.backtest import BacktestEngine
 
     out_path = Path(args.out)
     if not out_path.is_absolute():

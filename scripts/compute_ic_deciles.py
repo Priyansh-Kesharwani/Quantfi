@@ -76,8 +76,8 @@ def main():
     if not horizons:
         horizons = [5, 20, 60, 252]
 
-    from data_providers import PriceProvider
-    from backtest import BacktestEngine
+    from backend.data_providers import PriceProvider
+    from backend.backtest import BacktestEngine
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Turnover sensitivity: sweep entry_score_threshold from 50 to 90; record total_trades
 and total_return_pct (and optionally win_rate, cost_drag_pct) per run.

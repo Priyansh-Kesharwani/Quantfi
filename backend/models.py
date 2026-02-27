@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
-from app_config import get_backend_config
+from backend.app_config import get_backend_config
 
 CFG = get_backend_config()
 

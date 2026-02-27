@@ -2,10 +2,10 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from models import BacktestConfig, BacktestResult, EquityPoint
-from data_providers import PriceProvider, FXProvider
-from indicators import TechnicalIndicators
-from scoring import ScoringEngine
+from backend.models import BacktestConfig, BacktestResult, EquityPoint
+from backend.data_providers import PriceProvider, FXProvider
+from backend.indicators import TechnicalIndicators
+from backend.scoring import ScoringEngine
 import logging
 
 logger = logging.getLogger(__name__)

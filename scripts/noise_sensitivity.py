@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Noise sensitivity: run portfolio sim with and without score noise, compare return and trade count.
 

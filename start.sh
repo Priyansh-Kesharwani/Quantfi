@@ -42,7 +42,7 @@ if [ ! -f "$ROOT/backend/.env" ]; then
     echo "    NEWS_API_KEY=your_key"
     echo "    EMERGENT_LLM_KEY=your_key"
     echo "    CORS_ORIGINS=http://localhost:$FRONTEND_PORT"
-    echo "    OPENAI_API_KEY=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" 
+    echo "    OPENAI_API_KEY=your_openai_api_key_here" 
     echo "    EOF"
     echo ""
     exit 1
@@ -56,8 +56,13 @@ fi
 CORS_EFFECTIVE="${CORS_ORIGINS:-http://localhost:$FRONTEND_PORT}"
 echo "→ Syncing backend deps..."
 PIP_DISABLE_PIP_VERSION_CHECK=1 .venv/bin/pip install -q -r requirements.txt
+if [ -f "$ROOT/requirements-bot.txt" ]; then
+    echo "→ Syncing bot deps..."
+    PIP_DISABLE_PIP_VERSION_CHECK=1 .venv/bin/pip install -q -r "$ROOT/requirements-bot.txt"
+fi
 echo "→ Backend starting on :$BACKEND_PORT"
-CORS_ORIGINS="$CORS_EFFECTIVE" .venv/bin/uvicorn server:app --host 0.0.0.0 --port "$BACKEND_PORT" &
+cd "$ROOT"
+CORS_ORIGINS="$CORS_EFFECTIVE" PYTHONPATH="$ROOT" backend/.venv/bin/uvicorn backend.server:app --host 0.0.0.0 --port "$BACKEND_PORT" &
 BACKEND_PID=$!
 
 cd "$ROOT/frontend"

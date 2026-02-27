@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Suggest score component weights from rolling IC of each sub-score vs forward returns.
 
@@ -36,9 +37,9 @@ def compute_scores_and_breakdown(df, backend_engine):
     close = df["Close"]
     high = df["High"]
     low = df["Low"]
-    from indicators import TechnicalIndicators
-    from scoring import ScoringEngine
-    from data_providers import FXProvider
+    from backend.indicators import TechnicalIndicators
+    from backend.scoring import ScoringEngine
+    from backend.data_providers import FXProvider
     sma_50 = TechnicalIndicators.calculate_sma(close, 50)
     sma_200 = TechnicalIndicators.calculate_sma(close, 200)
     rsi_14 = TechnicalIndicators.calculate_rsi(close, 14)
@@ -97,8 +98,8 @@ def main():
     args = ap.parse_args()
 
     symbols = [s.strip().upper() for s in args.assets.split(",") if s.strip()]
-    from data_providers import PriceProvider
-    from backtest import BacktestEngine
+    from backend.data_providers import PriceProvider
+    from backend.backtest import BacktestEngine
 
     out_path = Path(args.out)
     if not out_path.is_absolute():

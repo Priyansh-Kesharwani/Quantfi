@@ -1,0 +1,1502 @@
+[
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -0.15381944860544644
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -0.8024284444850288
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -0.011885117430635635
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -0.9118105924197273
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -0.734125137628784
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": -0.3328442395609827
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": -0.8393259971029824
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -0.4879994106921255
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": -0.09819612249888966
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -1.1735695005708682
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -2.251480184254952
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -1.6269138669357546
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": -0.5861582860815828
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": -0.7424192108571893
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": -1.8778982136437175
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -3.5552504847863853
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": -3.3259546708442054
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -1.9683628736205747
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -3.696189033337981
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": -1.5611873773254914
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -1.8787058355240365
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -5.572014104325343
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -4.164480959936155
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": -1.5812904859072596
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -4.09628696639883
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -5.532754380878449
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": -1.362614517611596
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -1.6958462750473986
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -2.122261977852101
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -0.32263239131176275
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": -0.7817019064813846
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -0.26886788060121336
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -0.33243870468901243
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -2.3675147543431487
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -3.7127216379206276
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 10, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": -1.6160470322121812
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": -1.4491988035811005
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": -1.7094008289000266
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": -3.8997219394309313
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -5.0837189491163555
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": -3.6209666153126108
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -2.784666937103009
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -3.814000664306761
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -0.9106394250351242
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -4.189408069765539
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -2.432895025393125
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": -3.309521357030252
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -3.304409661964104
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -2.8583910761650095
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": -2.2858393388940557
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -1.8318623479366551
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": -2.8191946858553174
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -0.43785691847923747
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": -0.28156191651924467
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": -1.6502208037319543
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": -0.7707928190411818
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": -2.966132298876877
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": -3.2908572155133897
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -3.5041552500489197
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": -4.1262764095665565
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -0.989407874478612
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -3.287473982496454
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -1.549770203340934
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -1.8360636146788754
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": -1.5350585737967155
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -1.123741887394614
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": -1.8298553089539675
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 55, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -0.16927700351994385
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -1.5007166501446754
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -1.711300951104395
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -1.4505650942629769
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -2.5359490759449668
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -1.051643491537469
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -0.24193011517121069
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -6.309402152381651
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -4.1105211617595545
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": -4.9617662976185715
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -4.173128754370885
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -3.895747659719646
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": -2.7533444608060855
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -3.48290305145886
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": -4.516753029971414
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 5, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -0.40930699564727224
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -0.0911087737565089
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 10, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -0.6210524171115518
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -0.035936996591839736
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -0.6164384031136463
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -0.2578819422402809
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -1.2826168448257074
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -0.029748291759736395
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -0.6870492969191205
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -1.7728875931383885
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -0.8300239002476247
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 65, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -0.9142440514625262
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -0.5626813670198539
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -1.4337601035581744
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -1.7841057335343715
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -1.494680806688068
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 5, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -0.24193011517121069
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -6.309402152381651
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -4.1105211617595545
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": -4.9617662976185715
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -4.173128754370885
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -3.895747659719646
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": -2.7533444608060855
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -3.48290305145886
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": -4.516753029971414
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 60, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -0.5786937620043072
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -0.8120675422067312
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -0.11161653518583037
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": -0.7645108011383684
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -2.26882812870343
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": -1.4214721392039824
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -1.2964345734441547
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -1.5934771252538038
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 70, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": -0.022205527318641737
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": -0.7639312091963749
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": -1.1983605264406219
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": -0.6241255732640223
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": -1.6381797188743155
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": -0.5013193917014462
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 15, \"min_holding_days\": 0, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 5,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 7,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 60, \"initial_capital\": 100000.0, \"max_holding_days\": 90, \"max_positions\": 3, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": true}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -1.1735695005708682
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -2.251480184254952
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -1.6269138669357546
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 3.0, \"cost_free\": true, \"entry_score_threshold\": 75, \"initial_capital\": 100000.0, \"max_holding_days\": 180, \"max_positions\": 15, \"min_holding_days\": 10, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": -0.5861582860815828
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": -0.7927067808331709
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": -3.7158249628607467
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": -3.3534501733080364
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": -1.8926819927723515
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": -3.537328483064194
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -5.56872815647735
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": -2.3333601568830016
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": -2.134796458634316
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": -0.6770464126360312
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 80, \"initial_capital\": 100000.0, \"max_holding_days\": 30, \"max_positions\": 3, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 0,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 1,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 2,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 3,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 4,
+    "gt_score": -1.3977799245337956
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 5,
+    "gt_score": -0.6565876007460667
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 6,
+    "gt_score": -0.3566884878363581
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 7,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 8,
+    "gt_score": 0.0
+  },
+  {
+    "config_key": "{\"atr_trail_mult\": 2.5, \"cost_free\": true, \"entry_score_threshold\": 50, \"initial_capital\": 100000.0, \"max_holding_days\": 120, \"max_positions\": 15, \"min_holding_days\": 5, \"slippage_bps\": 5.0, \"use_atr_stop\": false}",
+    "split_id": 9,
+    "gt_score": 0.0
+  }
+]

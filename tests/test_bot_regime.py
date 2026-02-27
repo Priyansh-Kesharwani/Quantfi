@@ -17,7 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 pytest.importorskip("hmmlearn")
 
-from bot.regime import fit_hmm, predict_state_prob
+from bot.regime import fit_hmm, predict_state_prob, regime_probability_rolling
 
 
 def _synthetic_returns(n: int = 200, seed: int = 42) -> pd.DataFrame:
@@ -85,3 +85,14 @@ def test_predict_state_prob_returns_column():
     probs = predict_state_prob(df, model, returns_column="ret")
     assert probs.shape[0] == 80
     assert probs.shape[1] == 2
+
+
+def test_regime_probability_rolling_past_only():
+    df = _synthetic_returns(120, seed=7)
+    probs = regime_probability_rolling(df, n_states=2, window=60, refit_every=30, random_state=99)
+    assert isinstance(probs, pd.DataFrame)
+    assert probs.shape[0] == 120
+    assert probs.shape[1] == 2
+    valid = probs.notna().all(axis=1)
+    assert valid.sum() > 0
+    assert np.allclose(probs.loc[valid].sum(axis=1).values, 1.0, rtol=1e-5)

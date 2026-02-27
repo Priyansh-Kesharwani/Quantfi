@@ -20,7 +20,10 @@ from .purged_validation import (
     WalkForwardCV,
     BlockBootstrap,
     FoldResult,
-    walk_forward_validate
+    walk_forward_validate,
+    wfo_rolling_2y1y_splits,
+    run_wfo_rolling_harness,
+    WFOFoldResult,
 )
 
 from .signal_sweep import (
@@ -64,6 +67,9 @@ __all__ = [
     'BlockBootstrap',
     'FoldResult',
     'walk_forward_validate',
+    'wfo_rolling_2y1y_splits',
+    'run_wfo_rolling_harness',
+    'WFOFoldResult',
     'SweepConfig',
     'sweep_dca_thresholds',
     'sweep_cadence_and_threshold',

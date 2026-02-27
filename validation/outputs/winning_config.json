@@ -1,0 +1,17 @@
+{
+  "config": {
+    "cost_free": false,
+    "initial_capital": 100000.0,
+    "slippage_bps": 5,
+    "entry_score_threshold": 58,
+    "max_positions": 10,
+    "atr_trail_mult": 2.0,
+    "score_rel_mult": 0.35,
+    "score_abs_floor": 30,
+    "max_holding_days": 30
+  },
+  "dsr": -0.7034937705531059,
+  "mean_gt_score": -17.394450402459338,
+  "n_trials": 30,
+  "dsr_passed": false
+}

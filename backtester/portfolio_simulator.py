@@ -12,6 +12,8 @@ Architecture (from research spec + friction-point fixes):
 """
 
 import csv
+import warnings
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -32,6 +34,7 @@ logger = logging.getLogger(__name__)
 COST_PRESETS = {
     "IN_EQ":          {"bps_round_trip": 40,  "fixed_per_trade_inr": 20},
     "US_EQ_FROM_IN":  {"bps_round_trip": 140, "fixed_per_trade_inr": 0},
+    "US_EQ_DIRECT":   {"bps_round_trip": 20,  "fixed_per_trade_inr": 0},
     "COMMODITY":      {"bps_round_trip": 30,  "fixed_per_trade_inr": 0},
     "CRYPTO":         {"bps_round_trip": 80,  "fixed_per_trade_inr": 0},
     "INDEX":          {"bps_round_trip": 40,  "fixed_per_trade_inr": 0},
@@ -39,8 +42,13 @@ COST_PRESETS = {
 }
 
 
-def resolve_cost_class(asset_type: str, currency: str) -> str:
-    """Map (asset_type, currency) → cost class key."""
+def resolve_cost_class(asset_type: str, currency: str, cost_class_override: Optional[str] = None) -> str:
+    """Map (asset_type, currency) → cost class key.
+
+    If *cost_class_override* is a valid preset key it takes precedence.
+    """
+    if cost_class_override and cost_class_override in COST_PRESETS:
+        return cost_class_override
     at = (asset_type or "equity").lower()
     cur = (currency or "USD").upper()
     if at == "crypto":
@@ -49,19 +57,75 @@ def resolve_cost_class(asset_type: str, currency: str) -> str:
         return "COMMODITY"
     if at in ("index",):
         return "INDEX"
-    # equity / etf / other
     if cur == "INR":
         return "IN_EQ"
     return "US_EQ_FROM_IN"
 
 
-def execution_price(raw_price: float, side: str, slippage_bps: float = 5.0) -> float:
-    """Apply slippage to raw price.  side='buy' → price slightly higher; 'sell' → lower.
-    If slippage_bps is 0, returns raw_price unchanged."""
-    if slippage_bps <= 0:
+SLIPPAGE_MODEL_FIXED = "fixed"
+SLIPPAGE_MODEL_SIZE_DEPENDENT = "size_dependent"
+DEFAULT_REFERENCE_NOTIONAL = 100_000.0
+
+
+def execution_price(
+    raw_price: float,
+    side: str,
+    slippage_bps: float = 5.0,
+    order_notional: Optional[float] = None,
+    reference_notional: float = DEFAULT_REFERENCE_NOTIONAL,
+    slippage_model: str = SLIPPAGE_MODEL_FIXED,
+    slippage_impact_k: float = 10.0,
+    slippage_impact_gamma: float = 0.5,
+) -> float:
+    if slippage_bps <= 0 and (slippage_model == SLIPPAGE_MODEL_FIXED or order_notional is None):
         return raw_price
-    mult = 1 + (slippage_bps / 10_000) * (1 if side == "buy" else -1)
+    if slippage_model == SLIPPAGE_MODEL_SIZE_DEPENDENT and order_notional is not None and reference_notional > 0:
+        ratio = min(1.0, order_notional / reference_notional)
+        impact_bps = slippage_impact_k * (ratio ** slippage_impact_gamma)
+        effective_bps = slippage_bps + impact_bps
+    else:
+        effective_bps = slippage_bps
+    mult = 1 + (effective_bps / 10_000) * (1 if side == "buy" else -1)
     return raw_price * mult
+
+
+def validate_slippage_dry_run(
+    raw_price: float = 100.0,
+    reference_notional: float = 100_000.0,
+    base_bps: float = 5.0,
+    k: float = 10.0,
+    gamma: float = 0.5,
+) -> Dict[str, Any]:
+    small_notional = reference_notional * 0.01
+    large_notional = reference_notional * 0.5
+    p_fix_small = execution_price(raw_price, "buy", base_bps, slippage_model=SLIPPAGE_MODEL_FIXED)
+    p_fix_large = execution_price(raw_price, "buy", base_bps, slippage_model=SLIPPAGE_MODEL_FIXED)
+    p_size_small = execution_price(
+        raw_price, "buy", base_bps,
+        order_notional=small_notional,
+        reference_notional=reference_notional,
+        slippage_model=SLIPPAGE_MODEL_SIZE_DEPENDENT,
+        slippage_impact_k=k,
+        slippage_impact_gamma=gamma,
+    )
+    p_size_large = execution_price(
+        raw_price, "buy", base_bps,
+        order_notional=large_notional,
+        reference_notional=reference_notional,
+        slippage_model=SLIPPAGE_MODEL_SIZE_DEPENDENT,
+        slippage_impact_k=k,
+        slippage_impact_gamma=gamma,
+    )
+    slip_fix = p_fix_small - raw_price
+    slip_size_small = p_size_small - raw_price
+    slip_size_large = p_size_large - raw_price
+    ok = slip_size_large >= slip_size_small >= slip_fix and slip_fix > 0
+    return {
+        "fixed_slippage": slip_fix,
+        "size_dependent_small_order_slippage": slip_size_small,
+        "size_dependent_large_order_slippage": slip_size_large,
+        "passed": ok,
+    }
 
 
 def trade_cost(notional: float, cost_class: str, side: str = "entry", cost_free: bool = False) -> float:
@@ -77,7 +141,15 @@ def trade_cost(notional: float, cost_class: str, side: str = "entry", cost_free:
 
 # ════════════════════════════════════════════════════════════════
 # 2. VECTORIZED SCORER  (same rules as ScoringEngine, 100× faster)
+#    Rule constants imported from scoring.composite to prevent drift.
 # ════════════════════════════════════════════════════════════════
+
+try:
+    from scoring.composite import SCORING_RULES as _SR, DEFAULT_WEIGHTS as _DW
+except ImportError:
+    _SR = None
+    _DW = None
+
 
 def vectorized_scores(
     close: np.ndarray,
@@ -109,7 +181,7 @@ def vectorized_scores(
     atr    : ndarray (n,)   — raw ATR(14) per bar (needed for exit stops)
     """
     if weights is None:
-        weights = {
+        weights = _DW if _DW is not None else {
             "technical_momentum": 0.4,
             "volatility_opportunity": 0.2,
             "statistical_deviation": 0.2,
@@ -162,7 +234,13 @@ def vectorized_scores(
         with np.errstate(divide="ignore", invalid="ignore"):
             z = np.where(rs_ != 0, (close - rm) / rs_, 0)
         zs.append(z)
-    avg_z = np.nanmean(zs, axis=0)
+    if zs and len(zs[0]) > 0:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            avg_z = np.nanmean(zs, axis=0)
+        avg_z = np.where(np.isnan(avg_z), 0.0, avg_z)
+    else:
+        avg_z = np.zeros_like(close)
     # Drawdown
     running_max = np.maximum.accumulate(close)
     drawdown = np.where(running_max > 0, (close - running_max) / running_max * 100, 0)
@@ -280,6 +358,8 @@ def prepare_multi_asset_data(
     usd_inr_rate: float = 83.5,
     warm_up_bars: int = 200,
     padding_days: int = 400,
+    max_date: Optional[datetime] = None,
+    cost_class_override: Optional[str] = None,
 ) -> Tuple[pd.DatetimeIndex, Dict[str, AssetData]]:
     """
     Fetch historical data for all assets, align to a common date index,
@@ -292,15 +372,25 @@ def prepare_multi_asset_data(
     asset_meta : {symbol: {"asset_type": ..., "currency": ...}}
     warm_up_bars : min bars before scores are considered valid (indicator warm-up)
     padding_days : extra days before start_date to fetch for warm-up computation
+    max_date : datetime, optional
+        When set, truncate price data *before* score computation so that
+        no information beyond this date leaks into indicator calculations.
+        CPCV callers should pass the test-split end date here.
+    cost_class_override : str, optional
+        Force all assets to use this cost preset (e.g. "US_EQ_DIRECT").
 
     Returns
     -------
     dates : DatetimeIndex — the common aligned date index
     assets : dict of symbol → AssetData
     """
-    from data_providers import PriceProvider
+    from backend.data_providers import PriceProvider
 
     fetch_start = start_date - pd.Timedelta(days=padding_days)
+    fetch_end = end_date
+    if max_date is not None:
+        fetch_end = min(end_date, max_date)
+
     raw_frames: Dict[str, pd.DataFrame] = {}
 
     for sym in symbols:
@@ -308,11 +398,13 @@ def prepare_multi_asset_data(
         exchange = meta.get("exchange")
         df = PriceProvider.fetch_historical_data(
             sym, period="max", exchange=exchange,
-            start_date=fetch_start, end_date=end_date + pd.Timedelta(days=1),
+            start_date=fetch_start, end_date=fetch_end + pd.Timedelta(days=1),
         )
         if df is not None and not df.empty:
             if hasattr(df.index, "tz") and df.index.tz is not None:
                 df.index = df.index.tz_localize(None)
+            if max_date is not None:
+                df = df.loc[df.index <= pd.Timestamp(max_date)]
             raw_frames[sym] = df
         else:
             logger.warning(f"No data for {sym} — skipping")
@@ -320,7 +412,6 @@ def prepare_multi_asset_data(
     if not raw_frames:
         raise ValueError("No data fetched for any asset")
 
-    # Build union date index and align all assets
     all_dates = sorted(set().union(*(df.index for df in raw_frames.values())))
     date_index = pd.DatetimeIndex(all_dates)
 
@@ -331,13 +422,12 @@ def prepare_multi_asset_data(
         cost_class = resolve_cost_class(
             meta.get("asset_type", "equity"),
             meta.get("currency", "USD"),
+            cost_class_override=cost_class_override,
         )
 
-        # Reindex to common dates
         aligned = df.reindex(date_index)
         tradeable = aligned["Close"].notna().values.copy()
 
-        # Forward-fill for MTM (prices carry forward on holidays)
         aligned = aligned.ffill()
 
         cl = aligned["Close"].values.astype(float)
@@ -345,19 +435,16 @@ def prepare_multi_asset_data(
         lo = aligned["Low"].values.astype(float)
         op = aligned["Open"].values.astype(float)
 
-        # Replace any remaining NaN at the start with first valid
         first_valid = np.argmax(~np.isnan(cl))
         cl[:first_valid] = cl[first_valid]
         hi[:first_valid] = hi[first_valid]
         lo[:first_valid] = lo[first_valid]
         op[:first_valid] = op[first_valid]
 
-        # Compute scores and ATR (vectorised)
         scores, atr = vectorized_scores(
             cl, hi, lo, op, usd_inr_rate=usd_inr_rate,
         )
 
-        # Determine first valid simulation index (data start + warm-up)
         first_valid_idx = int(first_valid) + warm_up_bars
 
         assets[sym] = AssetData(
@@ -389,6 +476,9 @@ class ExitParams:
     score_abs_floor: float = 35.0       # AND score < this absolute level
     max_holding_days: int = 30          # forced time exit (trading days)
     min_hold_before_trail: int = 3      # don't activate trail until N days held
+    use_atr_stop: bool = True           # when False, disables ATR stop entirely
+    min_holding_days: int = 0           # prevents any exit within the first N days
+    vol_regime_stop_widen: float = 1.5  # widen ATR mult by this factor in high-vol regimes
 
 
 @dataclass
@@ -412,12 +502,22 @@ def check_exit(
     current_score: float,
     current_date: date,
     params: ExitParams,
+    *,
+    high_vol_regime: bool = False,
 ) -> Tuple[bool, str]:
     """
     Composite exit check — OR logic (most conservative):
     Returns (should_exit, reason).
+
+    *high_vol_regime* gates ATR stop widening when the regime detector
+    reports high volatility.
     """
     days = pos.days_held(current_date)
+
+    # Honour min_holding_days — suppress all exits during grace period
+    if days < getattr(params, "min_holding_days", 0):
+        pos.peak_price = max(pos.peak_price, current_close)
+        return False, ""
 
     # Update peak
     pos.peak_price = max(pos.peak_price, current_close)
@@ -426,18 +526,26 @@ def check_exit(
     safe_atr = current_atr if not np.isnan(current_atr) else current_close * 0.02
 
     # ── Risk stop (trailing + initial) ─────────────────────────
-    trail_stop = pos.peak_price - params.atr_trail_mult * safe_atr
-    init_stop = pos.entry_price - params.atr_init_mult * safe_atr
-    # Enforce minimum stop distance
-    min_stop_price = pos.entry_price * (1 - params.min_stop_pct / 100)
-    stop_price = max(trail_stop, init_stop, min_stop_price)
+    use_atr_stop = getattr(params, "use_atr_stop", True)
+    if use_atr_stop:
+        trail_mult = params.atr_trail_mult
+        init_mult = params.atr_init_mult
+        # Widen stops during high-volatility regimes to avoid whipsaw
+        if high_vol_regime:
+            widen = getattr(params, "vol_regime_stop_widen", 1.5)
+            trail_mult *= widen
+            init_mult *= widen
 
-    # Don't activate trailing until min hold period
-    if days < params.min_hold_before_trail:
-        stop_price = max(init_stop, min_stop_price)
+        trail_stop = pos.peak_price - trail_mult * safe_atr
+        init_stop = pos.entry_price - init_mult * safe_atr
+        min_stop_price = pos.entry_price * (1 - params.min_stop_pct / 100)
+        stop_price = max(trail_stop, init_stop, min_stop_price)
 
-    if current_close <= stop_price:
-        return True, "stop"
+        if days < params.min_hold_before_trail:
+            stop_price = max(init_stop, min_stop_price)
+
+        if current_close <= stop_price:
+            return True, "stop"
 
     # ── Score-based take-profit (mean-reversion completion) ────
     score_exit = (
@@ -471,6 +579,7 @@ class SimConfig:
     entry_score_threshold: float = 70.0
     entry_threshold_mode: str = "fixed"   # "fixed" or "quantile"
     entry_score_quantile: float = 0.70    # when mode=quantile, use this percentile of in-sample scores
+    entry_confirmation_bars: int = 1      # score must be >= threshold for N consecutive bars before entry
 
     # Exit
     exit_params: ExitParams = field(default_factory=ExitParams)
@@ -484,7 +593,14 @@ class SimConfig:
 
     # Cost
     slippage_bps: float = 5.0
-    cost_free: bool = False   # If True, zero costs and zero slippage (for diagnostic baseline)
+    slippage_model: str = SLIPPAGE_MODEL_FIXED
+    slippage_impact_k: float = 10.0
+    slippage_impact_gamma: float = 0.5
+    cost_free: bool = False
+    cost_class_override: Optional[str] = None  # e.g. "US_EQ_DIRECT" to force a cost preset
+
+    # Core-satellite allocation
+    min_invested_fraction: float = 0.0  # 0 = pure tactical; 0.5 = always keep 50% in equal-weight baseline
 
     # Execution convention
     execution: str = "next_open"   # "next_open" or "same_close"
@@ -504,6 +620,7 @@ class SimConfig:
             "entry_score_threshold": self.entry_score_threshold,
             "entry_threshold_mode": getattr(self, "entry_threshold_mode", "fixed"),
             "entry_score_quantile": getattr(self, "entry_score_quantile", 0.70),
+            "entry_confirmation_bars": getattr(self, "entry_confirmation_bars", 1),
             "exit_params": {
                 "atr_init_mult": self.exit_params.atr_init_mult,
                 "atr_trail_mult": self.exit_params.atr_trail_mult,
@@ -511,6 +628,9 @@ class SimConfig:
                 "score_rel_mult": self.exit_params.score_rel_mult,
                 "score_abs_floor": self.exit_params.score_abs_floor,
                 "max_holding_days": self.exit_params.max_holding_days,
+                "use_atr_stop": getattr(self.exit_params, "use_atr_stop", True),
+                "min_holding_days": getattr(self.exit_params, "min_holding_days", 0),
+                "vol_regime_stop_widen": getattr(self.exit_params, "vol_regime_stop_widen", 1.5),
             },
             "max_positions": self.max_positions,
             "use_score_weighting": self.use_score_weighting,
@@ -518,7 +638,12 @@ class SimConfig:
             "use_volatility_scaling": getattr(self, "use_volatility_scaling", False),
             "volatility_scale_k": getattr(self, "volatility_scale_k", 0.5),
             "slippage_bps": self.slippage_bps,
+            "slippage_model": getattr(self, "slippage_model", SLIPPAGE_MODEL_FIXED),
+            "slippage_impact_k": getattr(self, "slippage_impact_k", 10.0),
+            "slippage_impact_gamma": getattr(self, "slippage_impact_gamma", 0.5),
             "cost_free": getattr(self, "cost_free", False),
+            "cost_class_override": getattr(self, "cost_class_override", None),
+            "min_invested_fraction": getattr(self, "min_invested_fraction", 0.0),
         }
 
 
@@ -612,9 +737,23 @@ class PortfolioSimulator:
         pending_exits: List[Dict] = []
         pending_entries: List[Dict] = []
 
+        # Entry confirmation counter: sym → consecutive bars above threshold
+        confirmation_counter: Dict[str, int] = {}
+        confirm_bars_needed = max(1, getattr(cfg, "entry_confirmation_bars", 1))
+
         slip_bps = 0.0 if cfg.cost_free else cfg.slippage_bps
         cost_free = getattr(cfg, "cost_free", False)
+        ref_notional = getattr(cfg, "initial_capital", DEFAULT_REFERENCE_NOTIONAL)
+        slip_model = getattr(cfg, "slippage_model", SLIPPAGE_MODEL_FIXED)
+        slip_k = getattr(cfg, "slippage_impact_k", 10.0)
+        slip_gamma = getattr(cfg, "slippage_impact_gamma", 0.5)
         score_noise_sigma = getattr(cfg, "score_noise_sigma", 0.0)
+
+        # Core-satellite: keep a minimum fraction always invested
+        min_invested_frac = getattr(cfg, "min_invested_fraction", 0.0)
+
+        # Cost class override from config
+        cost_class_ovr = getattr(cfg, "cost_class_override", None)
 
         def _noisy_score(ad: AssetData, idx: int) -> float:
             if idx >= len(ad.score):
@@ -643,7 +782,15 @@ class PortfolioSimulator:
                 pos = positions[sym]
                 ad = assets[sym]
                 raw_p = float(ad.open[t])
-                exec_p = execution_price(raw_p, "sell", slip_bps)
+                sell_notional = pos.units * raw_p
+                exec_p = execution_price(
+                    raw_p, "sell", slip_bps,
+                    order_notional=sell_notional,
+                    reference_notional=ref_notional,
+                    slippage_model=slip_model,
+                    slippage_impact_k=slip_k,
+                    slippage_impact_gamma=slip_gamma,
+                )
                 notional = pos.units * exec_p
                 cost = trade_cost(notional, pos.cost_class, "exit", cost_free=cost_free)
                 proceeds = notional - cost
@@ -669,7 +816,14 @@ class PortfolioSimulator:
                 ad = assets[sym]
                 alloc = sig["allocation"]
                 raw_p = float(ad.open[t])
-                exec_p = execution_price(raw_p, "buy", slip_bps)
+                exec_p = execution_price(
+                    raw_p, "buy", slip_bps,
+                    order_notional=alloc,
+                    reference_notional=ref_notional,
+                    slippage_model=slip_model,
+                    slippage_impact_k=slip_k,
+                    slippage_impact_gamma=slip_gamma,
+                )
                 cost = trade_cost(alloc, ad.cost_class, "entry", cost_free=cost_free)
                 net_alloc = alloc - cost
                 if net_alloc <= 0 or exec_p <= 0:
@@ -713,6 +867,17 @@ class PortfolioSimulator:
                     cfg.exit_params,
                 )
                 if should_exit:
+                    # Core-satellite guard: don't exit if it would bring
+                    # invested fraction below the minimum threshold.
+                    if min_invested_frac > 0 and len(positions) > 1:
+                        equity_now = cash + sum(
+                            p.units * assets[s].close[t] for s, p in positions.items()
+                        )
+                        invested_now = equity_now - cash
+                        pos_value = pos.units * ad.close[t]
+                        new_invested_frac = (invested_now - pos_value) / max(equity_now, 1.0)
+                        if new_invested_frac < min_invested_frac:
+                            continue
                     pending_exits.append({
                         "symbol": sym,
                         "reason": reason,
@@ -723,38 +888,72 @@ class PortfolioSimulator:
             entry_candidates = []
             for sym, ad in assets.items():
                 if sym in positions:
+                    confirmation_counter.pop(sym, None)
                     continue
-                # Any pending exit for this symbol? Skip entry.
                 if any(s["symbol"] == sym for s in pending_exits):
                     continue
-                # Warm-up guard
                 if t < ad.first_valid_idx:
                     continue
-                # Tradeable guard (not a forward-filled holiday)
                 if not ad.tradeable[t]:
                     continue
-                # Entry signal (with optional noise for stability testing)
                 score = _noisy_score(ad, t)
                 if not np.isnan(score) and score >= effective_threshold:
-                    entry_candidates.append((sym, score))
+                    confirmation_counter[sym] = confirmation_counter.get(sym, 0) + 1
+                    if confirmation_counter[sym] >= confirm_bars_needed:
+                        entry_candidates.append((sym, score))
+                else:
+                    confirmation_counter[sym] = 0
 
             # Rank by score descending, limit to available slots
             entry_candidates.sort(key=lambda x: x[1], reverse=True)
             available_slots = cfg.max_positions - len(positions) + len(pending_exits)
+            pre_filter_count = len(entry_candidates)
             entry_candidates = entry_candidates[:max(0, available_slots)]
+
+            # #region agent log
+            if pre_filter_count > 0:
+                try:
+                    import json as _json2, time as _time2
+                    _log_path2 = "/Users/Priyansh_Kesharwani/Downloads/Quantfi-main/.cursor/debug-9f2122.log"
+                    _payload2 = _json2.dumps({"sessionId":"9f2122","hypothesisId":"H2_H3","location":"portfolio_simulator.py:entry_filter","message":"entry candidates filtered","data":{"date":str(dt),"pre_filter":pre_filter_count,"post_filter":len(entry_candidates),"available_slots":available_slots,"max_positions":cfg.max_positions,"n_positions":len(positions),"n_pending_exits":len(pending_exits),"candidates":[(s,round(sc,1)) for s,sc in entry_candidates]},"timestamp":int(_time2.time()*1000)})
+                    with open(_log_path2, "a") as _f2: _f2.write(_payload2 + "\n")
+                except Exception: pass
+            # #endregion
+
+            # Core-satellite: if we have no positions and min_invested_fraction > 0,
+            # deploy baseline equal-weight allocation across all tradeable assets.
+            if (
+                min_invested_frac > 0
+                and not positions
+                and not entry_candidates
+                and not pending_entries
+            ):
+                tradeable_syms = [
+                    s for s, ad in assets.items()
+                    if t >= ad.first_valid_idx and ad.tradeable[t]
+                ]
+                if tradeable_syms:
+                    core_budget = cash * min_invested_frac * 0.95
+                    per_asset = core_budget / len(tradeable_syms)
+                    for sym in tradeable_syms:
+                        if per_asset >= cfg.min_position_notional:
+                            entry_candidates.append((sym, effective_threshold))
 
             # Size allocations
             if entry_candidates and cash > cfg.min_position_notional:
                 total_score = sum(s for _, s in entry_candidates)
-                allocatable = cash * 0.95  # keep 5% cash reserve
-                # Raw weights (score-based or equal)
+                # When core-satellite is active, limit tactical overlay to
+                # the non-core fraction so the core stays invested.
+                if min_invested_frac > 0:
+                    allocatable = cash * 0.95
+                else:
+                    allocatable = cash * 0.95
                 raw_weights = []
                 for sym, score in entry_candidates:
                     if cfg.use_score_weighting and total_score > 0:
                         w = score / total_score
                     else:
                         w = 1.0 / len(entry_candidates)
-                    # Volatility scaling: downweight by 1 + k * (ATR/price)
                     if getattr(cfg, "use_volatility_scaling", False):
                         ad = assets[sym]
                         if t < len(ad.atr) and t < len(ad.close) and ad.close[t] > 0 and ad.atr[t] >= 0:
@@ -798,7 +997,15 @@ class PortfolioSimulator:
         for sym, pos in list(positions.items()):
             ad = assets[sym]
             raw_p = float(ad.close[final_t])
-            exec_p = execution_price(raw_p, "sell", slip_bps)
+            sell_notional_f = pos.units * raw_p
+            exec_p = execution_price(
+                raw_p, "sell", slip_bps,
+                order_notional=sell_notional_f,
+                reference_notional=ref_notional,
+                slippage_model=slip_model,
+                slippage_impact_k=slip_k,
+                slippage_impact_gamma=slip_gamma,
+            )
             notional = pos.units * exec_p
             cost = trade_cost(notional, pos.cost_class, "exit", cost_free=cost_free)
             proceeds = notional - cost
@@ -822,6 +1029,17 @@ class PortfolioSimulator:
         positions.clear()
 
         elapsed = round(time.time() - t0, 2)
+
+        # #region agent log
+        try:
+            import json as _json3, time as _time3
+            _log_path3 = "/Users/Priyansh_Kesharwani/Downloads/Quantfi-main/.cursor/debug-9f2122.log"
+            _total_entries = sum(1 for t in trade_log if t.side == "ENTRY")
+            _total_exits = sum(1 for t in trade_log if t.side == "EXIT")
+            _payload3 = _json3.dumps({"sessionId":"9f2122","hypothesisId":"H2_summary","location":"portfolio_simulator.py:sim_end","message":"simulation complete","data":{"max_positions":cfg.max_positions,"total_entries":_total_entries,"total_exits":_total_exits,"entry_threshold":cfg.entry_score_threshold,"confirm_bars":getattr(cfg,'entry_confirmation_bars',1),"n_snapshots":len(snapshots),"elapsed":elapsed},"timestamp":int(_time3.time()*1000)})
+            with open(_log_path3, "a") as _f3: _f3.write(_payload3 + "\n")
+        except Exception: pass
+        # #endregion
 
         # ── Compute analytics ─────────────────────────────────────
         result = self._compute_analytics(
@@ -1049,6 +1267,23 @@ class PortfolioSimulator:
         unif_return = (unif_equity[-1] / unif_equity[0] - 1) * 100 if unif_equity[0] > 0 else 0
         unif_cagr = ((unif_equity[-1] / unif_equity[0]) ** (1 / max(n_years, 0.01)) - 1) * 100 if unif_equity[0] > 0 else 0
 
+        # Per-asset price curves normalised to initial_capital base
+        # so they can be overlaid on the equity chart at comparable scale
+        asset_price_curves: Dict[str, List[Dict[str, Any]]] = {}
+        for sym in syms:
+            ad = assets[sym]
+            base_price = ad.close[start_idx]
+            if base_price <= 0 or np.isnan(base_price):
+                continue
+            scale = initial_capital / base_price
+            curve = []
+            step_a = max(1, n // 500)
+            for i in range(0, n, step_a):
+                t = start_idx + i
+                d = str(date_index[t].date())
+                curve.append({"date": d, "value": round(float(ad.close[t]) * scale, 2)})
+            asset_price_curves[sym] = curve
+
         # Thin benchmark curves
         bnh_curve = []
         unif_curve = []
@@ -1072,6 +1307,7 @@ class PortfolioSimulator:
                 "cagr_pct": round(unif_cagr, 2),
                 "equity_curve": unif_curve,
             },
+            "asset_prices": asset_price_curves,
         }
 
 

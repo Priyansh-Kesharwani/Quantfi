@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from typing import Dict, Optional
-from app_config import get_backend_config
+from backend.app_config import get_backend_config
 
 CFG = get_backend_config()
 

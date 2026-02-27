@@ -15,30 +15,46 @@ import {
   CartesianGrid, Tooltip, Legend, BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
 
-/* ─── Strategy Template Presets ─── */
+/* ─── Strategy Template Presets (entry/max_positions sync with backend SIMULATION_TEMPLATES) ─── */
 const TEMPLATES = {
-  conservative: { label: 'CONSERVATIVE', desc: 'Tight stops, high entry bar, fewer positions', color: '#22C55E' },
-  balanced:     { label: 'BALANCED',     desc: 'Default mean-reversion parameters',         color: '#6366F1' },
-  aggressive:   { label: 'AGGRESSIVE',   desc: 'Loose stops, lower entry bar, more slots',  color: '#EF4444' },
+  conservative: { label: 'CONSERVATIVE', desc: 'Tight stops, high entry bar, fewer positions', color: '#22C55E', entryThreshold: 80, maxPositions: 6 },
+  balanced:     { label: 'BALANCED',     desc: 'Default mean-reversion parameters',         color: '#6366F1', entryThreshold: 70, maxPositions: 10 },
+  aggressive:   { label: 'AGGRESSIVE',   desc: 'Loose stops, lower entry bar, more slots',  color: '#EF4444', entryThreshold: 60, maxPositions: 15 },
 };
 
 /* ─── Overview Tab ─── */
 const OverviewTab = ({ result, config }) => {
+  const assetPriceSymbols = useMemo(() => {
+    const prices = result?.benchmarks?.asset_prices || {};
+    return Object.keys(prices);
+  }, [result]);
+
   const chartData = useMemo(() => {
     if (!result?.equity_curve?.length) return [];
     const strat = result.equity_curve;
     const bnh = result.benchmarks?.buy_and_hold?.equity_curve || [];
     const unif = result.benchmarks?.uniform_periodic?.equity_curve || [];
+    const assetPrices = result.benchmarks?.asset_prices || {};
     const bnhMap = Object.fromEntries(bnh.map(p => [p.date, p.equity]));
     const unifMap = Object.fromEntries(unif.map(p => [p.date, p.equity]));
-    return strat.map(pt => ({
-      date: pt.date,
-      strategy: pt.equity,
-      buyHold: bnhMap[pt.date] || null,
-      uniform: unifMap[pt.date] || null,
-      cash: pt.cash,
-      invested_pct: pt.invested_pct,
-    }));
+    const assetMaps = {};
+    for (const [sym, curve] of Object.entries(assetPrices)) {
+      assetMaps[sym] = Object.fromEntries(curve.map(p => [p.date, p.value]));
+    }
+    return strat.map(pt => {
+      const row = {
+        date: pt.date,
+        strategy: pt.equity,
+        buyHold: bnhMap[pt.date] || null,
+        uniform: unifMap[pt.date] || null,
+        cash: pt.cash,
+        invested_pct: pt.invested_pct,
+      };
+      for (const sym of Object.keys(assetMaps)) {
+        row[sym] = assetMaps[sym][pt.date] || null;
+      }
+      return row;
+    });
   }, [result]);
 
   if (!result) return null;
@@ -99,6 +115,14 @@ const OverviewTab = ({ result, config }) => {
                   strokeWidth={1.5} strokeDasharray="5 3" dot={false} connectNulls />
                 <Line type="monotone" dataKey="uniform" name="Uniform Monthly" stroke="#F59E0B"
                   strokeWidth={1.5} strokeDasharray="3 3" dot={false} connectNulls />
+                {assetPriceSymbols.map((sym, i) => {
+                  const colors = ['#EC4899', '#14B8A6', '#F97316', '#8B5CF6', '#06B6D4'];
+                  return (
+                    <Line key={sym} type="monotone" dataKey={sym} name={sym}
+                      stroke={colors[i % colors.length]} strokeWidth={1.2}
+                      strokeDasharray="2 4" dot={false} connectNulls />
+                  );
+                })}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -420,19 +444,41 @@ const PortfolioSim = () => {
   const [result, setResult] = useState(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState(null);
+  const [resultStale, setResultStale] = useState(false);
 
-  // Auto-select first 3 assets
   useEffect(() => {
     if (assetList.length > 0 && selectedAssets.length === 0) {
       setSelectedAssets(assetList.slice(0, Math.min(5, assetList.length)).map(a => a.symbol));
     }
   }, [assetList, selectedAssets.length]);
 
+  const handleTemplateChange = (key) => {
+    const t = TEMPLATES[key];
+    setTemplate(key);
+    setConfig(prev => ({
+      ...prev,
+      entryThreshold: t.entryThreshold,
+      maxPositions: t.maxPositions,
+    }));
+    if (result) setResultStale(true);
+  };
+
+  const updateConfig = (key, value) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
+    if (result) setResultStale(true);
+  };
+
   const toggleAsset = (sym) => {
     setSelectedAssets(prev =>
       prev.includes(sym) ? prev.filter(s => s !== sym) : [...prev, sym]
     );
+    if (result) setResultStale(true);
   };
+
+  const effectiveMaxPositions = Math.min(
+    parseInt(config.maxPositions) || 1,
+    selectedAssets.length || 1,
+  );
 
   const runSimulation = async () => {
     if (selectedAssets.length === 0) {
@@ -455,6 +501,7 @@ const PortfolioSim = () => {
       };
       const response = await api.runSimulation(payload);
       setResult(response.data);
+      setResultStale(false);
       toast.success(`Simulation complete — ${response.data.total_trades} trades`);
     } catch (err) {
       const detail = err?.response?.data?.detail || 'Simulation failed';
@@ -508,7 +555,7 @@ const PortfolioSim = () => {
                 {Object.entries(TEMPLATES).map(([key, tpl]) => (
                   <button
                     key={key}
-                    onClick={() => setTemplate(key)}
+                    onClick={() => handleTemplateChange(key)}
                     className={`p-2 rounded text-center transition border ${
                       template === key
                         ? 'border-primary bg-primary/10'
@@ -529,13 +576,13 @@ const PortfolioSim = () => {
               <div>
                 <label className="text-[10px] text-muted-foreground mb-1 block">START DATE</label>
                 <input type="date" value={config.startDate}
-                  onChange={e => setConfig(p => ({ ...p, startDate: e.target.value }))}
+                  onChange={e => updateConfig('startDate', e.target.value)}
                   className="w-full p-2 glass-effect rounded text-xs font-data" />
               </div>
               <div>
                 <label className="text-[10px] text-muted-foreground mb-1 block">END DATE</label>
                 <input type="date" value={config.endDate}
-                  onChange={e => setConfig(p => ({ ...p, endDate: e.target.value }))}
+                  onChange={e => updateConfig('endDate', e.target.value)}
                   className="w-full p-2 glass-effect rounded text-xs font-data" />
               </div>
             </div>
@@ -544,7 +591,7 @@ const PortfolioSim = () => {
                 <button key={y} onClick={() => {
                   const d = new Date();
                   d.setFullYear(d.getFullYear() - y);
-                  setConfig(p => ({ ...p, startDate: d.toISOString().split('T')[0] }));
+                  updateConfig('startDate', d.toISOString().split('T')[0]);
                 }} className="px-2 py-1 text-xs glass-effect rounded hover:bg-white/10 transition">
                   {y}Y
                 </button>
@@ -555,7 +602,7 @@ const PortfolioSim = () => {
             <div>
               <label className="text-[10px] text-muted-foreground mb-1 block">INITIAL CAPITAL ($)</label>
               <input type="number" value={config.initialCapital}
-                onChange={e => setConfig(p => ({ ...p, initialCapital: e.target.value }))}
+                onChange={e => updateConfig('initialCapital', e.target.value)}
                 className="w-full p-2 glass-effect rounded text-xs font-data" />
             </div>
 
@@ -566,7 +613,7 @@ const PortfolioSim = () => {
               </label>
               <input type="range" min="40" max="90" step="5"
                 value={config.entryThreshold}
-                onChange={e => setConfig(p => ({ ...p, entryThreshold: e.target.value }))}
+                onChange={e => updateConfig('entryThreshold', e.target.value)}
                 className="w-full" />
               <p className="text-[10px] text-muted-foreground">
                 Enter when composite score ≥ {config.entryThreshold}
@@ -577,8 +624,18 @@ const PortfolioSim = () => {
             <div>
               <label className="text-[10px] text-muted-foreground mb-1 block">MAX POSITIONS</label>
               <input type="number" value={config.maxPositions} min="1" max="20"
-                onChange={e => setConfig(p => ({ ...p, maxPositions: e.target.value }))}
+                onChange={e => updateConfig('maxPositions', e.target.value)}
                 className="w-full p-2 glass-effect rounded text-xs font-data" />
+              {selectedAssets.length > 0 && effectiveMaxPositions < parseInt(config.maxPositions) && (
+                <p className="text-[10px] text-yellow-400/80 mt-1">
+                  Capped at {effectiveMaxPositions} by selected assets ({selectedAssets.length})
+                </p>
+              )}
+              {selectedAssets.length === 1 && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Single-asset sim — only 1 position held at a time
+                </p>
+              )}
             </div>
 
             {/* Run Button */}
@@ -619,6 +676,13 @@ const PortfolioSim = () => {
               </p>
             </div>
           ) : (
+            <div className="w-full">
+            {resultStale && (
+              <div className="flex items-center gap-2 px-4 py-2.5 mb-4 rounded border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Config changed since last run — click <strong>RUN SIMULATION</strong> to update results</span>
+              </div>
+            )}
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="glass-effect mb-6 w-full justify-start">
                 <TabsTrigger value="overview" className="font-bold text-xs">OVERVIEW</TabsTrigger>
@@ -639,6 +703,7 @@ const PortfolioSim = () => {
                 <CostTab result={result} />
               </TabsContent>
             </Tabs>
+            </div>
           )}
         </div>
       </div>

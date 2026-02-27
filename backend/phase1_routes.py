@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import yaml
 import logging
-from app_config import get_backend_config
+from backend.app_config import get_backend_config
 
 logger = logging.getLogger(__name__)
 CFG = get_backend_config()
@@ -161,7 +161,7 @@ async def get_phase1_indicators(asset: str):
     
     if df is None:
         try:
-            from data_providers import PriceProvider
+            from backend.data_providers import PriceProvider
             yf_df = PriceProvider.fetch_historical_data(asset, period=CFG.history_period)
             if yf_df is not None and not yf_df.empty:
                 yf_df.columns = [c.lower() for c in yf_df.columns]

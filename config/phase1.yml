@@ -1,3 +1,12 @@
+# Only the parameters listed under "tunable" below are surfaced for optimization.
+# All other parameters are locked to robust defaults; do not change for tuning.
+tunable:
+  normalization_min_obs: 100
+  normalization_sigmoid_k: 1.0
+  windows_hmm_regime: 252
+  indicator_min_history_rows: 200
+  backtest_buy_dip_threshold_default: 60
+
 allow_production_mode: false
 regime_threshold: null
 regime_threshold_type: "hard"

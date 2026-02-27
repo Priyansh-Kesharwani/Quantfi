@@ -84,3 +84,19 @@ android-sdk/ -e
 # Environment files
 *.env
 *.env.*
+
+# Temporary artifacts and run outputs
+temp_quant/
+.cursor/debug*.log
+logs/
+data_snapshots/
+validation/trade_exports/
+validation/outputs/
+validation/artifacts/
+notebooks/results/
+results/
+raw_data/
+backtest_logs/
+.emergent/
+test-results/
+test_reports/

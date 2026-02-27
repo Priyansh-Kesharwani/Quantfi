@@ -31,13 +31,15 @@ Override ports: `BACKEND_PORT=9000 PORT=4000 ./start.sh`
 
 ## Tests
 
+Run from repository root (backend tests require `PYTHONPATH` for the refactored layout):
+
 ```bash
-python -m pytest tests -q                          # 96 backend/indicator unit tests
-cd frontend && CI=true npx craco test --watchAll=false  # 38 component tests
-npx playwright test                                 # E2E (requires app running)
+PYTHONPATH=. python3 -m pytest tests -q                    # Python unit and integration tests
+cd frontend && CI=true npx craco test --watchAll=false      # Frontend component tests
+npx playwright test                                         # E2E (requires app running)
 ```
 
-Or all at once (unit + component):
+Or via npm scripts (unit + frontend):
 
 ```bash
 npm run test:unit && npm run test:frontend
@@ -51,15 +53,19 @@ E2E_BASE_URL=http://localhost:3001 E2E_BACKEND_URL=http://localhost:8000 npx pla
 
 ## Project Structure
 
+Layered layout (see `docs/ARCHITECTURE.md` and `docs/PATTERNS.md`):
+
 ```
+domain/            Protocols (IPriceProvider, IScoringEngine, etc.)
+infrastructure/    Adapters (price, FX, news), config loader
+services/          Use-case services and facades (scoring, backtest, news, simulation)
+backend/           FastAPI app, routes, container (DI), models
+backend/routes/    Route modules (assets, prices, indicators, scores, backtest, news, …)
 indicators/        Quantitative indicator library
-backend/           FastAPI + MongoDB REST API
+backtester/        Walk-forward validation, portfolio sim
 frontend/          React dashboard
-backtester/        Walk-forward validation, signal sweep, portfolio sim
-score_engine/      Composite scoring runner
-data/              Fetcher + cache
-config/            phase1.yml (all tunables)
-tests/             pytest suite (96 tests)
+config/            YAML configs (phase1, phaseA, phaseB, phase3, tuning)
+tests/             pytest (unit, integration, contract)
 e2e/               Playwright E2E tests
 ```
 

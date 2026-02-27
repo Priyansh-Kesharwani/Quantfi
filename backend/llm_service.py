@@ -8,7 +8,7 @@ import os
 import json
 from typing import List, Dict
 import logging
-from app_config import get_backend_config
+from backend.app_config import get_backend_config
 
 logger = logging.getLogger(__name__)
 CFG = get_backend_config()
