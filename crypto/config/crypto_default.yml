@@ -1,0 +1,50 @@
+symbol: "BTC/USDT:USDT"
+timeframe: "1h"
+initial_capital: 10000.0
+strategy_mode: "adaptive"
+
+# Strategy
+leverage: 3.0
+cost_preset: "BINANCE_FUTURES_TAKER"
+entry_threshold: 40.0
+exit_threshold: 15.0
+max_holding_bars: 168
+atr_trail_mult: 2.5
+kelly_fraction: 0.25
+max_risk_per_trade: 0.02
+kelly_lookback: 100
+transition_cooldown: 3
+
+# Scoring
+rsi_oversold: 25.0
+rsi_overbought: 75.0
+compression_window: 252
+z_short_weight: 0.40
+z_mid_weight: 0.35
+vol_threshold: 2.0
+vol_scale: 0.5
+vol_filter_pctl: 0.90
+vol_filter_floor: 0.3
+vol_filter_width: 0.10
+funding_window: 504
+
+# IC-EWMA
+ic_window: 252
+ic_horizon: 20
+ic_alpha: 5.0
+ic_shrink: 0.2
+
+# Grid
+grid_levels: 20
+grid_spacing: "geometric"
+grid_order_size: 100.0
+atr_multiplier: 3.0
+
+# Regime
+regime_n_states: 3
+regime_jump_penalty: 8.0
+regime_vol_window: 168
+regime_refit_every: 168
+regime_cooldown_bars: 12
+regime_circuit_breaker_dd: -0.12
+regime_warmup_bars: 504

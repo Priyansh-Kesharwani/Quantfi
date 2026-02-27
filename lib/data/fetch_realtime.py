@@ -17,9 +17,6 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-
 @dataclass
 class FetchConfig:
     

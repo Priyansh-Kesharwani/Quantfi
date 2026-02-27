@@ -1,0 +1,35 @@
+data:
+  symbols: ["SPY", "AAPL", "TLT", "GLD"]
+  start_date: "2015-01-01"
+  end_date: "2025-01-01"
+
+cpcv:
+  n_folds: 5
+  k_test: 2
+  horizon_bars: 21
+  embargo_bars: 30
+
+mode: allocation
+
+grid_search:
+  risk_on_equity_pct: [0.92, 0.95, 0.97, 1.0]
+  risk_off_equity_pct: [0.50, 0.60, 0.70, 0.80, 0.85]
+  theta_tilt: [0.0, 0.1, 0.25, 0.5, 0.75, 1.0]
+  rebalance_freq_days: [42, 63, 126, 252]
+  min_rebalance_delta: [0.03, 0.05, 0.08, 0.10]
+
+locked:
+  min_rebalance_delta: 0.03
+  cooldown_days: 15
+  drawdown_circuit_threshold: -0.15
+  hysteresis_enter: 0.70
+  hysteresis_exit: 0.60
+  cash_return_annual: 0.02
+  jump_penalty: 25.0
+  regime_n_states: 2
+  regime_window: 504
+  regime_refit_every: 63
+  min_weight_floor: 0.05
+  slippage_bps: 5.0
+  scoring_mode: adaptive
+  initial_capital: 100000.0

@@ -1,0 +1,53 @@
+description: "CPCV search space for crypto bot parameter optimization"
+n_trials: 200
+seed: 42
+dsr_min: 0.0
+
+search_space:
+  # Category A: Strategy
+  entry_threshold: [20.0, 80.0]
+  exit_threshold: [5.0, 30.0]
+  max_holding_bars: [12, 720]
+  atr_trail_mult: [1.5, 4.0]
+  kelly_fraction: [0.1, 0.5]
+  max_risk_per_trade: [0.005, 0.05]
+  leverage: [1.0, 5.0]
+  transition_cooldown: [0, 12]
+
+  # Category B: Scoring
+  rsi_oversold: [15.0, 35.0]
+  rsi_overbought: [65.0, 85.0]
+  compression_window: [63, 504]
+  z_short_weight: [0.2, 0.6]
+  z_mid_weight: [0.2, 0.5]
+  vol_threshold: [1.5, 4.0]
+  vol_scale: [0.3, 1.5]
+  vol_filter_pctl: [0.75, 0.95]
+  vol_filter_floor: [0.1, 0.5]
+  funding_window: [168, 720]
+
+  # Category C: IC-EWMA
+  ic_window: [126, 504]
+  ic_horizon: [6, 48]
+  ic_alpha: [2.0, 10.0]
+  ic_shrink: [0.1, 0.4]
+
+  # Category D: Regime
+  regime_jump_penalty: [3.0, 25.0]
+  regime_cooldown_bars: [3, 60]
+  regime_circuit_breaker_dd: [-0.20, -0.05]
+  regime_vol_window: [60, 504]
+  regime_refit_every: [63, 500]
+
+  # Category E: Grid
+  grid_levels: [5, 50]
+  atr_multiplier: [1.5, 6.0]
+  grid_max_loss_pct: [0.05, 0.30]
+  grid_recenter_threshold: [0.50, 0.95]
+
+robustness:
+  sensitivity_perturbations: [0.9, 1.1, 0.8, 1.2]
+  slippage_stress_multipliers: [2.0, 5.0]
+  funding_stress_multiplier: 3.0
+  holdout_months: 6
+  baseline_sharpe_multiple: 2.0

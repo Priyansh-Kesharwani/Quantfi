@@ -10,6 +10,7 @@ import BacktestLab from './pages/BacktestLab';
 import News from './pages/News';
 import Settings from './pages/Settings';
 import PortfolioSim from './pages/PortfolioSim';
+import CryptoBot from './pages/CryptoBot';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
@@ -81,6 +82,7 @@ function App() {
                 <Route path="/assets/:symbol" element={<AssetDetail />} />
                 <Route path="/backtest" element={<BacktestLab />} />
                 <Route path="/simulation" element={<PortfolioSim />} />
+                <Route path="/crypto-bot" element={<CryptoBot />} />
                 <Route path="/news" element={<News />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>

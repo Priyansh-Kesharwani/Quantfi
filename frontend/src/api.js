@@ -61,6 +61,12 @@ export const api = {
   runSimulation: (data) => axios.post(`${API}/simulation/run`, data),
   getSimulationTemplates: () => axios.get(`${API}/simulation/templates`),
   getSimulationCostPresets: () => axios.get(`${API}/simulation/cost-presets`),
+
+  // ── Crypto Bot ──────────────────────────────────────────────
+  runCryptoBacktest: (data) => axios.post(`${API}/crypto/backtest`, data),
+  getCryptoDefaults: () => axios.get(`${API}/crypto/config/defaults`),
+  getCryptoStrategies: () => axios.get(`${API}/crypto/strategies`),
+  getCryptoMarkets: (exchange = 'binance') => axios.get(`${API}/crypto/markets?exchange=${exchange}`),
 };
 
 export default api;

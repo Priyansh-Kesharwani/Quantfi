@@ -17,9 +17,10 @@ import {
 
 /* ─── Strategy Template Presets (entry/max_positions sync with backend SIMULATION_TEMPLATES) ─── */
 const TEMPLATES = {
-  conservative: { label: 'CONSERVATIVE', desc: 'Tight stops, high entry bar, fewer positions', color: '#22C55E', entryThreshold: 80, maxPositions: 6 },
-  balanced:     { label: 'BALANCED',     desc: 'Default mean-reversion parameters',         color: '#6366F1', entryThreshold: 70, maxPositions: 10 },
-  aggressive:   { label: 'AGGRESSIVE',   desc: 'Loose stops, lower entry bar, more slots',  color: '#EF4444', entryThreshold: 60, maxPositions: 15 },
+  conservative: { label: 'CONSERVATIVE', desc: 'Tight stops, high entry bar, fewer positions', color: '#22C55E', entryThreshold: 80, maxPositions: 6, minInvestedFraction: 0.3, scoringMode: 'mean_reversion', simulationMode: 'tactical' },
+  balanced:     { label: 'BALANCED',     desc: 'Adaptive regime-switching strategy',           color: '#6366F1', entryThreshold: 70, maxPositions: 10, minInvestedFraction: 0.2, scoringMode: 'adaptive', simulationMode: 'tactical' },
+  aggressive:   { label: 'AGGRESSIVE',   desc: 'Adaptive, loose stops, more slots',            color: '#EF4444', entryThreshold: 60, maxPositions: 15, minInvestedFraction: 0.0, scoringMode: 'adaptive', simulationMode: 'tactical' },
+  allocation:   { label: 'ALLOCATION',   desc: 'Regime-aware always-invested allocation engine', color: '#F59E0B', simulationMode: 'allocation', riskOnPct: 0.95, riskOffPct: 0.60, thetaTilt: 0.0, rebalanceFreq: 42, scoringMode: 'adaptive' },
 };
 
 /* ─── Overview Tab ─── */
@@ -440,6 +441,13 @@ const PortfolioSim = () => {
     maxPositions: 10,
     maxHoldingDays: 30,
     slippageBps: 5,
+    minInvestedFraction: 0.2,
+    scoringMode: 'adaptive',
+    simulationMode: 'tactical',
+    riskOnPct: 0.95,
+    riskOffPct: 0.60,
+    thetaTilt: 0.0,
+    rebalanceFreq: 42,
   });
   const [result, setResult] = useState(null);
   const [running, setRunning] = useState(false);
@@ -457,8 +465,15 @@ const PortfolioSim = () => {
     setTemplate(key);
     setConfig(prev => ({
       ...prev,
-      entryThreshold: t.entryThreshold,
-      maxPositions: t.maxPositions,
+      entryThreshold: t.entryThreshold ?? prev.entryThreshold,
+      maxPositions: t.maxPositions ?? prev.maxPositions,
+      minInvestedFraction: t.minInvestedFraction ?? prev.minInvestedFraction,
+      scoringMode: t.scoringMode ?? prev.scoringMode,
+      simulationMode: t.simulationMode ?? 'tactical',
+      riskOnPct: t.riskOnPct ?? prev.riskOnPct,
+      riskOffPct: t.riskOffPct ?? prev.riskOffPct,
+      thetaTilt: t.thetaTilt ?? prev.thetaTilt,
+      rebalanceFreq: t.rebalanceFreq ?? prev.rebalanceFreq,
     }));
     if (result) setResultStale(true);
   };
@@ -498,6 +513,13 @@ const PortfolioSim = () => {
         slippage_bps: parseFloat(config.slippageBps),
         run_benchmarks: true,
         template: template,
+        min_invested_fraction: parseFloat(config.minInvestedFraction),
+        scoring_mode: config.scoringMode,
+        simulation_mode: config.simulationMode,
+        risk_on_equity_pct: parseFloat(config.riskOnPct),
+        risk_off_equity_pct: parseFloat(config.riskOffPct),
+        theta_tilt: parseFloat(config.thetaTilt),
+        rebalance_freq_days: parseInt(config.rebalanceFreq),
       };
       const response = await api.runSimulation(payload);
       setResult(response.data);
@@ -517,7 +539,7 @@ const PortfolioSim = () => {
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight mb-2">PORTFOLIO SIMULATION</h1>
         <p className="text-muted-foreground">
-          Mean-reversion backtesting with dynamic entry/exit signals — real market data
+          Adaptive backtesting with HMM regime detection and dynamic entry/exit signals — real market data
         </p>
       </div>
 
@@ -606,36 +628,143 @@ const PortfolioSim = () => {
                 className="w-full p-2 glass-effect rounded text-xs font-data" />
             </div>
 
-            {/* Entry Threshold */}
-            <div>
-              <label className="text-[10px] text-muted-foreground mb-1 block">
-                ENTRY SCORE THRESHOLD ({config.entryThreshold})
-              </label>
-              <input type="range" min="40" max="90" step="5"
-                value={config.entryThreshold}
-                onChange={e => updateConfig('entryThreshold', e.target.value)}
-                className="w-full" />
-              <p className="text-[10px] text-muted-foreground">
-                Enter when composite score ≥ {config.entryThreshold}
-              </p>
-            </div>
+            {config.simulationMode === 'allocation' ? (
+              <>
+                {/* Allocation mode controls */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    RISK-ON ALLOCATION ({Math.round(config.riskOnPct * 100)}%)
+                  </label>
+                  <input type="range" min="0.60" max="1.00" step="0.05"
+                    value={config.riskOnPct}
+                    onChange={e => updateConfig('riskOnPct', parseFloat(e.target.value))}
+                    className="w-full" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Equity allocation during risk-on regimes
+                  </p>
+                </div>
 
-            {/* Max Positions */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    RISK-OFF ALLOCATION ({Math.round(config.riskOffPct * 100)}%)
+                  </label>
+                  <input type="range" min="0.20" max="0.90" step="0.05"
+                    value={config.riskOffPct}
+                    onChange={e => updateConfig('riskOffPct', parseFloat(e.target.value))}
+                    className="w-full" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Equity allocation during risk-off regimes
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    TILT INTENSITY ({config.thetaTilt})
+                  </label>
+                  <input type="range" min="0.0" max="2.0" step="0.1"
+                    value={config.thetaTilt}
+                    onChange={e => updateConfig('thetaTilt', parseFloat(e.target.value))}
+                    className="w-full" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Higher = more weight on top-scored assets (0 = equal weight)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    REBALANCE FREQUENCY ({config.rebalanceFreq} days)
+                  </label>
+                  <input type="range" min="21" max="252" step="21"
+                    value={config.rebalanceFreq}
+                    onChange={e => updateConfig('rebalanceFreq', parseInt(e.target.value))}
+                    className="w-full" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Scheduled rebalance interval (also triggers on regime shift)
+                  </p>
+                </div>
+
+                {selectedAssets.length < 3 && (
+                  <div className="p-2 rounded border border-yellow-500/30 bg-yellow-500/5">
+                    <p className="text-[10px] text-yellow-400">
+                      Allocation engine works best with 3+ diversified assets (e.g. add TLT, GLD)
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Tactical mode controls */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    ENTRY SCORE THRESHOLD ({config.entryThreshold})
+                  </label>
+                  <input type="range" min="40" max="90" step="5"
+                    value={config.entryThreshold}
+                    onChange={e => updateConfig('entryThreshold', e.target.value)}
+                    className="w-full" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Enter when composite score ≥ {config.entryThreshold}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">MAX POSITIONS</label>
+                  <input type="number" value={config.maxPositions} min="1" max="20"
+                    onChange={e => updateConfig('maxPositions', e.target.value)}
+                    className="w-full p-2 glass-effect rounded text-xs font-data" />
+                  {selectedAssets.length > 0 && effectiveMaxPositions < parseInt(config.maxPositions) && (
+                    <p className="text-[10px] text-yellow-400/80 mt-1">
+                      Capped at {effectiveMaxPositions} by selected assets ({selectedAssets.length})
+                    </p>
+                  )}
+                  {selectedAssets.length === 1 && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Single-asset sim — only 1 position held at a time
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    MIN INVESTED ({Math.round(config.minInvestedFraction * 100)}%)
+                  </label>
+                  <input type="range" min="0" max="0.7" step="0.05"
+                    value={config.minInvestedFraction}
+                    onChange={e => updateConfig('minInvestedFraction', parseFloat(e.target.value))}
+                    className="w-full" />
+                  <p className="text-[10px] text-muted-foreground">
+                    {config.minInvestedFraction > 0
+                      ? `Always keep ≥${Math.round(config.minInvestedFraction * 100)}% invested (core-satellite)`
+                      : 'Pure tactical — can go 100% cash'}
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Scoring Mode (shared) */}
             <div>
-              <label className="text-[10px] text-muted-foreground mb-1 block">MAX POSITIONS</label>
-              <input type="number" value={config.maxPositions} min="1" max="20"
-                onChange={e => updateConfig('maxPositions', e.target.value)}
-                className="w-full p-2 glass-effect rounded text-xs font-data" />
-              {selectedAssets.length > 0 && effectiveMaxPositions < parseInt(config.maxPositions) && (
-                <p className="text-[10px] text-yellow-400/80 mt-1">
-                  Capped at {effectiveMaxPositions} by selected assets ({selectedAssets.length})
-                </p>
-              )}
-              {selectedAssets.length === 1 && (
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Single-asset sim — only 1 position held at a time
-                </p>
-              )}
+              <label className="text-[10px] text-muted-foreground mb-2 block">SCORING MODE</label>
+              <div className="grid grid-cols-3 gap-1">
+                {[
+                  { key: 'mean_reversion', label: 'MEAN REVERT' },
+                  { key: 'adaptive', label: 'ADAPTIVE' },
+                  { key: 'trend_following', label: 'TREND' },
+                ].map(m => (
+                  <button key={m.key}
+                    onClick={() => updateConfig('scoringMode', m.key)}
+                    className={`px-2 py-1.5 rounded text-[10px] font-bold transition border ${
+                      config.scoringMode === m.key
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-white/10 glass-effect text-muted-foreground hover:text-foreground'
+                    }`}
+                  >{m.label}</button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {config.scoringMode === 'adaptive' ? 'HMM regime detection switches between strategies' :
+                 config.scoringMode === 'trend_following' ? 'Trend-following signals for bull markets' :
+                 'Classic mean-reversion dip-buying'}
+              </p>
             </div>
 
             {/* Run Button */}

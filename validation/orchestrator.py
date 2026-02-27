@@ -98,6 +98,44 @@ def _config_to_sim_config(
         cost_free=cost_free,
         cost_class_override=config.get("cost_class", None),
         min_invested_fraction=float(config.get("min_invested_fraction", 0.0)),
+        scoring_mode=config.get("scoring_mode", "mean_reversion"),
+    )
+
+
+def _config_to_alloc_config(
+    config: Dict[str, Any],
+    symbols: List[str],
+    start_date: datetime,
+    end_date: datetime,
+    *,
+    cost_free: bool = False,
+) -> Any:
+    from backtester.portfolio_simulator import AllocationConfig
+
+    return AllocationConfig(
+        symbols=symbols,
+        start_date=start_date,
+        end_date=end_date,
+        initial_capital=float(config.get("initial_capital", 100_000.0)),
+        risk_on_equity_pct=float(config.get("risk_on_equity_pct", 0.85)),
+        risk_off_equity_pct=float(config.get("risk_off_equity_pct", 0.40)),
+        theta_tilt=float(config.get("theta_tilt", 2.0)),
+        min_weight_floor=float(config.get("min_weight_floor", 0.05)),
+        rebalance_freq_days=int(config.get("rebalance_freq_days", 21)),
+        min_rebalance_delta=float(config.get("min_rebalance_delta", 0.05)),
+        jump_penalty=float(config.get("jump_penalty", 25.0)),
+        regime_n_states=int(config.get("regime_n_states", 2)),
+        regime_window=int(config.get("regime_window", 504)),
+        regime_refit_every=int(config.get("regime_refit_every", 63)),
+        drawdown_circuit_threshold=float(config.get("drawdown_circuit_threshold", -0.10)),
+        hysteresis_enter=float(config.get("hysteresis_enter", 0.70)),
+        hysteresis_exit=float(config.get("hysteresis_exit", 0.60)),
+        cooldown_days=int(config.get("cooldown_days", 15)),
+        slippage_bps=0.0 if cost_free else float(config.get("slippage_bps", 5.0)),
+        cost_free=cost_free,
+        cash_return_annual=float(config.get("cash_return_annual", 0.02)),
+        scoring_mode=config.get("scoring_mode", "adaptive"),
+        run_benchmarks=True,
     )
 
 
@@ -117,6 +155,8 @@ def _slice_assets_for_split(
         fvi_sliced = max(0, fvi_orig - test_start)
         # Cap so we have at least 2 bars (GT-Score needs len(eq) >= 2)
         first_valid_idx = min(fvi_sliced, slice_len - 2) if slice_len >= 2 else 0
+        trend_sc = ad.trend_score[test_start:end_inclusive] if getattr(ad, "trend_score", None) is not None else None
+        regime_sl = ad.regime[test_start:end_inclusive] if getattr(ad, "regime", None) is not None else None
         sliced[sym] = AssetData(
             symbol=getattr(ad, "symbol", sym),
             open=ad.open[test_start:end_inclusive],
@@ -128,6 +168,8 @@ def _slice_assets_for_split(
             tradeable=ad.tradeable[test_start:end_inclusive],
             first_valid_idx=first_valid_idx,
             cost_class=getattr(ad, "cost_class", "US_EQ_FROM_IN"),
+            trend_score=trend_sc,
+            regime=regime_sl,
         )
     return sliced
 
@@ -157,6 +199,12 @@ def run_backtest_on_split(
         sliced_index = date_index[test_start : test_end + 1]
         sliced_assets = _slice_assets_for_split(assets, test_start, test_end)
         return run_bot_backtest(sliced_index, sliced_assets, config)
+    elif config.get("mode") == "allocation":
+        from backtester.portfolio_simulator import AllocationEngine
+
+        alloc_cfg = _config_to_alloc_config(config, symbols, start_dt, end_dt, cost_free=cost_free)
+        engine = AllocationEngine(alloc_cfg)
+        return engine.run(date_index, assets)
     else:
         sim_cfg = _config_to_sim_config(config, symbols, start_dt, end_dt, cost_free=cost_free)
         from backtester.portfolio_simulator import PortfolioSimulator
@@ -262,16 +310,25 @@ def run_orchestrator(
     with open(out / "cpcv_splits_metadata.json", "w") as f:
         json.dump(split_metadata, f, indent=2, default=str)
 
+    mode = raw.get("mode", "tactical")
+    is_allocation = mode == "allocation"
+
     search_space = mfbo_cfg.get("search_space", {})
+    grid_search = raw.get("grid_search", {})
+    locked_params = raw.get("locked", {})
     fidelity_spec = mfbo_cfg.get("fidelity_spec", {"low": {"cost": 1.0}, "high": {"cost": 5.0}})
     n_trials = int(mfbo_cfg.get("n_trials", 20))
 
     use_bot = bool(raw.get("use_bot", False))
     base_config: Dict[str, Any] = {
         "cost_free": cost_free,
-        "initial_capital": float(raw.get("initial_capital", 100_000.0)),
-        "slippage_bps": float(raw.get("slippage_bps", 5.0)),
+        "initial_capital": float(raw.get("initial_capital", locked_params.get("initial_capital", 100_000.0))),
+        "slippage_bps": float(locked_params.get("slippage_bps", raw.get("slippage_bps", 5.0))),
     }
+    if is_allocation:
+        base_config["mode"] = "allocation"
+        for k, v in locked_params.items():
+            base_config.setdefault(k, v)
     if use_bot:
         base_config["use_bot"] = True
         base_config.setdefault("kappa_tp", 1.5)
@@ -282,8 +339,29 @@ def run_orchestrator(
     all_configs: List[Dict[str, Any]] = []
     all_gt: List[Dict[str, Any]] = []
     all_sharpes_by_config: Dict[str, List[float]] = {}
+    all_calmars_by_config: Dict[str, List[float]] = {}
 
     gt_turnover_lambda = float(raw.get("gt_turnover_lambda", 0.0))
+
+    def _calmar_from_result(result: Dict[str, Any]) -> float:
+        ec = result.get("equity_curve") or []
+        if len(ec) < 2:
+            return 0.0
+        equities = [x.get("equity") for x in ec if x.get("equity") is not None]
+        if len(equities) < 2 or equities[0] <= 0:
+            return 0.0
+        arr = np.array(equities, dtype=float)
+        total_ret = arr[-1] / arr[0]
+        n_years = len(arr) / 252.0
+        if n_years <= 0 or total_ret <= 0:
+            return 0.0
+        cagr = total_ret ** (1.0 / n_years) - 1.0
+        running_max = np.maximum.accumulate(arr)
+        dd = (arr - running_max) / (running_max + 1e-12)
+        max_dd = abs(float(dd.min()))
+        if max_dd < 1e-8:
+            return cagr * 100.0
+        return cagr / max_dd
 
     def objective_fn(config: Dict[str, Any], fidelity: str) -> float:
         full_config = {**base_config, **config}
@@ -312,32 +390,53 @@ def run_orchestrator(
             gt_scores_split.append(gt)
             cfg_key = json.dumps(full_config, sort_keys=True)
             sharpe = _sharpe_from_result(res)
+            calmar = _calmar_from_result(res)
             all_sharpes_by_config.setdefault(cfg_key, []).append(sharpe)
+            all_calmars_by_config.setdefault(cfg_key, []).append(calmar)
         all_configs.append(full_config)
         all_gt.append({"config": full_config, "fidelity": fidelity, "gt_scores": gt_scores_split})
+
+        if is_allocation:
+            cfg_key = json.dumps(full_config, sort_keys=True)
+            sharpes = all_sharpes_by_config.get(cfg_key, [])
+            calmars = all_calmars_by_config.get(cfg_key, [])
+            mean_sharpe = float(np.mean(sharpes)) if sharpes else 0.0
+            mean_calmar = float(np.mean(calmars)) if calmars else 0.0
+            return mean_calmar * max(mean_sharpe, 0.0)
+
         return float(np.mean(gt_scores_split)) if gt_scores_split else -1e6
 
-    try:
-        from validation.mfbo import run_mfbo
-
-        mfbo_result = run_mfbo(
-            objective_fn,
-            search_space,
-            fidelity_spec,
-            n_trials,
-            seed,
-            out,
-        )
-        trials = mfbo_result.get("trials", [])
-    except RuntimeError:
+    if grid_search and is_allocation:
+        import itertools
+        keys = list(grid_search.keys())
+        values = [grid_search[k] for k in keys]
+        grid_combos = list(itertools.product(*values))
+        for combo in grid_combos:
+            config = dict(zip(keys, combo))
+            objective_fn(config, "high")
         trials = []
-        for i in range(n_trials):
-            np.random.seed(seed + i)
-            config = {}
-            for k, v in search_space.items():
-                if isinstance(v, (list, tuple)) and len(v) > 0:
-                    config[k] = v[np.random.randint(len(v))]
-            objective_fn(config, "low")
+    else:
+        try:
+            from validation.mfbo import run_mfbo
+
+            mfbo_result = run_mfbo(
+                objective_fn,
+                search_space,
+                fidelity_spec,
+                n_trials,
+                seed,
+                out,
+            )
+            trials = mfbo_result.get("trials", [])
+        except RuntimeError:
+            trials = []
+            for i in range(n_trials):
+                np.random.seed(seed + i)
+                config = {}
+                for k, v in search_space.items():
+                    if isinstance(v, (list, tuple)) and len(v) > 0:
+                        config[k] = v[np.random.randint(len(v))]
+                objective_fn(config, "low")
 
     gt_matrix: List[Dict[str, Any]] = []
     for rec in all_gt:
@@ -354,33 +453,52 @@ def run_orchestrator(
     best_config = None
     best_dsr = None
     best_mean_gt = None
+    best_score = -np.inf
     dsr_passed = False
-    for cfg_key, dsr in dsr_by_config.items():
-        if dsr < dsr_min:
-            continue
-        dsr_passed = True
-        gts = [r["gt_score"] for r in gt_matrix if r["config_key"] == cfg_key]
-        mean_gt = float(np.mean(gts)) if gts else -1e6
-        if best_mean_gt is None or mean_gt > best_mean_gt:
-            best_mean_gt = mean_gt
-            best_dsr = dsr
-            for c in all_configs:
-                if json.dumps(c, sort_keys=True) == cfg_key:
-                    best_config = c
-                    break
 
-    if not dsr_passed and dsr_by_config:
-        best_mean_gt = -np.inf
+    if is_allocation:
+        for cfg_key in set(r["config_key"] for r in gt_matrix):
+            sharpes = all_sharpes_by_config.get(cfg_key, [])
+            calmars = all_calmars_by_config.get(cfg_key, [])
+            mean_sharpe = float(np.mean(sharpes)) if sharpes else 0.0
+            mean_calmar = float(np.mean(calmars)) if calmars else 0.0
+            composite = mean_calmar * max(mean_sharpe, 0.0)
+            if composite > best_score:
+                best_score = composite
+                gts = [r["gt_score"] for r in gt_matrix if r["config_key"] == cfg_key]
+                best_mean_gt = float(np.mean(gts)) if gts else None
+                best_dsr = dsr_by_config.get(cfg_key)
+                for c in all_configs:
+                    if json.dumps(c, sort_keys=True) == cfg_key:
+                        best_config = c
+                        break
+        dsr_passed = True
+    else:
         for cfg_key, dsr in dsr_by_config.items():
+            if dsr < dsr_min:
+                continue
+            dsr_passed = True
             gts = [r["gt_score"] for r in gt_matrix if r["config_key"] == cfg_key]
             mean_gt = float(np.mean(gts)) if gts else -1e6
-            if mean_gt > best_mean_gt:
+            if best_mean_gt is None or mean_gt > best_mean_gt:
                 best_mean_gt = mean_gt
                 best_dsr = dsr
                 for c in all_configs:
                     if json.dumps(c, sort_keys=True) == cfg_key:
                         best_config = c
                         break
+
+        if not dsr_passed and dsr_by_config:
+            for cfg_key, dsr in dsr_by_config.items():
+                gts = [r["gt_score"] for r in gt_matrix if r["config_key"] == cfg_key]
+                mean_gt = float(np.mean(gts)) if gts else -1e6
+                if best_mean_gt is None or mean_gt > best_mean_gt:
+                    best_mean_gt = mean_gt
+                    best_dsr = dsr
+                    for c in all_configs:
+                        if json.dumps(c, sort_keys=True) == cfg_key:
+                            best_config = c
+                            break
 
     winning_path = out / "winning_config.json"
     with open(winning_path, "w") as f:

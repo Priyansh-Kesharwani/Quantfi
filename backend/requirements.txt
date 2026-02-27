@@ -51,6 +51,7 @@ jiter==0.12.0
 jmespath==1.0.1
 joblib==1.5.3
 jq==1.10.0
+jumpmodels>=0.1.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 librt==0.7.8

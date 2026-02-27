@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, TrendingUp, LineChart, Newspaper, Settings, Plus, Activity } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, LineChart, Newspaper, Settings, Plus, Activity, Bitcoin } from 'lucide-react';
 
 const Sidebar = ({ onAddAsset }) => {
   const location = useLocation();
@@ -10,6 +10,7 @@ const Sidebar = ({ onAddAsset }) => {
     { path: '/assets', icon: TrendingUp, label: 'ASSETS', description: 'All watchlist assets' },
     { path: '/backtest', icon: LineChart, label: 'BACKTEST LAB', description: 'Single-asset DCA backtest' },
     { path: '/simulation', icon: Activity, label: 'PORTFOLIO SIM', description: 'Multi-asset simulation' },
+    { path: '/crypto-bot', icon: Bitcoin, label: 'CRYPTO BOT', description: 'Futures & grid trading' },
     { path: '/news', icon: Newspaper, label: 'NEWS & EVENTS', description: 'Market headlines' },
     { path: '/settings', icon: Settings, label: 'SETTINGS', description: 'Preferences' },
   ];

@@ -13,7 +13,7 @@ cpcv:
   embargo_bars: 24
 
 mfbo:
-  n_trials: 30
+  n_trials: 50
   search_space:
     entry_score_threshold: [50, 55, 60, 65, 70, 75, 80]
     max_positions: [3, 5, 10, 15]
@@ -24,6 +24,21 @@ mfbo:
     entry_confirmation_bars: [1, 2, 3]
     slippage_bps: [1, 3, 5]
     cost_class: ["US_EQ_FROM_IN", "US_EQ_DIRECT"]
+    # Regime and mode
+    scoring_mode: ["mean_reversion", "adaptive"]
+    min_invested_fraction: [0.0, 0.1, 0.2, 0.3]
+    trend_weight_tech: [0.4, 0.5, 0.6]
+    # Category weights (macro_fx = 1 - sum)
+    weight_technical: [0.3, 0.4, 0.5]
+    weight_volatility: [0.1, 0.2, 0.3]
+    weight_statistical: [0.1, 0.2, 0.3]
+    # Top scoring magnitudes
+    sma_below_bonus: [10, 15, 20]
+    rsi_oversold_bonus: [15, 20, 25]
+    drawdown_severe_bonus: [20, 25, 30]
+    adx_high_penalty: [0, 5, 10]
+    extreme_low_bonus: [35, 45, 55]
+    drawdown_flat_penalty: [5, 10, 15]
   fidelity_spec:
     low:
       cost: 1.0
