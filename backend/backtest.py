@@ -3,7 +3,6 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from backend.models import BacktestConfig, BacktestResult, EquityPoint
-from backend.data_providers import PriceProvider, FXProvider
 from backend.indicators import TechnicalIndicators
 from backend.scoring import ScoringEngine
 import logging
@@ -13,11 +12,22 @@ logger = logging.getLogger(__name__)
 
 class BacktestEngine:
 
+    def __init__(self, fx_provider=None):
+        self._fx_provider = fx_provider
+
+    def _get_fx_rate(self) -> float:
+        if self._fx_provider is not None:
+            return self._fx_provider.fetch_usd_inr_rate() or 83.5
+        try:
+            from backend.data_providers import FXProvider
+            return FXProvider.fetch_usd_inr_rate() or 83.5
+        except ImportError:
+            return 83.5
 
     @classmethod
-    def _compute_rolling_scores(cls, df: pd.DataFrame) -> pd.Series:
+    def _compute_rolling_scores(cls, df: pd.DataFrame, fx_rate: float = 83.5) -> pd.Series:
         n = len(df)
-        scores = pd.Series(50.0, index=df.index, dtype=float)                   
+        scores = pd.Series(50.0, index=df.index, dtype=float)
 
         if n < 200:
             logger.warning(
@@ -51,8 +61,6 @@ class BacktestEngine:
         drawdown = TechnicalIndicators.calculate_drawdown(close)
         adx_14 = TechnicalIndicators.calculate_adx(high, low, close, 14)
 
-        usd_inr_rate = FXProvider.fetch_usd_inr_rate() or 83.5
-
         for i in range(n):
             ind: Dict = {}
             def _safe(series, idx):
@@ -78,16 +86,14 @@ class BacktestEngine:
                 continue
 
             score, _, _ = ScoringEngine.calculate_composite_score(
-                ind, current_price, usd_inr_rate
+                ind, current_price, fx_rate
             )
             scores.iloc[i] = score
 
         return scores
 
-
-    @classmethod
     def run_backtest(
-        cls,
+        self,
         config: BacktestConfig,
         historical_data: pd.DataFrame,
         scores: Optional[pd.Series] = None,
@@ -101,6 +107,8 @@ class BacktestEngine:
         data_end   = str(df.index.max().date())
         data_points_total = len(df)
 
+        fx_rate = self._get_fx_rate()
+
         if scores is not None:
             if hasattr(scores.index, 'tz') and scores.index.tz is not None:
                 scores = scores.copy()
@@ -108,7 +116,7 @@ class BacktestEngine:
             df['Score'] = scores.reindex(df.index).fillna(50)
         else:
             logger.info(f"Computing rolling scores for {len(df)} rows…")
-            df['Score'] = cls._compute_rolling_scores(df)
+            df['Score'] = self._compute_rolling_scores(df, fx_rate)
             logger.info("Rolling scores computed.")
 
         mask = (df.index >= config.start_date) & (df.index <= config.end_date)
@@ -120,7 +128,7 @@ class BacktestEngine:
                 f"Available: {data_start} → {data_end}"
             )
 
-        dca_dates = cls._get_dca_dates(config.start_date, config.end_date, config.dca_cadence)
+        dca_dates = self._get_dca_dates(config.start_date, config.end_date, config.dca_cadence)
 
         total_invested = 0.0
         total_units    = 0.0
@@ -166,8 +174,7 @@ class BacktestEngine:
         final_price     = float(data.iloc[-1]['Close'])
         final_value_usd = total_units * final_price
 
-        usd_inr_rate = FXProvider.fetch_usd_inr_rate() or 83.5
-        final_value_inr = final_value_usd * usd_inr_rate
+        final_value_inr = final_value_usd * fx_rate
 
         total_return_pct = (
             ((final_value_usd - total_invested) / total_invested) * 100
@@ -221,7 +228,6 @@ class BacktestEngine:
             data_end=data_end,
             equity_curve=equity_curve,
         )
-
 
     @staticmethod
     def _get_dca_dates(

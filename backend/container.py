@@ -38,7 +38,7 @@ class Container:
         self._llm_service: ILLMService = LLMService()
         self._indicators: IIndicators = TechnicalIndicators()
         self._scoring_engine: IScoringEngine = ScoringEngine()
-        self._backtest_engine: IBacktestEngine = BacktestEngine()
+        self._backtest_engine: IBacktestEngine = BacktestEngine(fx_provider=self._fx_adapter)
 
         self._asset_data_service = AssetDataService(
             self._price_adapter,
