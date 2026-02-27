@@ -281,15 +281,13 @@ class DCAPortfolioSimulator:
         )
         uniform_avg_cost = guided_invested / uniform_units if uniform_units > 0 else 0
 
-        guided_avg_cost = guided_invested / sum(
-            1 for _ in range(1)                          
-        )
+        guided_avg_cost = guided_invested / guided_buys if guided_buys > 0 else 0
         final_price = prices[-1] if not np.isnan(prices[-1]) else prices[~np.isnan(prices)][-1]
 
         uniform_value = uniform_units * final_price
         uniform_return = (uniform_value - guided_invested) / guided_invested * 100 if guided_invested > 0 else 0
 
-        cost_improvement = (uniform_avg_cost - uniform_avg_cost) / uniform_avg_cost * 100 if uniform_avg_cost > 0 else 0
+        cost_improvement = (uniform_avg_cost - guided_avg_cost) / uniform_avg_cost * 100 if uniform_avg_cost > 0 else 0
 
         return {
             "uniform_avg_cost": float(uniform_avg_cost),

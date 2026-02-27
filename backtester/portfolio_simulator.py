@@ -151,11 +151,34 @@ except ImportError:
     _DW = None
 
 
-def vectorized_scores(
+# ── Sigmoid smoothing for continuous scoring ──────────────────
+def _soft_below(x: np.ndarray, threshold, width=5.0) -> np.ndarray:
+    """Smooth 1→0 transition: ~1 when x << threshold, ~0 when x >> threshold."""
+    w = np.maximum(width, 0.01)
+    arg = np.clip((x - threshold) / w, -30, 30)
+    return 1.0 / (1.0 + np.exp(arg))
+
+
+def _soft_above(x: np.ndarray, threshold, width=5.0) -> np.ndarray:
+    """Smooth 0→1 transition: ~0 when x << threshold, ~1 when x >> threshold."""
+    w = np.maximum(width, 0.01)
+    arg = np.clip(-(x - threshold) / w, -30, 30)
+    return 1.0 / (1.0 + np.exp(arg))
+
+
+# ── Regime constants ──────────────────────────────────────────
+REGIME_TREND = 2
+REGIME_REVERT = 1
+REGIME_STRESS = 0
+
+TREND_EXIT_DEFAULTS = None   # set after ExitParams is defined (below)
+STRESS_EXIT_DEFAULTS = None
+
+
+def _compute_raw_indicators(
     close: np.ndarray,
     high: np.ndarray,
     low: np.ndarray,
-    open_: np.ndarray,
     *,
     sma_short: int = 50,
     sma_long: int = 200,
@@ -169,52 +192,33 @@ def vectorized_scores(
     atr_pctl_lookback: int = 252,
     z_periods: Tuple[int, ...] = (20, 50, 100),
     adx_period: int = 14,
-    usd_inr_rate: float = 83.5,
-    weights: Optional[Dict[str, float]] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Compute composite scores + raw ATR for every bar using vectorised numpy ops.
-
-    Returns
-    -------
-    scores : ndarray (n,)   — composite score 0-100
-    atr    : ndarray (n,)   — raw ATR(14) per bar (needed for exit stops)
-    """
-    if weights is None:
-        weights = _DW if _DW is not None else {
-            "technical_momentum": 0.4,
-            "volatility_opportunity": 0.2,
-            "statistical_deviation": 0.2,
-            "macro_fx": 0.2,
-        }
-
+) -> Dict[str, np.ndarray]:
+    """Compute all raw indicator arrays from OHLC data (no scoring applied)."""
     n = len(close)
     s_close = pd.Series(close)
     s_high = pd.Series(high)
     s_low = pd.Series(low)
 
-    # ── Pre-compute indicator series ───────────────────────────
     sma50 = s_close.rolling(sma_short).mean().values
     sma200 = s_close.rolling(sma_long).mean().values
-    # RSI
     delta = s_close.diff()
     gain = delta.where(delta > 0, 0).rolling(rsi_period).mean().values
     loss = (-delta.where(delta < 0, 0)).rolling(rsi_period).mean().values
     with np.errstate(divide="ignore", invalid="ignore"):
         rs = np.where(loss != 0, gain / loss, 0)
     rsi = 100 - (100 / (1 + rs))
-    # MACD
+
     ema_f = s_close.ewm(span=macd_fast, adjust=False).mean().values
     ema_s = s_close.ewm(span=macd_slow, adjust=False).mean().values
     macd_line = ema_f - ema_s
     macd_sig = pd.Series(macd_line).ewm(span=macd_signal, adjust=False).mean().values
     macd_hist = macd_line - macd_sig
-    # Bollinger
+
     bb_mid = s_close.rolling(bb_period).mean().values
     bb_std_arr = s_close.rolling(bb_period).std().values
     bb_upper = bb_mid + bb_std * bb_std_arr
     bb_lower = bb_mid - bb_std * bb_std_arr
-    # ATR
+
     tr1 = high - low
     tr2 = np.abs(high - np.roll(close, 1))
     tr3 = np.abs(low - np.roll(close, 1))
@@ -222,11 +226,11 @@ def vectorized_scores(
     tr3[0] = tr1[0]
     true_range = np.maximum(tr1, np.maximum(tr2, tr3))
     atr_arr = pd.Series(true_range).rolling(atr_period).mean().values
-    # ATR percentile
+
     atr_pctl = pd.Series(atr_arr).rolling(min(atr_pctl_lookback, max(30, n // 4))).apply(
         lambda x: pd.Series(x).rank().iloc[-1] / len(x) * 100, raw=False
     ).values
-    # Z-scores
+
     zs = []
     for zp in z_periods:
         rm = s_close.rolling(zp).mean().values
@@ -241,10 +245,10 @@ def vectorized_scores(
         avg_z = np.where(np.isnan(avg_z), 0.0, avg_z)
     else:
         avg_z = np.zeros_like(close)
-    # Drawdown
+
     running_max = np.maximum.accumulate(close)
     drawdown = np.where(running_max > 0, (close - running_max) / running_max * 100, 0)
-    # ADX (simplified vectorised)
+
     high_diff = s_high.diff().values
     low_diff = (-s_low.diff()).values
     plus_dm = np.where((high_diff > low_diff) & (high_diff > 0), high_diff, 0)
@@ -260,53 +264,81 @@ def vectorized_scores(
         )
     adx = pd.Series(dx).rolling(adx_period).mean().values
 
-    # ── Vectorised scoring rules ──────────────────────────────
+    return {
+        "close": close,
+        "sma50": sma50,
+        "sma200": sma200,
+        "rsi": rsi,
+        "macd_line": macd_line,
+        "macd_hist": macd_hist,
+        "bb_lower": bb_lower,
+        "bb_upper": bb_upper,
+        "atr": atr_arr,
+        "atr_pctl": atr_pctl,
+        "avg_z": avg_z,
+        "drawdown": drawdown,
+        "adx": adx,
+    }
+
+
+def _apply_mean_reversion_rules(
+    ind: Dict[str, np.ndarray],
+    usd_inr_rate: float,
+    weights: Dict[str, float],
+) -> np.ndarray:
+    """Apply mean-reversion scoring rules with sigmoid smoothing."""
+    close = ind["close"]
+    n = len(close)
+    sma200 = ind["sma200"]
+    rsi = ind["rsi"]
+    macd_line = ind["macd_line"]
+    macd_hist = ind["macd_hist"]
+    bb_lower = ind["bb_lower"]
+    bb_upper = ind["bb_upper"]
+    atr_pctl = ind["atr_pctl"]
+    avg_z = ind["avg_z"]
+    drawdown = ind["drawdown"]
+    adx = ind["adx"]
     _nan = np.isnan
 
-    # TECHNICAL MOMENTUM
     tech = np.full(n, 50.0)
     valid_sma200 = ~_nan(sma200)
-    tech = np.where(valid_sma200 & (close < sma200), tech + 15.0, tech)
-    tech = np.where(valid_sma200 & (close >= sma200), tech - 5.0, tech)
+    tech += np.where(valid_sma200, 15.0 * _soft_below(close, sma200, width=close * 0.01 + 0.01) - 5.0 * _soft_above(close, sma200, width=close * 0.01 + 0.01), 0.0)
     valid_rsi = ~_nan(rsi)
-    tech = np.where(valid_rsi & (rsi < 30), tech + 20.0, tech)
-    tech = np.where(valid_rsi & (rsi >= 30) & (rsi < 40), tech + 10.0, tech)
-    tech = np.where(valid_rsi & (rsi > 70), tech - 15.0, tech)
-    tech = np.where(valid_rsi & (rsi > 60) & (rsi <= 70), tech - 5.0, tech)
+    tech += np.where(valid_rsi, 20.0 * _soft_below(rsi, 30, 5), 0.0)
+    tech += np.where(valid_rsi, 10.0 * _soft_below(rsi, 40, 5) * _soft_above(rsi, 30, 5), 0.0)
+    tech -= np.where(valid_rsi, 15.0 * _soft_above(rsi, 70, 5), 0.0)
+    tech -= np.where(valid_rsi, 5.0 * _soft_above(rsi, 60, 5) * _soft_below(rsi, 70, 5), 0.0)
     valid_macd = ~_nan(macd_line) & ~_nan(macd_hist)
-    tech = np.where(valid_macd & (macd_line < 0) & (macd_hist > 0), tech + 10.0, tech)
-    tech = np.where(valid_macd & (macd_line > 0) & (macd_hist < 0), tech - 10.0, tech)
+    tech += np.where(valid_macd & (macd_line < 0) & (macd_hist > 0), 10.0, 0.0)
+    tech -= np.where(valid_macd & (macd_line > 0) & (macd_hist < 0), 10.0, 0.0)
     valid_bb = ~_nan(bb_lower) & ~_nan(bb_upper)
-    tech = np.where(valid_bb & (close < bb_lower), tech + 15.0, tech)
-    tech = np.where(valid_bb & (close >= bb_lower) & (close < bb_lower * 1.02), tech + 8.0, tech)
+    tech += np.where(valid_bb, 15.0 * _soft_below(close, bb_lower, width=close * 0.005 + 0.01), 0.0)
     valid_adx = ~_nan(adx)
-    tech = np.where(valid_adx & (adx < 20), tech + 5.0, tech)
-    tech = np.where(valid_adx & (adx > 40), tech - 5.0, tech)
+    tech += np.where(valid_adx, 5.0 * _soft_below(adx, 20, 3), 0.0)
+    tech -= np.where(valid_adx, 5.0 * _soft_above(adx, 40, 3), 0.0)
     tech = np.clip(tech, 0, 100)
 
-    # VOLATILITY OPPORTUNITY
     vol = np.full(n, 50.0)
     valid_atr_p = ~_nan(atr_pctl)
-    vol = np.where(valid_atr_p & (atr_pctl > 80), vol + 20.0, vol)
-    vol = np.where(valid_atr_p & (atr_pctl > 60) & (atr_pctl <= 80), vol + 10.0, vol)
-    vol = np.where(valid_atr_p & (atr_pctl < 30), vol - 10.0, vol)
-    vol = np.where(drawdown < -20, vol + 30.0, vol)
-    vol = np.where((drawdown >= -20) & (drawdown < -10), vol + 20.0, vol)
-    vol = np.where((drawdown >= -10) & (drawdown < -5), vol + 10.0, vol)
-    vol = np.where(drawdown > -1, vol - 10.0, vol)
+    vol += np.where(valid_atr_p, 20.0 * _soft_above(atr_pctl, 80, 5), 0.0)
+    vol += np.where(valid_atr_p, 10.0 * _soft_above(atr_pctl, 60, 5) * _soft_below(atr_pctl, 80, 5), 0.0)
+    vol -= np.where(valid_atr_p, 10.0 * _soft_below(atr_pctl, 30, 5), 0.0)
+    vol += 30.0 * _soft_below(drawdown, -20, 2)
+    vol += 20.0 * _soft_below(drawdown, -10, 2) * _soft_above(drawdown, -20, 2)
+    vol += 10.0 * _soft_below(drawdown, -5, 2) * _soft_above(drawdown, -10, 2)
+    vol -= 10.0 * _soft_above(drawdown, -1, 2)
     vol = np.clip(vol, 0, 100)
 
-    # STATISTICAL DEVIATION
     stat = np.full(n, 50.0)
-    stat = np.where(avg_z < -2.0, stat + 50.0, stat)
-    stat = np.where((avg_z >= -2.0) & (avg_z < -1.5), stat + 35.0, stat)
-    stat = np.where((avg_z >= -1.5) & (avg_z < -1.0), stat + 20.0, stat)
-    stat = np.where((avg_z >= -1.0) & (avg_z < -0.5), stat + 10.0, stat)
-    stat = np.where(avg_z > 1.5, stat - 30.0, stat)
-    stat = np.where((avg_z > 1.0) & (avg_z <= 1.5), stat - 15.0, stat)
+    stat += 50.0 * _soft_below(avg_z, -2.0, 0.3)
+    stat += 35.0 * _soft_below(avg_z, -1.5, 0.3) * _soft_above(avg_z, -2.0, 0.3)
+    stat += 20.0 * _soft_below(avg_z, -1.0, 0.3) * _soft_above(avg_z, -1.5, 0.3)
+    stat += 10.0 * _soft_below(avg_z, -0.5, 0.3) * _soft_above(avg_z, -1.0, 0.3)
+    stat -= 30.0 * _soft_above(avg_z, 1.5, 0.3)
+    stat -= 15.0 * _soft_above(avg_z, 1.0, 0.3) * _soft_below(avg_z, 1.5, 0.3)
     stat = np.clip(stat, 0, 100)
 
-    # MACRO FX (constant across all bars — uses current rate per existing behavior)
     dev_pct = (usd_inr_rate - 83.0) / 83.0 * 100
     macro = 50.0
     if dev_pct > 5:
@@ -320,15 +352,220 @@ def vectorized_scores(
     macro = max(0, min(100, macro))
     macro_arr = np.full(n, macro)
 
-    # COMPOSITE
     composite = (
         tech * weights["technical_momentum"]
         + vol * weights["volatility_opportunity"]
         + stat * weights["statistical_deviation"]
         + macro_arr * weights["macro_fx"]
     )
+    return composite
 
-    return composite, atr_arr
+
+def _apply_trend_following_rules(
+    ind: Dict[str, np.ndarray],
+    usd_inr_rate: float,
+    weights: Dict[str, float],
+) -> np.ndarray:
+    """Apply trend-following scoring rules with sigmoid smoothing."""
+    close = ind["close"]
+    n = len(close)
+    sma200 = ind["sma200"]
+    rsi = ind["rsi"]
+    macd_line = ind["macd_line"]
+    macd_hist = ind["macd_hist"]
+    atr_pctl = ind["atr_pctl"]
+    avg_z = ind["avg_z"]
+    drawdown = ind["drawdown"]
+    adx = ind["adx"]
+    _nan = np.isnan
+
+    tech = np.full(n, 50.0)
+    valid_sma200 = ~_nan(sma200)
+    tech += np.where(valid_sma200, 15.0 * _soft_above(close, sma200, width=close * 0.01 + 0.01), 0.0)
+    tech -= np.where(valid_sma200, 10.0 * _soft_below(close, sma200, width=close * 0.01 + 0.01), 0.0)
+    valid_rsi = ~_nan(rsi)
+    tech += np.where(valid_rsi, 10.0 * _soft_above(rsi, 50, 5) * _soft_below(rsi, 70, 5), 0.0)
+    tech += np.where(valid_rsi, 5.0 * _soft_above(rsi, 70, 5), 0.0)
+    tech -= np.where(valid_rsi, 10.0 * _soft_below(rsi, 30, 5), 0.0)
+    valid_macd = ~_nan(macd_line) & ~_nan(macd_hist)
+    tech += np.where(valid_macd & (macd_line > 0) & (macd_hist > 0), 15.0, 0.0)
+    tech -= np.where(valid_macd & (macd_line < 0) & (macd_hist < 0), 10.0, 0.0)
+    valid_adx = ~_nan(adx)
+    tech += np.where(valid_adx, 15.0 * _soft_above(adx, 25, 3), 0.0)
+    tech += np.where(valid_adx, 20.0 * _soft_above(adx, 40, 3), 0.0)
+    tech = np.clip(tech, 0, 100)
+
+    vol = np.full(n, 50.0)
+    valid_atr_p = ~_nan(atr_pctl)
+    vol += np.where(valid_atr_p, 10.0 * _soft_above(atr_pctl, 60, 5), 0.0)
+    vol -= np.where(valid_atr_p, 10.0 * _soft_below(atr_pctl, 30, 5), 0.0)
+    vol += 10.0 * _soft_above(drawdown, -1, 2)
+    vol -= 20.0 * _soft_below(drawdown, -20, 2)
+    vol -= 10.0 * _soft_below(drawdown, -10, 2) * _soft_above(drawdown, -20, 2)
+    vol = np.clip(vol, 0, 100)
+
+    stat = np.full(n, 50.0)
+    stat += 10.0 * _soft_above(avg_z, 0.5, 0.3)
+    stat += 15.0 * _soft_above(avg_z, 1.0, 0.3)
+    stat -= 10.0 * _soft_below(avg_z, -1.0, 0.3)
+    stat -= 20.0 * _soft_below(avg_z, -2.0, 0.3)
+    stat = np.clip(stat, 0, 100)
+
+    dev_pct = (usd_inr_rate - 83.0) / 83.0 * 100
+    macro = 50.0
+    if dev_pct > 5:
+        macro -= 20
+    elif dev_pct > 2:
+        macro -= 10
+    elif dev_pct < -5:
+        macro += 20
+    elif dev_pct < -2:
+        macro += 10
+    macro = max(0, min(100, macro))
+    macro_arr = np.full(n, macro)
+
+    composite = (
+        tech * weights["technical_momentum"]
+        + vol * weights["volatility_opportunity"]
+        + stat * weights["statistical_deviation"]
+        + macro_arr * weights["macro_fx"]
+    )
+    return composite
+
+
+def vectorized_scores(
+    close: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    open_: np.ndarray,
+    *,
+    usd_inr_rate: float = 83.5,
+    weights: Optional[Dict[str, float]] = None,
+    raw_indicators: Optional[Dict[str, np.ndarray]] = None,
+    **indicator_kwargs,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Compute mean-reversion composite scores + raw ATR for every bar.
+
+    Parameters
+    ----------
+    raw_indicators : dict, optional
+        Pre-computed indicator dict from _compute_raw_indicators().
+        When provided, indicator computation is skipped (reuse for efficiency).
+
+    Returns
+    -------
+    scores : ndarray (n,)   — composite score 0-100
+    atr    : ndarray (n,)   — raw ATR(14) per bar (needed for exit stops)
+    """
+    if weights is None:
+        weights = _DW if _DW is not None else {
+            "technical_momentum": 0.4,
+            "volatility_opportunity": 0.2,
+            "statistical_deviation": 0.2,
+            "macro_fx": 0.2,
+        }
+
+    if raw_indicators is None:
+        raw_indicators = _compute_raw_indicators(close, high, low, **indicator_kwargs)
+
+    composite = _apply_mean_reversion_rules(raw_indicators, usd_inr_rate, weights)
+    return composite, raw_indicators["atr"]
+
+
+def vectorized_trend_scores(
+    close: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    open_: np.ndarray,
+    *,
+    usd_inr_rate: float = 83.5,
+    weights: Optional[Dict[str, float]] = None,
+    raw_indicators: Optional[Dict[str, np.ndarray]] = None,
+    **indicator_kwargs,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Compute trend-following composite scores + raw ATR for every bar.
+
+    Returns
+    -------
+    scores : ndarray (n,)   — composite score 0-100
+    atr    : ndarray (n,)   — raw ATR(14) per bar
+    """
+    if weights is None:
+        weights = {
+            "technical_momentum": 0.5,
+            "volatility_opportunity": 0.15,
+            "statistical_deviation": 0.15,
+            "macro_fx": 0.2,
+        }
+
+    if raw_indicators is None:
+        raw_indicators = _compute_raw_indicators(close, high, low, **indicator_kwargs)
+
+    composite = _apply_trend_following_rules(raw_indicators, usd_inr_rate, weights)
+    return composite, raw_indicators["atr"]
+
+
+# ── HMM Regime Detection ──────────────────────────────────────
+
+def _label_hmm_states(
+    log_returns: np.ndarray,
+    state_probs: np.ndarray,
+) -> np.ndarray:
+    """Map HMM state indices to {0=stress, 1=revert, 2=trend} by mean return."""
+    n_states = state_probs.shape[1]
+    assignments = np.argmax(state_probs, axis=1)
+
+    mean_ret = np.full(n_states, 0.0)
+    for s in range(n_states):
+        mask = (assignments == s) & ~np.isnan(log_returns)
+        if mask.sum() > 0:
+            mean_ret[s] = np.nanmean(log_returns[mask])
+
+    order = np.argsort(mean_ret)
+    state_map = np.zeros(n_states, dtype=int)
+    state_map[order[0]] = REGIME_STRESS
+    if n_states >= 3:
+        state_map[order[-1]] = REGIME_TREND
+        for i in range(1, n_states - 1):
+            state_map[order[i]] = REGIME_REVERT
+    elif n_states == 2:
+        state_map[order[1]] = REGIME_TREND
+
+    regime = np.full(len(log_returns), REGIME_REVERT, dtype=int)
+    valid = ~np.all(np.isnan(state_probs), axis=1)
+    regime[valid] = state_map[assignments[valid]]
+    return regime
+
+
+def _compute_hmm_regime(
+    close: np.ndarray,
+    dates_index: pd.DatetimeIndex,
+    n_states: int = 3,
+    window: int = 252,
+    refit_every: int = 63,
+    random_state: int = 42,
+) -> np.ndarray:
+    """Compute per-bar regime labels using rolling HMM from bot.regime."""
+    try:
+        from bot.regime import regime_probability_rolling
+    except ImportError:
+        logger.warning("hmmlearn not available; falling back to REGIME_REVERT for all bars")
+        return np.full(len(close), REGIME_REVERT, dtype=int)
+
+    log_returns = np.diff(np.log(np.maximum(close, 1e-10)))
+    log_returns = np.insert(log_returns, 0, np.nan)
+    ret_df = pd.DataFrame({"ret": log_returns}, index=dates_index[:len(log_returns)])
+
+    probs = regime_probability_rolling(
+        ret_df,
+        n_states=n_states,
+        window=window,
+        refit_every=refit_every,
+        random_state=random_state,
+    )
+    return _label_hmm_states(log_returns, probs.values)
 
 
 # ════════════════════════════════════════════════════════════════
@@ -348,6 +585,8 @@ class AssetData:
     tradeable: np.ndarray   # bool — True on real trading days (not forward-filled)
     first_valid_idx: int    # index in the aligned array where data + warm-up is valid
     cost_class: str
+    trend_score: Optional[np.ndarray] = None   # trend-following composite score (0-100)
+    regime: Optional[np.ndarray] = None         # int array: 0=stress, 1=revert, 2=trend
 
 
 def prepare_multi_asset_data(
@@ -360,6 +599,7 @@ def prepare_multi_asset_data(
     padding_days: int = 400,
     max_date: Optional[datetime] = None,
     cost_class_override: Optional[str] = None,
+    scoring_mode: str = "mean_reversion",
 ) -> Tuple[pd.DatetimeIndex, Dict[str, AssetData]]:
     """
     Fetch historical data for all assets, align to a common date index,
@@ -378,6 +618,9 @@ def prepare_multi_asset_data(
         CPCV callers should pass the test-split end date here.
     cost_class_override : str, optional
         Force all assets to use this cost preset (e.g. "US_EQ_DIRECT").
+    scoring_mode : str
+        "mean_reversion" (default, backward-compat), "trend_following", or
+        "adaptive" (computes both scores + HMM regime).
 
     Returns
     -------
@@ -415,6 +658,7 @@ def prepare_multi_asset_data(
     all_dates = sorted(set().union(*(df.index for df in raw_frames.values())))
     date_index = pd.DatetimeIndex(all_dates)
 
+    need_trend = scoring_mode in ("adaptive", "trend_following")
     assets: Dict[str, AssetData] = {}
 
     for sym, df in raw_frames.items():
@@ -441,9 +685,19 @@ def prepare_multi_asset_data(
         lo[:first_valid] = lo[first_valid]
         op[:first_valid] = op[first_valid]
 
+        raw_ind = _compute_raw_indicators(cl, hi, lo)
+
         scores, atr = vectorized_scores(
-            cl, hi, lo, op, usd_inr_rate=usd_inr_rate,
+            cl, hi, lo, op, usd_inr_rate=usd_inr_rate, raw_indicators=raw_ind,
         )
+
+        trend_sc = None
+        regime_arr = None
+        if need_trend:
+            trend_sc, _ = vectorized_trend_scores(
+                cl, hi, lo, op, usd_inr_rate=usd_inr_rate, raw_indicators=raw_ind,
+            )
+            regime_arr = _compute_hmm_regime(cl, date_index)
 
         first_valid_idx = int(first_valid) + warm_up_bars
 
@@ -458,6 +712,8 @@ def prepare_multi_asset_data(
             tradeable=tradeable,
             first_valid_idx=first_valid_idx,
             cost_class=cost_class,
+            trend_score=trend_sc,
+            regime=regime_arr,
         )
 
     return date_index, assets
@@ -479,6 +735,18 @@ class ExitParams:
     use_atr_stop: bool = True           # when False, disables ATR stop entirely
     min_holding_days: int = 0           # prevents any exit within the first N days
     vol_regime_stop_widen: float = 1.5  # widen ATR mult by this factor in high-vol regimes
+
+
+TREND_EXIT_DEFAULTS = ExitParams(
+    atr_init_mult=3.0, atr_trail_mult=3.5, min_stop_pct=3.0,
+    score_rel_mult=0.3, score_abs_floor=25.0, max_holding_days=252,
+    min_hold_before_trail=5, use_atr_stop=True, min_holding_days=5,
+)
+STRESS_EXIT_DEFAULTS = ExitParams(
+    atr_init_mult=1.5, atr_trail_mult=2.0, min_stop_pct=5.0,
+    score_rel_mult=0.5, score_abs_floor=45.0, max_holding_days=15,
+    min_hold_before_trail=2, use_atr_stop=True, min_holding_days=0,
+)
 
 
 @dataclass
@@ -602,6 +870,9 @@ class SimConfig:
     # Core-satellite allocation
     min_invested_fraction: float = 0.0  # 0 = pure tactical; 0.5 = always keep 50% in equal-weight baseline
 
+    # Scoring / regime
+    scoring_mode: str = "mean_reversion"  # "mean_reversion" | "adaptive" | "trend_following"
+
     # Execution convention
     execution: str = "next_open"   # "next_open" or "same_close"
 
@@ -644,6 +915,7 @@ class SimConfig:
             "cost_free": getattr(self, "cost_free", False),
             "cost_class_override": getattr(self, "cost_class_override", None),
             "min_invested_fraction": getattr(self, "min_invested_fraction", 0.0),
+            "scoring_mode": getattr(self, "scoring_mode", "mean_reversion"),
         }
 
 
@@ -755,15 +1027,38 @@ class PortfolioSimulator:
         # Cost class override from config
         cost_class_ovr = getattr(cfg, "cost_class_override", None)
 
-        def _noisy_score(ad: AssetData, idx: int) -> float:
+        scoring_mode = getattr(cfg, "scoring_mode", "mean_reversion")
+
+        def _effective_score(ad: AssetData, idx: int) -> float:
+            """Select score based on regime when in adaptive/trend mode."""
             if idx >= len(ad.score):
                 return np.nan
-            s = float(ad.score[idx])
+            if scoring_mode == "trend_following" and ad.trend_score is not None:
+                s = float(ad.trend_score[idx])
+            elif scoring_mode == "adaptive" and ad.regime is not None and ad.trend_score is not None:
+                s = float(ad.trend_score[idx]) if ad.regime[idx] == REGIME_TREND else float(ad.score[idx])
+            else:
+                s = float(ad.score[idx])
             if np.isnan(s):
                 return s
             if score_noise_sigma > 0:
                 s = float(np.clip(s + np.random.randn() * score_noise_sigma, 0.0, 100.0))
             return s
+
+        def _exit_params_for_regime(ad: AssetData, idx: int) -> ExitParams:
+            """Select exit params based on current regime."""
+            if scoring_mode == "adaptive" and ad.regime is not None:
+                r = ad.regime[idx] if idx < len(ad.regime) else REGIME_REVERT
+                if r == REGIME_TREND:
+                    return TREND_EXIT_DEFAULTS
+                elif r == REGIME_STRESS:
+                    return STRESS_EXIT_DEFAULTS
+            return cfg.exit_params
+
+        def _is_stress_regime(ad: AssetData, idx: int) -> bool:
+            if scoring_mode == "adaptive" and ad.regime is not None:
+                return idx < len(ad.regime) and ad.regime[idx] == REGIME_STRESS
+            return False
 
         for t in range(sim_start_idx, sim_end_idx + 1):
             dt = date_index[t].date()
@@ -857,14 +1152,16 @@ class PortfolioSimulator:
             # ── 2. Check EXIT conditions (today's Close) ──────────
             for sym, pos in list(positions.items()):
                 ad = assets[sym]
-                score_t = _noisy_score(ad, t)
+                score_t = _effective_score(ad, t)
+                exit_p = _exit_params_for_regime(ad, t)
                 should_exit, reason = check_exit(
                     pos,
                     ad.close[t],
                     ad.atr[t],
                     score_t,
                     dt,
-                    cfg.exit_params,
+                    exit_p,
+                    high_vol_regime=_is_stress_regime(ad, t),
                 )
                 if should_exit:
                     # Core-satellite guard: don't exit if it would bring
@@ -896,7 +1193,7 @@ class PortfolioSimulator:
                     continue
                 if not ad.tradeable[t]:
                     continue
-                score = _noisy_score(ad, t)
+                score = _effective_score(ad, t)
                 if not np.isnan(score) and score >= effective_threshold:
                     confirmation_counter[sym] = confirmation_counter.get(sym, 0) + 1
                     if confirmation_counter[sym] >= confirm_bars_needed:
@@ -909,16 +1206,6 @@ class PortfolioSimulator:
             available_slots = cfg.max_positions - len(positions) + len(pending_exits)
             pre_filter_count = len(entry_candidates)
             entry_candidates = entry_candidates[:max(0, available_slots)]
-
-            # #region agent log
-            if pre_filter_count > 0:
-                try:
-                    import json as _json2, time as _time2
-                    _log_path2 = "/Users/Priyansh_Kesharwani/Downloads/Quantfi-main/.cursor/debug-9f2122.log"
-                    _payload2 = _json2.dumps({"sessionId":"9f2122","hypothesisId":"H2_H3","location":"portfolio_simulator.py:entry_filter","message":"entry candidates filtered","data":{"date":str(dt),"pre_filter":pre_filter_count,"post_filter":len(entry_candidates),"available_slots":available_slots,"max_positions":cfg.max_positions,"n_positions":len(positions),"n_pending_exits":len(pending_exits),"candidates":[(s,round(sc,1)) for s,sc in entry_candidates]},"timestamp":int(_time2.time()*1000)})
-                    with open(_log_path2, "a") as _f2: _f2.write(_payload2 + "\n")
-                except Exception: pass
-            # #endregion
 
             # Core-satellite: if we have no positions and min_invested_fraction > 0,
             # deploy baseline equal-weight allocation across all tradeable assets.
@@ -1029,17 +1316,6 @@ class PortfolioSimulator:
         positions.clear()
 
         elapsed = round(time.time() - t0, 2)
-
-        # #region agent log
-        try:
-            import json as _json3, time as _time3
-            _log_path3 = "/Users/Priyansh_Kesharwani/Downloads/Quantfi-main/.cursor/debug-9f2122.log"
-            _total_entries = sum(1 for t in trade_log if t.side == "ENTRY")
-            _total_exits = sum(1 for t in trade_log if t.side == "EXIT")
-            _payload3 = _json3.dumps({"sessionId":"9f2122","hypothesisId":"H2_summary","location":"portfolio_simulator.py:sim_end","message":"simulation complete","data":{"max_positions":cfg.max_positions,"total_entries":_total_entries,"total_exits":_total_exits,"entry_threshold":cfg.entry_score_threshold,"confirm_bars":getattr(cfg,'entry_confirmation_bars',1),"n_snapshots":len(snapshots),"elapsed":elapsed},"timestamp":int(_time3.time()*1000)})
-            with open(_log_path3, "a") as _f3: _f3.write(_payload3 + "\n")
-        except Exception: pass
-        # #endregion
 
         # ── Compute analytics ─────────────────────────────────────
         result = self._compute_analytics(
@@ -1357,3 +1633,539 @@ def export_trades_csv(
         else:
             raise ValueError("Provide either trade_log or trades")
     return str(path.resolve())
+
+
+# ════════════════════════════════════════════════════════════════
+# 8. ALLOCATION ENGINE  (regime-aware, always-invested)
+# ════════════════════════════════════════════════════════════════
+
+RISK_ON = 1
+RISK_OFF = 0
+
+
+def _compute_jump_regime(
+    close: np.ndarray,
+    dates_index: pd.DatetimeIndex,
+    raw_indicators: Dict[str, np.ndarray],
+    *,
+    n_states: int = 2,
+    jump_penalty: float = 25.0,
+    window: int = 504,
+    refit_every: int = 63,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute per-bar regime labels using Jump Model with multi-feature input.
+
+    Features: log-returns, 20-day rolling volatility, normalized trend spread.
+
+    Returns
+    -------
+    regime : ndarray of int  (RISK_ON=1, RISK_OFF=0)
+    prob_risk_off : ndarray of float (probability of being in risk-off state)
+    """
+    try:
+        from jumpmodels.jump import JumpModel
+    except ImportError:
+        logger.warning("jumpmodels not available; falling back to RISK_ON for all bars")
+        n = len(close)
+        return np.full(n, RISK_ON, dtype=int), np.zeros(n)
+
+    n = len(close)
+    log_ret = np.diff(np.log(np.maximum(close, 1e-10)))
+    log_ret = np.insert(log_ret, 0, np.nan)
+
+    vol_20 = pd.Series(log_ret).rolling(20, min_periods=5).std().values
+
+    sma50 = raw_indicators["sma50"]
+    sma200 = raw_indicators["sma200"]
+    trend = np.where(
+        ~np.isnan(sma50) & ~np.isnan(sma200),
+        (sma50 - sma200) / (close + 1e-8),
+        0.0,
+    )
+
+    features = np.column_stack([log_ret, vol_20, trend])
+
+    regime = np.full(n, RISK_ON, dtype=int)
+    prob_risk_off = np.zeros(n)
+
+    last_model = None
+    last_refit_i = -1
+    last_state_map = None
+    min_obs = max(n_states * 10, 60)
+
+    for i in range(n):
+        if np.any(np.isnan(features[i])):
+            continue
+
+        need_refit = last_model is None or (refit_every > 0 and (i - last_refit_i) >= refit_every)
+        if need_refit and i >= min_obs:
+            start = max(0, i - window)
+            train_data = features[start:i + 1]
+            valid_mask = ~np.any(np.isnan(train_data), axis=1)
+            train_clean = train_data[valid_mask]
+            if len(train_clean) >= min_obs:
+                try:
+                    jm = JumpModel(n_components=n_states, jump_penalty=jump_penalty)
+                    jm.fit(train_clean)
+                    last_model = jm
+                    last_refit_i = i
+                    last_state_map = _align_jump_states_by_variance(jm, n_states)
+                except Exception:
+                    pass
+
+        if last_model is not None and last_state_map is not None:
+            try:
+                obs = features[i:i + 1]
+                if not np.any(np.isnan(obs)):
+                    probs = last_model.predict_proba(obs)
+                    raw_state = int(np.argmax(probs[0]))
+                    mapped = last_state_map.get(raw_state, RISK_ON)
+                    regime[i] = mapped
+
+                    risk_off_prob = 0.0
+                    for s, label in last_state_map.items():
+                        if label == RISK_OFF:
+                            risk_off_prob += probs[0][s]
+                    prob_risk_off[i] = risk_off_prob
+            except Exception:
+                pass
+
+    return regime, prob_risk_off
+
+
+def _align_jump_states_by_variance(model, n_states: int) -> Dict[int, int]:
+    """Map Jump Model states to RISK_ON/RISK_OFF by emission variance on the
+    volatility feature (index 1). Low variance = calm = RISK_ON."""
+    try:
+        covs = model.covariances_
+        if covs.ndim == 1:
+            state_vol = covs
+        elif covs.ndim == 2:
+            vol_idx = min(1, covs.shape[1] - 1)
+            state_vol = covs[:, vol_idx]
+        else:
+            state_vol = np.array([covs[s].flatten()[min(1, covs[s].size - 1)]
+                                  for s in range(n_states)])
+    except (AttributeError, IndexError):
+        return {s: (RISK_ON if s == 0 else RISK_OFF) for s in range(n_states)}
+
+    sorted_states = np.argsort(state_vol)
+    state_map = {}
+    state_map[int(sorted_states[0])] = RISK_ON
+    for idx in range(1, len(sorted_states)):
+        state_map[int(sorted_states[idx])] = RISK_OFF
+    return state_map
+
+
+def _drawdown_circuit_breaker(
+    close: np.ndarray,
+    lookback: int = 20,
+    threshold: float = -0.10,
+) -> np.ndarray:
+    """Daily drawdown circuit breaker. Returns boolean mask where True = RISK_OFF override."""
+    rolling_max = pd.Series(close).rolling(lookback, min_periods=1).max().values
+    dd = (close - rolling_max) / (rolling_max + 1e-8)
+    return dd < threshold
+
+
+class RegimeHysteresis:
+    """Stateful hysteresis filter to prevent regime whipsaw."""
+
+    def __init__(
+        self,
+        enter_risk_off: float = 0.70,
+        exit_risk_off: float = 0.60,
+        cooldown_days: int = 15,
+    ):
+        self.enter_threshold = enter_risk_off
+        self.exit_threshold = exit_risk_off
+        self.cooldown_days = cooldown_days
+        self.current = RISK_ON
+        self.days_since_change = 999
+
+    def update(self, prob_risk_off: float, circuit_breaker_active: bool) -> int:
+        self.days_since_change += 1
+
+        if circuit_breaker_active:
+            if self.current != RISK_OFF:
+                self.current = RISK_OFF
+                self.days_since_change = 0
+            return self.current
+
+        if self.days_since_change < self.cooldown_days:
+            return self.current
+
+        if self.current == RISK_ON and prob_risk_off > self.enter_threshold:
+            self.current = RISK_OFF
+            self.days_since_change = 0
+        elif self.current == RISK_OFF and (1.0 - prob_risk_off) > self.exit_threshold:
+            self.current = RISK_ON
+            self.days_since_change = 0
+
+        return self.current
+
+
+@dataclass
+class AllocationConfig:
+    """Configuration for the regime-aware allocation engine."""
+    symbols: List[str] = field(default_factory=list)
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    initial_capital: float = 100_000.0
+
+    risk_on_equity_pct: float = 0.95
+    risk_off_equity_pct: float = 0.60
+
+    theta_tilt: float = 0.0
+    min_weight_floor: float = 0.05
+
+    rebalance_freq_days: int = 42
+    min_rebalance_delta: float = 0.03
+
+    jump_penalty: float = 25.0
+    regime_n_states: int = 2
+    regime_window: int = 504
+    regime_refit_every: int = 63
+    drawdown_circuit_threshold: float = -0.15
+    hysteresis_enter: float = 0.70
+    hysteresis_exit: float = 0.60
+    cooldown_days: int = 15
+
+    slippage_bps: float = 5.0
+    cost_free: bool = False
+    cost_class_override: Optional[str] = None
+    cash_return_annual: float = 0.02
+
+    scoring_mode: str = "adaptive"
+    run_benchmarks: bool = True
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "mode": "allocation",
+            "symbols": self.symbols,
+            "start_date": str(self.start_date.date()) if self.start_date else None,
+            "end_date": str(self.end_date.date()) if self.end_date else None,
+            "initial_capital": self.initial_capital,
+            "risk_on_equity_pct": self.risk_on_equity_pct,
+            "risk_off_equity_pct": self.risk_off_equity_pct,
+            "theta_tilt": self.theta_tilt,
+            "min_weight_floor": self.min_weight_floor,
+            "rebalance_freq_days": self.rebalance_freq_days,
+            "min_rebalance_delta": self.min_rebalance_delta,
+            "jump_penalty": self.jump_penalty,
+            "regime_n_states": self.regime_n_states,
+            "drawdown_circuit_threshold": self.drawdown_circuit_threshold,
+            "cash_return_annual": self.cash_return_annual,
+            "scoring_mode": self.scoring_mode,
+            "slippage_bps": self.slippage_bps,
+            "cost_free": self.cost_free,
+        }
+
+
+def compute_target_weights(
+    scores: Dict[str, float],
+    regime: int,
+    config: AllocationConfig,
+) -> Dict[str, float]:
+    """Compute target portfolio weights using Brandt parametric formula.
+
+    w_i = (1/N) + (1/N) * theta * x_tilde_i
+
+    where x_tilde_i is the cross-sectional rank-normalized score in [-1, +1].
+    """
+    N = len(scores)
+    if N == 0:
+        return {"_CASH": 1.0}
+
+    syms = list(scores.keys())
+    raw = np.array([scores[s] for s in syms])
+
+    if N == 1:
+        x_tilde = np.array([0.0])
+    else:
+        ranks = raw.argsort().argsort().astype(float)
+        x_tilde = 2.0 * ranks / (N - 1) - 1.0
+
+    equity_pct = config.risk_on_equity_pct if regime == RISK_ON else config.risk_off_equity_pct
+
+    theta = config.theta_tilt
+    raw_w = (1.0 / N) + (1.0 / N) * theta * x_tilde
+
+    raw_w = np.maximum(raw_w, config.min_weight_floor)
+    w_sum = raw_w.sum()
+    if w_sum > 0:
+        raw_w = raw_w / w_sum * equity_pct
+    else:
+        raw_w = np.full(N, equity_pct / N)
+
+    weights = {syms[i]: float(raw_w[i]) for i in range(N)}
+    weights["_CASH"] = max(0.0, 1.0 - equity_pct)
+    return weights
+
+
+def _compute_rebalance_trades(
+    current_weights: Dict[str, float],
+    target_weights: Dict[str, float],
+    equity: float,
+    min_delta: float,
+) -> Dict[str, float]:
+    """Compute notional trades needed to move from current to target weights.
+    Only generates trades where |weight delta| >= min_delta."""
+    trades: Dict[str, float] = {}
+    all_syms = set(list(current_weights.keys()) + list(target_weights.keys()))
+    for sym in all_syms:
+        if sym == "_CASH":
+            continue
+        curr = current_weights.get(sym, 0.0)
+        tgt = target_weights.get(sym, 0.0)
+        delta = tgt - curr
+        if abs(delta) >= min_delta:
+            trades[sym] = delta * equity
+    return trades
+
+
+class AllocationEngine:
+    """Regime-aware allocation engine that stays always-invested.
+
+    Instead of binary entry/exit, this engine:
+    1. Detects regime via Jump Model + drawdown circuit breaker
+    2. Computes target weights via Brandt parametric formula
+    3. Rebalances periodically or on regime shift, only if delta > threshold
+    4. Cash earns a configurable risk-free rate
+    """
+
+    def __init__(self, config: AllocationConfig):
+        self.cfg = config
+
+    def run(
+        self,
+        date_index: pd.DatetimeIndex,
+        assets: Dict[str, AssetData],
+    ) -> Dict[str, Any]:
+        t0 = time.time()
+        cfg = self.cfg
+
+        sim_mask = np.ones(len(date_index), dtype=bool)
+        if cfg.start_date:
+            sim_mask &= date_index >= pd.Timestamp(cfg.start_date)
+        if cfg.end_date:
+            sim_mask &= date_index <= pd.Timestamp(cfg.end_date)
+        sim_indices = np.where(sim_mask)[0]
+        if len(sim_indices) == 0:
+            raise ValueError("No simulation dates in the given range")
+
+        sim_start_idx = sim_indices[0]
+        sim_end_idx = sim_indices[-1]
+
+        first_valid = max(ad.first_valid_idx for ad in assets.values())
+
+        ref_sym = list(assets.keys())[0]
+        ref_close = assets[ref_sym].close
+        raw_ind = _compute_raw_indicators(ref_close, assets[ref_sym].high, assets[ref_sym].low)
+
+        jump_regime, prob_risk_off = _compute_jump_regime(
+            ref_close, date_index, raw_ind,
+            n_states=cfg.regime_n_states,
+            jump_penalty=cfg.jump_penalty,
+            window=cfg.regime_window,
+            refit_every=cfg.regime_refit_every,
+        )
+        cb_mask = _drawdown_circuit_breaker(
+            ref_close,
+            lookback=20,
+            threshold=cfg.drawdown_circuit_threshold,
+        )
+
+        hysteresis = RegimeHysteresis(
+            enter_risk_off=cfg.hysteresis_enter,
+            exit_risk_off=cfg.hysteresis_exit,
+            cooldown_days=cfg.cooldown_days,
+        )
+
+        cash = cfg.initial_capital
+        current_units: Dict[str, float] = {sym: 0.0 for sym in assets}
+        trade_log: List[TradeRecord] = []
+        snapshots: List[DailySnapshot] = []
+        warnings_list: List[str] = []
+
+        slip_bps = 0.0 if cfg.cost_free else cfg.slippage_bps
+        cost_free = cfg.cost_free
+        rf_daily = (1.0 + cfg.cash_return_annual) ** (1.0 / 252.0) - 1.0
+
+        cost_class_map: Dict[str, str] = {}
+        for sym, ad in assets.items():
+            cost_class_map[sym] = ad.cost_class
+
+        last_rebalance_day = -999
+        last_regime = RISK_ON
+        initial_allocation_done = False
+
+        for t in range(sim_start_idx, sim_end_idx + 1):
+            dt = date_index[t].date()
+
+            if t < first_valid:
+                equity = cash
+                snapshots.append(DailySnapshot(
+                    date=str(dt), equity=round(equity, 2),
+                    cash=round(cash, 2), n_positions=0, invested_pct=0.0,
+                ))
+                continue
+
+            effective_regime = hysteresis.update(
+                float(prob_risk_off[t]) if t < len(prob_risk_off) else 0.0,
+                bool(cb_mask[t]) if t < len(cb_mask) else False,
+            )
+
+            days_since_rebalance = t - last_rebalance_day
+            regime_changed = effective_regime != last_regime
+            scheduled = days_since_rebalance >= cfg.rebalance_freq_days
+            need_rebalance = (scheduled or regime_changed or not initial_allocation_done)
+
+            if need_rebalance:
+                equity_before = cash
+                for sym in assets:
+                    equity_before += current_units[sym] * assets[sym].close[t]
+
+                scores: Dict[str, float] = {}
+                for sym, ad in assets.items():
+                    if t < ad.first_valid_idx:
+                        continue
+                    s = float(ad.score[t]) if t < len(ad.score) and not np.isnan(ad.score[t]) else 50.0
+                    if cfg.scoring_mode == "adaptive" and ad.trend_score is not None:
+                        if effective_regime == RISK_ON:
+                            s = float(ad.trend_score[t]) if t < len(ad.trend_score) and not np.isnan(ad.trend_score[t]) else s
+                    elif cfg.scoring_mode == "trend_following" and ad.trend_score is not None:
+                        s = float(ad.trend_score[t]) if t < len(ad.trend_score) and not np.isnan(ad.trend_score[t]) else s
+                    scores[sym] = s
+
+                if not scores:
+                    equity = cash
+                    for sym in assets:
+                        equity += current_units[sym] * assets[sym].close[t]
+                    snapshots.append(DailySnapshot(
+                        date=str(dt), equity=round(equity, 2),
+                        cash=round(cash, 2), n_positions=0, invested_pct=0.0,
+                    ))
+                    continue
+
+                target_w = compute_target_weights(scores, effective_regime, cfg)
+
+                current_w: Dict[str, float] = {}
+                for sym in assets:
+                    val = current_units[sym] * assets[sym].close[t]
+                    current_w[sym] = val / equity_before if equity_before > 0 else 0.0
+                current_w["_CASH"] = cash / equity_before if equity_before > 0 else 1.0
+
+                rebal_trades = _compute_rebalance_trades(
+                    current_w, target_w, equity_before, cfg.min_rebalance_delta,
+                )
+
+                if rebal_trades or not initial_allocation_done:
+                    sells = [(s, n) for s, n in rebal_trades.items() if n < 0]
+                    buys = [(s, n) for s, n in rebal_trades.items() if n > 0]
+
+                    for sym, notional in sells + buys:
+                        ad = assets[sym]
+                        raw_p = float(ad.close[t])
+                        if raw_p <= 0:
+                            continue
+                        side = "buy" if notional > 0 else "sell"
+                        abs_notional = abs(notional)
+
+                        exec_p = execution_price(raw_p, side, slip_bps)
+                        cost = trade_cost(abs_notional, cost_class_map.get(sym, "US_EQ_FROM_IN"), "entry", cost_free=cost_free)
+
+                        if side == "buy":
+                            net = abs_notional - cost
+                            if net <= 0 or exec_p <= 0:
+                                continue
+                            buy_amt = min(net, max(cash - 1.0, 0.0))
+                            if buy_amt <= 0:
+                                continue
+                            units = buy_amt / exec_p
+                            current_units[sym] += units
+                            cash -= (buy_amt + cost)
+                        else:
+                            if exec_p <= 0:
+                                continue
+                            units_to_sell = min(abs_notional / exec_p, current_units[sym])
+                            if units_to_sell <= 0:
+                                continue
+                            proceeds = units_to_sell * exec_p - cost
+                            current_units[sym] -= units_to_sell
+                            cash += proceeds
+
+                        traded_units = units_to_sell if side == "sell" else units
+                        trade_log.append(TradeRecord(
+                            date=str(dt), symbol=sym,
+                            side="REBAL_BUY" if side == "buy" else "REBAL_SELL",
+                            units=round(abs(traded_units), 6),
+                            price=round(exec_p, 4),
+                            notional=round(abs_notional, 2),
+                            cost=round(cost, 2),
+                            score=round(scores.get(sym, 0), 1),
+                            exit_reason=f"rebal_{'regime' if regime_changed else 'sched'}",
+                        ))
+
+                    last_rebalance_day = t
+                    initial_allocation_done = True
+
+                last_regime = effective_regime
+
+            cash *= (1.0 + rf_daily)
+
+            equity = cash
+            n_pos = 0
+            for sym in assets:
+                val = current_units[sym] * assets[sym].close[t]
+                equity += val
+                if current_units[sym] > 0:
+                    n_pos += 1
+            invested_pct = ((equity - cash) / equity * 100) if equity > 0 else 0
+
+            snapshots.append(DailySnapshot(
+                date=str(dt), equity=round(equity, 2),
+                cash=round(cash, 2), n_positions=n_pos,
+                invested_pct=round(invested_pct, 1),
+            ))
+
+        final_t = sim_end_idx
+        final_dt = date_index[final_t].date()
+        for sym in list(assets.keys()):
+            if current_units[sym] <= 0:
+                continue
+            ad = assets[sym]
+            raw_p = float(ad.close[final_t])
+            exec_p = execution_price(raw_p, "sell", slip_bps)
+            notional = current_units[sym] * exec_p
+            cost = trade_cost(notional, cost_class_map.get(sym, "US_EQ_FROM_IN"), "exit", cost_free=cost_free)
+            proceeds = notional - cost
+            cash += proceeds
+            trade_log.append(TradeRecord(
+                date=str(final_dt), symbol=sym, side="EXIT",
+                units=round(current_units[sym], 6), price=round(exec_p, 4),
+                notional=round(notional, 2), cost=round(cost, 2),
+                score=0.0, exit_reason="end_of_sim",
+            ))
+            current_units[sym] = 0.0
+
+        elapsed = round(time.time() - t0, 2)
+
+        ps = PortfolioSimulator(SimConfig(
+            symbols=cfg.symbols, start_date=cfg.start_date,
+            end_date=cfg.end_date, initial_capital=cfg.initial_capital,
+            run_benchmarks=cfg.run_benchmarks,
+        ))
+        result = ps._compute_analytics(
+            snapshots, trade_log, SimConfig(
+                symbols=cfg.symbols, start_date=cfg.start_date,
+                end_date=cfg.end_date, initial_capital=cfg.initial_capital,
+            ),
+            date_index, assets, sim_start_idx, sim_end_idx,
+            elapsed, warnings_list,
+        )
+        result["config"] = cfg.to_dict()
+        rebal_trades_count = sum(1 for t in trade_log if t.side.startswith("REBAL_"))
+        result["total_trades"] = rebal_trades_count + result.get("total_trades", 0)
+        result["rebalance_trades"] = rebal_trades_count
+        return result

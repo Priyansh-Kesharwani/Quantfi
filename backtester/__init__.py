@@ -50,6 +50,15 @@ from .portfolio_simulator import (
     COST_PRESETS,
 )
 
+from .allocation_engine import (
+    AllocationConfig,
+    AllocationEngine,
+    RegimeHysteresis,
+    RISK_ON,
+    RISK_OFF,
+    compute_target_weights,
+)
+
 __all__ = [
     'DiagnosticBacktester',
     'BacktestConfig',
@@ -85,4 +94,10 @@ __all__ = [
     'ExitParams',
     'prepare_multi_asset_data',
     'COST_PRESETS',
+    'AllocationConfig',
+    'AllocationEngine',
+    'RegimeHysteresis',
+    'RISK_ON',
+    'RISK_OFF',
+    'compute_target_weights',
 ]
