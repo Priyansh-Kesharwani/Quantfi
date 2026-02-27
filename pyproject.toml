@@ -43,3 +43,7 @@ check_untyped_defs = true
 [[tool.mypy.overrides]]
 module = ["backend.*", "domain.*", "infrastructure.*", "services.*"]
 disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
