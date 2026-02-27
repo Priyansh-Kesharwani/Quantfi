@@ -2,25 +2,28 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
-from backend.app_config import get_backend_config
 
-CFG = get_backend_config()
+
+def _cfg():
+    from backend.app_config import get_backend_config
+    return get_backend_config()
+
 
 class Asset(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     name: str
-    asset_type: str                                      
-    exchange: Optional[str] = None                                        
-    currency: str = 'USD'                
+    asset_type: str
+    exchange: Optional[str] = None
+    currency: str = 'USD'
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class PriceData(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     timestamp: datetime
@@ -31,7 +34,7 @@ class PriceData(BaseModel):
 
 class IndicatorData(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     timestamp: datetime
@@ -61,28 +64,28 @@ class ScoreBreakdown(BaseModel):
 
 class DCAScore(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     timestamp: datetime
-    composite_score: float         
-    zone: str                                                       
+    composite_score: float
+    zone: str
     breakdown: ScoreBreakdown
     explanation: str
     top_factors: List[str]
 
 class NewsEvent(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
     description: str
     source: str
     url: str
     published_at: datetime
-    event_type: str                                                                                          
+    event_type: str
     affected_assets: List[str]
-    impact_scores: Dict[str, float]                              
+    impact_scores: Dict[str, float]
     summary: Optional[str] = None
 
 class BacktestConfig(BaseModel):
@@ -90,8 +93,12 @@ class BacktestConfig(BaseModel):
     start_date: datetime
     end_date: datetime
     dca_amount: float
-    dca_cadence: str                         
-    buy_dip_threshold: Optional[float] = CFG.backtest_buy_dip_threshold_default
+    dca_cadence: str
+    buy_dip_threshold: Optional[float] = None
+
+    def model_post_init(self, __context) -> None:
+        if self.buy_dip_threshold is None:
+            self.buy_dip_threshold = _cfg().backtest_buy_dip_threshold_default
 
 
 class EquityPoint(BaseModel):
@@ -128,15 +135,22 @@ class BacktestResult(BaseModel):
 
 class UserSettings(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     default_dca_cadence: str = 'monthly'
-    default_dca_amount: float = CFG.user_default_dca_amount
-    dip_alert_threshold: float = CFG.user_default_dip_alert_threshold
-    score_weights: Dict[str, float] = Field(default_factory=lambda: dict(CFG.default_score_weights))
+    default_dca_amount: Optional[float] = None
+    dip_alert_threshold: Optional[float] = None
+    score_weights: Optional[Dict[str, float]] = None
 
+    def model_post_init(self, __context) -> None:
+        cfg = _cfg()
+        if self.default_dca_amount is None:
+            self.default_dca_amount = cfg.user_default_dca_amount
+        if self.dip_alert_threshold is None:
+            self.dip_alert_threshold = cfg.user_default_dip_alert_threshold
+        if self.score_weights is None:
+            self.score_weights = dict(cfg.default_score_weights)
 
-# ── Portfolio Simulation Models ─────────────────────────────────
 
 class SimulationExitConfig(BaseModel):
     atr_init_mult: float = 2.0
@@ -158,17 +172,26 @@ class SimulationRequest(BaseModel):
     min_position_notional: float = 3000.0
     slippage_bps: float = 5.0
     run_benchmarks: bool = True
-    template: Optional[str] = None   # "conservative" | "balanced" | "aggressive"
-    cost_free: bool = False          # If True, zero costs and slippage (diagnostic baseline)
-    export_trades: bool = False      # If True, write trades to validation/debug/trades_{run_id}.csv
-    run_id: Optional[str] = None     # Optional id for export filename; generated if not provided
+    template: Optional[str] = None
+    cost_free: bool = False
+    export_trades: bool = False
+    run_id: Optional[str] = None
+    min_invested_fraction: float = 0.0
+    scoring_mode: str = "adaptive"
+    simulation_mode: str = "tactical"
+    risk_on_equity_pct: float = 0.95
+    risk_off_equity_pct: float = 0.60
+    theta_tilt: float = 0.0
+    rebalance_freq_days: int = 42
+    min_rebalance_delta: float = 0.03
+    jump_penalty: float = 25.0
+    drawdown_circuit_threshold: float = -0.15
+    cash_return_annual: float = 0.02
 
-
-# ── Phase 1 Advanced Indicators ────────────────────────────────
 
 class Phase1IndicatorMeta(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     window_used: int
     n_obs: int
     method: str
@@ -179,9 +202,9 @@ class Phase1IndicatorMeta(BaseModel):
 
 class Phase1NormalizedComponent(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     raw_value: float
-    normalized_value: float             
+    normalized_value: float
     percentile: float
     ecdf_sample_size: int
     meta: Phase1IndicatorMeta
@@ -189,25 +212,25 @@ class Phase1NormalizedComponent(BaseModel):
 
 class Phase1CompositeResult(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     symbol: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
-    T_t: float         
-    U_t: float                           
-    V_t: float                     
-    L_t: float             
-    C_t: float                     
-    H_t: float                  
-    R_t: float                          
-    
-    g_pers_H: float                        
-    Gate_t: float                                 
-    Opp_t: float                            
-    RawFavor_t: float                  
-    
-    composite_score: float                               
-    
+
+    T_t: float
+    U_t: float
+    V_t: float
+    L_t: float
+    C_t: float
+    H_t: float
+    R_t: float
+
+    g_pers_H: float
+    Gate_t: float
+    Opp_t: float
+    RawFavor_t: float
+
+    composite_score: float
+
     config_used: Dict[str, Optional[float]] = {}
     notes: str = ""

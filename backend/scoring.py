@@ -1,7 +1,6 @@
 from typing import Dict, List, Tuple
 import numpy as np
 from backend.models import ScoreBreakdown
-from backend.app_config import get_backend_config
 from scoring.composite import (
     compute_composite_score_single,
     technical_momentum_score as _tech_score,
@@ -11,7 +10,10 @@ from scoring.composite import (
     SCORING_RULES,
 )
 
-CFG = get_backend_config()
+
+def _cfg():
+    from backend.app_config import get_backend_config
+    return get_backend_config()
 
 
 class ScoringEngine:
@@ -21,10 +23,6 @@ class ScoringEngine:
     the backtester's vectorized scorer and this engine stay in sync.
     This class adds human-readable factor explanations for the API.
     """
-
-    DEFAULT_WEIGHTS = CFG.default_score_weights
-
-    TUNED_WEIGHTS = CFG.tuned_score_weights
 
     @staticmethod
     def calculate_technical_momentum_score(indicators: Dict, current_price: float) -> Tuple[float, List[str]]:
@@ -100,8 +98,10 @@ class ScoringEngine:
     @staticmethod
     def calculate_macro_fx_score(
         usd_inr_rate: float,
-        historical_avg: float = CFG.macro_fx_historical_avg,
+        historical_avg: float = None,
     ) -> Tuple[float, List[str]]:
+        if historical_avg is None:
+            historical_avg = _cfg().macro_fx_historical_avg
         factors: List[str] = []
         score = _macro_score(usd_inr_rate)
 
@@ -121,8 +121,9 @@ class ScoringEngine:
         usd_inr_rate: float,
         weights: Dict = None
     ) -> Tuple[float, ScoreBreakdown, List[str]]:
+        cfg = _cfg()
         if weights is None:
-            weights = cls.DEFAULT_WEIGHTS
+            weights = cfg.default_score_weights
 
         tech_score, tech_factors = cls.calculate_technical_momentum_score(indicators, current_price)
         vol_score, vol_factors = cls.calculate_volatility_opportunity_score(indicators)
@@ -144,18 +145,19 @@ class ScoringEngine:
         )
 
         all_factors = tech_factors + vol_factors + stat_factors + macro_factors
-        n = CFG.score_top_factors_count
+        n = cfg.score_top_factors_count
         top_factors = all_factors[:n] if len(all_factors) >= n else all_factors
 
         return composite, breakdown, top_factors
 
     @staticmethod
     def get_zone(score: float) -> str:
-        if score >= CFG.score_zone_strong_buy:
+        cfg = _cfg()
+        if score >= cfg.score_zone_strong_buy:
             return 'strong_buy'
-        elif score >= CFG.score_zone_favorable:
+        elif score >= cfg.score_zone_favorable:
             return 'favorable'
-        elif score >= CFG.score_zone_neutral:
+        elif score >= cfg.score_zone_neutral:
             return 'neutral'
         else:
             return 'unfavorable'
