@@ -22,8 +22,8 @@ class NewsClassificationService:
 
     @staticmethod
     def _strip_html(s: str) -> str:
-        s = re.sub(r"<[^>]+>", "", s)
-        return html_mod.unescape(s).strip()
+        from infrastructure.adapters.utils import strip_html
+        return strip_html(s)
 
     async def fetch_and_classify_news(self, db: Any) -> None:
         from backend.models import NewsEvent

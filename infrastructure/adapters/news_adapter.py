@@ -39,8 +39,8 @@ class NewsAdapter:
 
     @staticmethod
     def _strip_html(s: str) -> str:
-        s = re.sub(r"<[^>]+>", "", s)
-        return html_mod.unescape(s).strip()
+        from infrastructure.adapters.utils import strip_html
+        return strip_html(s)
 
     def _fetch_rss_news(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         feeds = [self._rss_base.format(query=quote(query))]

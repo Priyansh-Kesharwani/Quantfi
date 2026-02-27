@@ -8,10 +8,13 @@ import os
 import json
 from typing import List, Dict
 import logging
-from backend.app_config import get_backend_config
 
 logger = logging.getLogger(__name__)
-CFG = get_backend_config()
+
+
+def _cfg():
+    from backend.app_config import get_backend_config
+    return get_backend_config()
 
 class LLMService:
     
@@ -132,11 +135,12 @@ Example:
     
     @staticmethod
     def _get_zone_name(score: float) -> str:
-        if score >= CFG.score_zone_strong_buy:
+        cfg = _cfg()
+        if score >= cfg.score_zone_strong_buy:
             return 'strong buy-the-dip'
-        elif score >= CFG.score_zone_favorable:
+        elif score >= cfg.score_zone_favorable:
             return 'favorable accumulation'
-        elif score >= CFG.score_zone_neutral:
+        elif score >= cfg.score_zone_neutral:
             return 'neutral'
         else:
             return 'unfavorable'
