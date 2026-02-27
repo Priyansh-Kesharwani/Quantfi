@@ -3,15 +3,23 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from domain.protocols import (
+    IPriceProvider,
+    IFXProvider,
+    IIndicators,
+    IScoringEngine,
+    ILLMService,
+)
+
 
 class AssetDataService:
     def __init__(
         self,
-        price_provider: Any,
-        fx_provider: Any,
-        indicators: Any,
-        scoring_engine: Any,
-        llm_service: Any,
+        price_provider: IPriceProvider,
+        fx_provider: IFXProvider,
+        indicators: IIndicators,
+        scoring_engine: IScoringEngine,
+        llm_service: ILLMService,
         config: Any,
     ) -> None:
         self._price_provider = price_provider

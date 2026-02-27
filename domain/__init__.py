@@ -5,6 +5,7 @@ from domain.protocols import (
     IIndicators,
     IScoringEngine,
     IBacktestEngine,
+    ILLMService,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "IIndicators",
     "IScoringEngine",
     "IBacktestEngine",
+    "ILLMService",
 ]

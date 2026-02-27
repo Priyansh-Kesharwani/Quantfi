@@ -5,14 +5,21 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+from domain.protocols import (
+    IPriceProvider,
+    IFXProvider,
+    IIndicators,
+    IScoringEngine,
+)
+
 
 class ScoringFacade:
     def __init__(
         self,
-        indicators: Any,
-        scoring_engine: Any,
-        price_provider: Any,
-        fx_provider: Any,
+        indicators: IIndicators,
+        scoring_engine: IScoringEngine,
+        price_provider: IPriceProvider,
+        fx_provider: IFXProvider,
         config: Any,
     ) -> None:
         self._indicators = indicators

@@ -5,12 +5,14 @@ from typing import Any, Optional
 
 import pandas as pd
 
+from domain.protocols import IPriceProvider, IBacktestEngine
+
 
 class BacktestService:
     def __init__(
         self,
-        price_provider: Any,
-        backtest_engine: Any,
+        price_provider: IPriceProvider,
+        backtest_engine: IBacktestEngine,
         config: Any,
     ) -> None:
         self._price_provider = price_provider

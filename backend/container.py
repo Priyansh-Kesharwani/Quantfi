@@ -3,13 +3,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from pathlib import Path
-
 from backend.app_config import get_backend_config
 from backend.indicators import TechnicalIndicators
 from backend.scoring import ScoringEngine
 from backend.backtest import BacktestEngine
 from backend.llm_service import LLMService
+from domain.protocols import (
+    IPriceProvider,
+    IFXProvider,
+    INewsProvider,
+    IIndicators,
+    IScoringEngine,
+    IBacktestEngine,
+    ILLMService,
+)
 from infrastructure.adapters.price_adapter import PriceAdapter
 from infrastructure.adapters.fx_adapter import FXAdapter
 from infrastructure.adapters.news_adapter import NewsAdapter
@@ -25,13 +32,13 @@ class Container:
         self._db = db
         self._project_root = Path(project_root)
         self._config = get_backend_config()
-        self._price_adapter = PriceAdapter(self._config)
-        self._fx_adapter = FXAdapter(self._config)
-        self._news_adapter = NewsAdapter(self._config)
-        self._llm_service = LLMService()
-        self._indicators = TechnicalIndicators()
-        self._scoring_engine = ScoringEngine()
-        self._backtest_engine = BacktestEngine()
+        self._price_adapter: IPriceProvider = PriceAdapter(self._config)
+        self._fx_adapter: IFXProvider = FXAdapter(self._config)
+        self._news_adapter: INewsProvider = NewsAdapter(self._config)
+        self._llm_service: ILLMService = LLMService()
+        self._indicators: IIndicators = TechnicalIndicators()
+        self._scoring_engine: IScoringEngine = ScoringEngine()
+        self._backtest_engine: IBacktestEngine = BacktestEngine()
 
         self._asset_data_service = AssetDataService(
             self._price_adapter,
@@ -73,15 +80,15 @@ class Container:
         return self._config
 
     @property
-    def price_adapter(self) -> Any:
+    def price_adapter(self) -> IPriceProvider:
         return self._price_adapter
 
     @property
-    def fx_adapter(self) -> Any:
+    def fx_adapter(self) -> IFXProvider:
         return self._fx_adapter
 
     @property
-    def news_adapter(self) -> Any:
+    def news_adapter(self) -> INewsProvider:
         return self._news_adapter
 
     @property
@@ -105,13 +112,13 @@ class Container:
         return self._simulation_service
 
     @property
-    def indicators(self) -> Any:
+    def indicators(self) -> IIndicators:
         return self._indicators
 
     @property
-    def scoring_engine(self) -> Any:
+    def scoring_engine(self) -> IScoringEngine:
         return self._scoring_engine
 
     @property
-    def llm_service(self) -> Any:
+    def llm_service(self) -> ILLMService:
         return self._llm_service

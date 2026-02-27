@@ -5,12 +5,14 @@ import html as html_mod
 from datetime import datetime, timezone
 from typing import Any
 
+from domain.protocols import INewsProvider, ILLMService
+
 
 class NewsClassificationService:
     def __init__(
         self,
-        news_provider: Any,
-        llm_service: Any,
+        news_provider: INewsProvider,
+        llm_service: ILLMService,
         config: Any,
     ) -> None:
         self._news_provider = news_provider
