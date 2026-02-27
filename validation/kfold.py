@@ -28,7 +28,6 @@ from validation.metrics import (
 
 logger = logging.getLogger(__name__)
 
-
 def _purged_kfold_splits(
     n_samples: int,
     n_splits: int,
@@ -60,9 +59,7 @@ def _purged_kfold_splits(
         test_end = fold_starts[i + 1]
         test_idx = indices[test_start:test_end]
 
-        # Purge: remove embargo bars after test end
         embargo_end = min(test_end + embargo, n_samples)
-        # Also purge embargo bars before test start
         embargo_start = max(test_start - embargo, 0)
 
         train_mask = np.ones(n_samples, dtype=bool)
@@ -76,7 +73,6 @@ def _purged_kfold_splits(
         splits.append((train_idx, test_idx))
 
     return splits
-
 
 @dataclass
 class PurgedKFoldConfig:
@@ -97,7 +93,6 @@ class PurgedKFoldConfig:
             exit_threshold=d.get("exit_threshold", 70.0),
         )
 
-
 @dataclass
 class KFoldFoldResult:
     """Result of a single K-fold split."""
@@ -108,7 +103,6 @@ class KFoldFoldResult:
     test_end: str
     metrics: Dict[str, Any] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)
-
 
 @dataclass
 class KFoldResult:
@@ -142,7 +136,6 @@ class KFoldResult:
     def to_json(self, path: str) -> None:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2, default=str)
-
 
 def purged_kfold(
     df: pd.DataFrame,
@@ -207,10 +200,8 @@ def purged_kfold(
         df_test = df.iloc[test_idx]
 
         try:
-            # Score the entire DataFrame for context (warm-up)
             entry_scores, exit_scores = score_fn(df)
 
-            # Trim to test fold
             test_index = df_test.index
             entry_test = entry_scores.reindex(test_index)
             exit_test = exit_scores.reindex(test_index)
@@ -248,10 +239,8 @@ def purged_kfold(
 
         result.folds.append(fold_result)
 
-    # ── Summarise ─────────────────────────────────────────────
     result.summary = _summarise_kfold(all_fold_metrics, forward_horizons)
     return result
-
 
 def _summarise_kfold(
     all_metrics: List[Dict[str, Any]],
@@ -263,7 +252,6 @@ def _summarise_kfold(
 
     summary: Dict[str, Any] = {}
 
-    # IC and hit rate per horizon
     for h in forward_horizons:
         ics = [m["entry_metrics"].get(f"ic_{h}d", np.nan) for m in all_metrics]
         hrs = [m["entry_metrics"].get(f"hit_rate_{h}d", np.nan) for m in all_metrics]
@@ -271,7 +259,6 @@ def _summarise_kfold(
         summary[f"std_ic_{h}d"] = float(np.nanstd(ics))
         summary[f"mean_hit_rate_{h}d"] = float(np.nanmean(hrs))
 
-    # Signal-level
     n_trades = [m["signal_metrics"].get("n_trades", 0) for m in all_metrics]
     rois = [m["signal_metrics"].get("roi_per_trade", np.nan) for m in all_metrics]
     pfs = [m["signal_metrics"].get("profit_factor", np.nan) for m in all_metrics]
@@ -280,7 +267,6 @@ def _summarise_kfold(
     summary["mean_roi_per_trade"] = float(np.nanmean(rois))
     summary["mean_profit_factor"] = float(np.nanmean(pfs))
 
-    # Cross-fold consistency: std of IC
     if len(all_metrics) >= 2:
         all_ics = []
         for h in forward_horizons:

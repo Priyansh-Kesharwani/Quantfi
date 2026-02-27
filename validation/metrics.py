@@ -18,11 +18,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-# ====================================================================
-# Score-Level Metrics
-# ====================================================================
-
 def information_coefficient(
     scores: pd.Series,
     forward_returns: pd.Series,
@@ -49,7 +44,6 @@ def information_coefficient(
     corr, _p = spearmanr(s, r)
     return float(corr)
 
-
 def hit_rate(
     scores: pd.Series,
     forward_returns: pd.Series,
@@ -75,7 +69,6 @@ def hit_rate(
     if mask.sum() == 0:
         return np.nan
     return float((forward_returns[mask] > 0).mean())
-
 
 def sortino_ratio(
     returns: pd.Series,
@@ -105,7 +98,6 @@ def sortino_ratio(
     downside_std = downside.std()
     return float(excess.mean() / downside_std * np.sqrt(annualization))
 
-
 def max_drawdown(equity_curve: pd.Series) -> float:
     """Maximum peak-to-trough drawdown.
 
@@ -122,7 +114,6 @@ def max_drawdown(equity_curve: pd.Series) -> float:
     peak = equity_curve.expanding().max()
     dd = (equity_curve - peak) / peak
     return float(dd.min())
-
 
 def cagr(
     equity_curve: pd.Series,
@@ -152,7 +143,6 @@ def cagr(
         return 0.0
     return float(total_return ** (1.0 / years) - 1.0)
 
-
 def forward_returns(
     prices: pd.Series,
     horizon: int = 5,
@@ -174,11 +164,6 @@ def forward_returns(
     fwd = prices.shift(-horizon) / prices - 1.0
     fwd.name = f"fwd_ret_{horizon}"
     return fwd
-
-
-# ====================================================================
-# Signal-Level (Trade) Metrics
-# ====================================================================
 
 def evaluate_signals(
     entry: pd.Series,
@@ -212,13 +197,11 @@ def evaluate_signals(
               roi_per_trade, win_loss_ratio, profit_factor,
               n_trades, total_return.
     """
-    # Align all series
     common_idx = entry.index.intersection(exit_.index).intersection(returns.index)
     entry = entry.reindex(common_idx)
     exit_ = exit_.reindex(common_idx)
     returns = returns.reindex(common_idx)
 
-    # Identify trade segments
     trades = _extract_trades(entry, exit_, returns, entry_threshold, exit_threshold)
 
     if len(trades) == 0:
@@ -253,7 +236,6 @@ def evaluate_signals(
         "n_trades": len(trades),
         "total_return": float(sum(rois)),
     }
-
 
 def _extract_trades(
     entry: pd.Series,
@@ -290,7 +272,7 @@ def _extract_trades(
 
             should_exit = (
                 (not np.isnan(exit_vals[i]) and exit_vals[i] > exit_threshold)
-                or i == len(entry) - 1  # force close at end
+                or i == len(entry) - 1
             )
 
             if should_exit:
@@ -298,13 +280,11 @@ def _extract_trades(
                 if bars < 1:
                     bars = 1
 
-                # ROI from compounding
                 if entry_bar < len(cum_rets) and i < len(cum_rets):
                     trade_roi = cum_rets[i] / max(cum_rets[entry_bar], 1e-12) - 1.0
                 else:
                     trade_roi = cum_return
 
-                # Entry latency: bars from entry to max cumulative return
                 segment_rets = ret_vals[entry_bar:i + 1]
                 segment_cum = np.nancumsum(segment_rets)
                 if len(segment_cum) > 0:
@@ -312,7 +292,6 @@ def _extract_trades(
                 else:
                     entry_latency = np.nan
 
-                # Exit lead: bars from exit signal to local peak (capped at trade end)
                 exit_lead = float(bars - np.argmax(segment_cum)) if len(segment_cum) > 0 else np.nan
 
                 trades.append({
@@ -326,11 +305,6 @@ def _extract_trades(
                 in_trade = False
 
     return trades
-
-
-# ====================================================================
-# Aggregate Metrics Runner
-# ====================================================================
 
 def compute_score_metrics(
     scores: pd.Series,
@@ -366,15 +340,12 @@ def compute_score_metrics(
         results[f"ic_{h}d"] = information_coefficient(scores, fwd_ret)
         results[f"hit_rate_{h}d"] = hit_rate(scores, fwd_ret, threshold=entry_threshold)
 
-    # Strategy returns: returns of the score-weighted portfolio
     period_ret = prices.pct_change().fillna(0)
 
-    # Simple signal-based returns: invest only when score > threshold
     mask = scores > entry_threshold
     signal_returns = period_ret.copy()
     signal_returns[~mask] = 0.0
 
-    # Equity curve
     equity = (1 + signal_returns).cumprod()
 
     results["sortino"] = sortino_ratio(signal_returns)
@@ -384,7 +355,6 @@ def compute_score_metrics(
     results["pct_active"] = float(mask.mean())
 
     return results
-
 
 def compute_all_metrics(
     entry_scores: pd.Series,

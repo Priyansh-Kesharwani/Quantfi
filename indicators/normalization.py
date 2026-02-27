@@ -6,7 +6,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 def expanding_percentile(
     series: np.ndarray,
     min_obs: int = 100
@@ -44,7 +43,6 @@ def expanding_percentile(
     
     return pct_t, meta
 
-
 def percentile_to_z(
     percentile: np.ndarray
 ) -> np.ndarray:
@@ -57,7 +55,6 @@ def percentile_to_z(
     z = np.where(np.isnan(percentile), np.nan, z)
     
     return z
-
 
 def z_to_sigmoid(
     z: np.ndarray,
@@ -75,7 +72,6 @@ def z_to_sigmoid(
     
     return sigmoid
 
-
 def polarity_align(
     score: np.ndarray,
     higher_is_favorable: bool = True
@@ -86,7 +82,6 @@ def polarity_align(
         return score
     else:
         return np.round(1.0 - score, 15)
-
 
 def normalize_to_score(
     raw_values: np.ndarray,
@@ -113,7 +108,6 @@ def normalize_to_score(
     }
     
     return score_t, meta
-
 
 def batch_normalize(
     indicators: Dict[str, np.ndarray],
@@ -142,8 +136,6 @@ def batch_normalize(
     
     return normalized, metas
 
-
-# ── Phase A convenience wrapper ─────────────────────────────
 def expanding_ecdf_sigmoid(
     series: pd.Series,
     k: float = 1.0,
@@ -190,7 +182,6 @@ def expanding_ecdf_sigmoid(
         return pd.Series(score_arr, index=index, name="ecdf_sigmoid")
     return pd.Series(score_arr, name="ecdf_sigmoid")
 
-
 def _expanding_midrank_ecdf(raw: np.ndarray, min_obs: int) -> np.ndarray:
     """Expanding ECDF with exact midrank tie rule.
 
@@ -212,7 +203,6 @@ def _expanding_midrank_ecdf(raw: np.ndarray, min_obs: int) -> np.ndarray:
         rank_equal = np.sum(valid == current)
         pct_t[t] = (rank_less + 0.5 * rank_equal) / n_t
     return pct_t
-
 
 def canonical_normalize(
     raw: np.ndarray,

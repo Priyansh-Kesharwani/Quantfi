@@ -77,3 +77,7 @@
 {"ts": "2026-02-27T19:01:02.177887", "symbol": "SPY", "G_t": 1.03, "conf": 0.18, "agreement": 0.65, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.675, "avg_quality": 0.5541, "confidence_penalized": true}
 {"ts": "2026-02-27T19:03:52.973494", "symbol": "AAPL", "G_t": 1.03, "conf": 0.18, "agreement": 0.65, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.6259, "avg_quality": 0.5413, "confidence_penalized": true}
 {"ts": "2026-02-27T19:03:57.707863", "symbol": "SPY", "G_t": 1.03, "conf": 0.18, "agreement": 0.65, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.675, "avg_quality": 0.5524, "confidence_penalized": true}
+{"ts": "2026-02-27T19:07:14.894589", "symbol": "AAPL", "G_t": 1.03, "conf": 0.18, "agreement": 0.65, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.6259, "avg_quality": 0.5411, "confidence_penalized": true}
+{"ts": "2026-02-27T19:07:19.248087", "symbol": "SPY", "G_t": 1.03, "conf": 0.18, "agreement": 0.65, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.675, "avg_quality": 0.5539, "confidence_penalized": true}
+{"ts": "2026-02-27T19:09:33.004967", "symbol": "AAPL", "G_t": 1.03, "conf": 0.18, "agreement": 0.65, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.6259, "avg_quality": 0.5408, "confidence_penalized": true}
+{"ts": "2026-02-27T19:09:37.699165", "symbol": "SPY", "G_t": 1.03, "conf": 0.18, "agreement": 0.65, "factors": 5, "citations": 1, "valid": true, "avg_relevance": 0.675, "avg_quality": 0.5522, "confidence_penalized": true}

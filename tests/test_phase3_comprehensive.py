@@ -70,25 +70,17 @@ from simulations.hawkes_simulator import (
     validate_estimation,
 )
 
-
-# ====================================================================
-# Shared Fixtures
-# ====================================================================
-
 @pytest.fixture(scope="module")
 def synth_df():
     return fbm_series(n=1000, H=0.6, seed=42)
-
 
 @pytest.fixture(scope="module")
 def synth_df_large():
     return fbm_series(n=1200, H=0.6, seed=42)
 
-
 @pytest.fixture(scope="module")
 def ou_df():
     return ou_series(n=1000, theta=0.15, mu=100.0, sigma=2.0, seed=42)
-
 
 def _test_score_fn(df, params=None):
     """Deterministic mock score function."""
@@ -104,11 +96,6 @@ def _test_score_fn(df, params=None):
         index=df.index,
     )
     return entry, exit_
-
-
-# ####################################################################
-# 1. METRICS — Mathematical Properties & Edge Cases
-# ####################################################################
 
 class TestIC_MathProperties:
     """Information Coefficient mathematical properties."""
@@ -127,7 +114,6 @@ class TestIC_MathProperties:
         scores = pd.Series([50.0] * 20)
         returns = pd.Series(np.random.randn(20))
         ic = information_coefficient(scores, returns)
-        # scipy.spearmanr returns NaN when one input is constant
         assert np.isnan(ic) or ic == 0.0
 
     def test_constant_returns_nan(self):
@@ -175,7 +161,6 @@ class TestIC_MathProperties:
         ic = information_coefficient(scores, returns)
         assert not np.isnan(ic)
 
-
 class TestHitRate_EdgeCases:
     """Hit rate boundary conditions."""
 
@@ -184,7 +169,7 @@ class TestHitRate_EdgeCases:
         scores = pd.Series([10, 20, 30, 40])
         returns = pd.Series([0.01, -0.01, 0.02, -0.02])
         hr = hit_rate(scores, returns, threshold=0)
-        assert hr == 0.5  # 2/4 positive
+        assert hr == 0.5
 
     def test_threshold_100_no_signals(self):
         """threshold=100 → no signals → NaN."""
@@ -208,7 +193,7 @@ class TestHitRate_EdgeCases:
         scores = pd.Series([70.0, 70.0, 70.0])
         returns = pd.Series([0.01, 0.02, 0.03])
         hr = hit_rate(scores, returns, threshold=70.0)
-        assert np.isnan(hr)  # 70.0 > 70.0 is False
+        assert np.isnan(hr)
 
     def test_single_signal_hit(self):
         scores = pd.Series([10, 80])
@@ -222,7 +207,6 @@ class TestHitRate_EdgeCases:
         hr = hit_rate(scores, returns, threshold=70)
         assert hr == 0.0
 
-
 class TestSortino_MathProperties:
     """Sortino ratio mathematical properties and edge cases."""
 
@@ -231,9 +215,7 @@ class TestSortino_MathProperties:
         returns = pd.Series([0.02, -0.01, 0.03, -0.005, 0.01])
         s_pos = sortino_ratio(returns)
         s_neg = sortino_ratio(-returns)
-        # Sortino of positive series should be positive
         assert s_pos > 0
-        # Sortino of negative series should be negative
         assert s_neg < 0
 
     def test_no_downside_returns_inf(self):
@@ -255,7 +237,6 @@ class TestSortino_MathProperties:
     def test_single_negative_return(self):
         """Single negative return → std is NaN (ddof=1), so Sortino is 0.0 or NaN."""
         s = sortino_ratio(pd.Series([-0.05]))
-        # With a single downside observation, std(ddof=1)=NaN → falls through to 0.0
         assert s == 0.0 or np.isnan(s)
 
     def test_two_negative_returns(self):
@@ -276,12 +257,9 @@ class TestSortino_MathProperties:
         returns = pd.Series([0.01, 0.02, 0.005, -0.01, 0.015, -0.005, 0.008, -0.003])
         s_zero = sortino_ratio(returns, target=0.0)
         s_high = sortino_ratio(returns, target=0.03)
-        # Both should be finite
         assert np.isfinite(s_zero)
         assert np.isfinite(s_high)
-        # Higher target → lower Sortino
         assert s_high < s_zero
-
 
 class TestMaxDrawdown_MathProperties:
     """Max drawdown mathematical properties."""
@@ -308,7 +286,6 @@ class TestMaxDrawdown_MathProperties:
         """V-shape: peak → trough → new peak → drawdown from first peak."""
         equity = pd.Series([100, 110, 80, 90, 115])
         dd = max_drawdown(equity)
-        # Peak=110, trough=80 → dd=(80-110)/110
         assert dd == pytest.approx(-30 / 110, abs=1e-10)
 
     def test_flat_equity_zero(self):
@@ -322,13 +299,12 @@ class TestMaxDrawdown_MathProperties:
         dd = max_drawdown(pd.Series([100.0, 90.0]))
         assert dd == pytest.approx(-0.10, abs=1e-10)
 
-
 class TestCAGR_MathProperties:
     """CAGR mathematical properties."""
 
     def test_known_doubling(self):
         """1 year of doubling → ~100% CAGR."""
-        equity = pd.Series(np.linspace(100, 200, 253))  # 253 points = 252 intervals = 1 year
+        equity = pd.Series(np.linspace(100, 200, 253))
         c = cagr(equity, periods_per_year=252)
         assert c == pytest.approx(1.0, abs=0.02)
 
@@ -368,7 +344,6 @@ class TestCAGR_MathProperties:
     def test_all_nan_returns_zero(self):
         assert cagr(pd.Series([np.nan, np.nan])) == 0.0
 
-
 class TestForwardReturns_EdgeCases:
 
     def test_horizon_1(self):
@@ -400,7 +375,6 @@ class TestForwardReturns_EdgeCases:
         fwd = forward_returns(prices, horizon=2)
         assert "2" in fwd.name
 
-
 class TestEvaluateSignals_EdgeCases:
     """Comprehensive edge cases for signal extraction and trade metrics."""
 
@@ -420,10 +394,10 @@ class TestEvaluateSignals_EdgeCases:
         n = 10
         idx = pd.date_range("2020-01-01", periods=n, freq="B")
         entry = pd.Series([0] * 8 + [80, 0], index=idx, dtype=float)
-        exit_ = pd.Series([0] * 10, index=idx, dtype=float)  # Never exits
+        exit_ = pd.Series([0] * 10, index=idx, dtype=float)
         returns = pd.Series([0.01] * n, index=idx)
         result = evaluate_signals(entry, exit_, returns, 70, 70)
-        assert result["n_trades"] == 1  # forced close at end
+        assert result["n_trades"] == 1
 
     def test_multiple_trades(self):
         """Multiple distinct trades in series."""
@@ -431,10 +405,8 @@ class TestEvaluateSignals_EdgeCases:
         idx = pd.date_range("2020-01-01", periods=n, freq="B")
         entry = pd.Series([0] * 30, index=idx, dtype=float)
         exit_ = pd.Series([0] * 30, index=idx, dtype=float)
-        # Trade 1: enter at 2, exit at 5
         entry.iloc[2] = 80
         exit_.iloc[5] = 80
-        # Trade 2: enter at 10, exit at 15
         entry.iloc[10] = 80
         exit_.iloc[15] = 80
         returns = pd.Series([0.005] * n, index=idx)
@@ -457,7 +429,7 @@ class TestEvaluateSignals_EdgeCases:
         idx = pd.date_range("2020-01-01", periods=n, freq="B")
         entry = pd.Series([0] * 5 + [80] + [0] * 14, index=idx, dtype=float)
         exit_ = pd.Series([0] * 10 + [80] + [0] * 9, index=idx, dtype=float)
-        returns = pd.Series([0.01] * n, index=idx)  # Always positive
+        returns = pd.Series([0.01] * n, index=idx)
         result = evaluate_signals(entry, exit_, returns, 70, 70)
         assert result["profit_factor"] > 0
 
@@ -479,10 +451,8 @@ class TestEvaluateSignals_EdgeCases:
         entry = pd.Series([80] * 10, index=idx1, dtype=float)
         exit_ = pd.Series([80] * 10, index=idx2, dtype=float)
         returns = pd.Series([0.01] * 10, index=idx1)
-        # Should not raise, intersection will be used
         result = evaluate_signals(entry, exit_, returns, 70, 70)
         assert isinstance(result, dict)
-
 
 class TestComputeScoreMetrics_Comprehensive:
     """compute_score_metrics output structure and values."""
@@ -520,7 +490,6 @@ class TestComputeScoreMetrics_Comprehensive:
         result = compute_score_metrics(scores, prices, entry_threshold=70)
         assert result["n_signals"] == 0
 
-
 class TestComputeAllMetrics_Comprehensive:
 
     def test_three_top_level_keys(self, synth_df):
@@ -535,11 +504,6 @@ class TestComputeAllMetrics_Comprehensive:
         result = compute_all_metrics(entry, exit_, synth_df["close"], forward_horizons=[3, 7])
         assert "ic_3d" in result["entry_metrics"]
         assert "ic_7d" in result["entry_metrics"]
-
-
-# ####################################################################
-# 2. EXECUTION MODEL — Mathematical Properties & Edge Cases
-# ####################################################################
 
 class TestMarketImpact_MathProperties:
     """Market impact power-law and scaling properties."""
@@ -580,7 +544,6 @@ class TestMarketImpact_MathProperties:
         impacts = [market_impact(s, 1e6, 0.01, 0.5) for s in sizes]
         for i in range(len(impacts) - 1):
             assert impacts[i + 1] > impacts[i]
-
 
 class TestFillPrice_MathProperties:
     """Fill price symmetry and cost decomposition."""
@@ -630,7 +593,6 @@ class TestFillPrice_MathProperties:
         f_large, _ = compute_fill_price(100.0, 1, 10000, 1e6, cfg, rng2)
         assert f_large > f_small
 
-
 class TestLatency_EdgeCases:
 
     def test_n_zero(self):
@@ -654,7 +616,6 @@ class TestLatency_EdgeCases:
     def test_all_positive(self):
         lats = simulate_latency(1000, mean_ms=10, seed=42)
         assert (lats >= 0).all()
-
 
 class TestApplyExecCosts_EdgeCases:
 
@@ -682,7 +643,7 @@ class TestApplyExecCosts_EdgeCases:
         n = 50
         idx = pd.date_range("2020-01-01", periods=n, freq="B")
         returns = pd.Series(np.random.randn(n) * 0.01, index=idx)
-        entry = pd.Series([10.0] * n, index=idx)  # All below 70
+        entry = pd.Series([10.0] * n, index=idx)
         exit_ = pd.Series([10.0] * n, index=idx)
         volume = pd.Series([1e6] * n, index=idx)
         adj, report = apply_execution_costs(returns, entry, exit_, volume)
@@ -704,11 +665,10 @@ class TestApplyExecCosts_EdgeCases:
         idx = pd.date_range("2020-01-01", periods=n, freq="B")
         returns = pd.Series([0.01] * n, index=idx)
         entry = pd.Series([0] * 15 + [80] + [0] * 4, index=idx, dtype=float)
-        exit_ = pd.Series([0] * n, index=idx, dtype=float)  # Never exits
+        exit_ = pd.Series([0] * n, index=idx, dtype=float)
         volume = pd.Series([1e6] * n, index=idx)
         adj, report = apply_execution_costs(returns, entry, exit_, volume)
         assert report["n_trades"] == 1
-
 
 class TestSlippageSensitivityMatrix_Properties:
 
@@ -737,15 +697,11 @@ class TestSlippageSensitivityMatrix_Properties:
         entry = pd.Series(np.clip(50 + np.random.randn(n) * 20, 0, 100), index=idx)
         exit_ = pd.Series(np.clip(50 + np.random.randn(n) * 20, 0, 100), index=idx)
         volume = pd.Series(np.abs(np.random.randn(n) * 1e6 + 5e6), index=idx)
-        # k_impact_range=[0.0] should produce minimal erosion
         matrix = slippage_sensitivity_matrix(
             returns, entry, exit_, volume,
             k_impact_range=[0.0], gamma_range=[0.5],
         )
-        # With k_impact=0, erosion comes only from spread + commission + noise
-        # The entire matrix value should be ≥ 0
         assert matrix.values[0, 0] >= 0
-
 
 class TestExecutionConfig_Extended:
 
@@ -771,11 +727,6 @@ class TestExecutionConfig_Extended:
         assert cfg.gamma == 0.5
         assert cfg.commission_bps == 2.0
 
-
-# ####################################################################
-# 3. TUNING — Objective Formula & Edge Cases
-# ####################################################################
-
 class TestTuningObjective_MathProperties:
     """Verify S(θ) = median(M_f) − λ·std(M_f)."""
 
@@ -783,9 +734,6 @@ class TestTuningObjective_MathProperties:
         """Manually verify the objective from known fold_metrics."""
         from validation.tuning import _evaluate_inner_cv
 
-        # We'll compute the score manually and compare
-        # Using a known lambda_var and manually setting fold metrics is tricky,
-        # so we'll verify the formula in run_tuning instead.
         fold_metrics = [1.0, 2.0, 3.0, 4.0, 5.0]
         med = np.median(fold_metrics)
         std = np.std(fold_metrics)
@@ -803,14 +751,13 @@ class TestTuningObjective_MathProperties:
 
     def test_high_lambda_penalizes_variance(self):
         """High λ → variance-dominated → prefers consistent params."""
-        fold_a = [2.0, 2.0, 2.0]  # consistent
-        fold_b = [0.0, 3.0, 3.0]  # same median=3, higher variance
+        fold_a = [2.0, 2.0, 2.0]
+        fold_b = [0.0, 3.0, 3.0]
 
         lambda_var = 2.0
 
         score_a = np.median(fold_a) - lambda_var * np.std(fold_a)
         score_b = np.median(fold_b) - lambda_var * np.std(fold_b)
-        # With λ=2, consistent params should win
         assert score_a > score_b
 
     def test_tuning_result_score_matches_formula(self, synth_df_large):
@@ -828,7 +775,6 @@ class TestTuningObjective_MathProperties:
         expected = trial.median_metric - 0.5 * trial.std_metric
         assert result.best_score == pytest.approx(expected, abs=1e-10)
 
-
 class TestSearchSpace_EdgeCases:
 
     def test_grid_single_param(self):
@@ -838,11 +784,10 @@ class TestSearchSpace_EdgeCases:
 
     def test_grid_three_dimensions(self):
         grid = _generate_grid({"a": [1, 2], "b": [10, 20], "c": ["x", "y"]})
-        assert len(grid) == 8  # 2*2*2
+        assert len(grid) == 8
 
     def test_grid_empty_space(self):
         grid = _generate_grid({})
-        # product of nothing → one empty dict
         assert len(grid) == 1
         assert grid[0] == {}
 
@@ -857,7 +802,6 @@ class TestSearchSpace_EdgeCases:
         space = {"a": [42]}
         samples = _sample_random(space, 10, np.random.RandomState(0))
         assert all(s["a"] == 42 for s in samples)
-
 
 class TestInnerCV_Objectives:
     """Test inner CV with different objective functions."""
@@ -894,7 +838,6 @@ class TestInnerCV_Objectives:
             n_splits=2, embargo=2,
         )
         assert len(fold_metrics) == 2
-
 
 class TestRunTuning_Extended:
 
@@ -953,7 +896,6 @@ class TestRunTuning_Extended:
         assert loaded["best_params"] == result.best_params
         assert len(loaded["trials"]) == len(result.trials)
 
-
 class TestParameterSensitivity_Extended:
 
     def test_single_value(self, synth_df_large):
@@ -972,12 +914,11 @@ class TestParameterSensitivity_Extended:
             synth_df_large, _test_score_fn,
             base_params={"S_scale": 1.0},
             param_name="S_scale",
-            param_values=[1.0, 1.0, 1.0],  # Same value → same score
+            param_values=[1.0, 1.0, 1.0],
             n_splits=3, embargo=10,
         )
         scores = result["score"].values
         assert np.std(scores) < 1e-6
-
 
 class TestAblation_Extended:
 
@@ -989,7 +930,7 @@ class TestAblation_Extended:
             components=[],
             n_splits=3, embargo=10,
         )
-        assert len(result) == 1  # baseline only
+        assert len(result) == 1
         assert result.iloc[0]["component"] == "baseline"
 
     def test_impact_sign_convention(self, synth_df_large):
@@ -998,7 +939,6 @@ class TestAblation_Extended:
             np.random.seed(42)
             n = len(df)
             base = 50 + np.random.randn(n) * 15
-            # If disable_important is set, degrade scores significantly
             if params and params.get("disable_important"):
                 base *= 0.5
             return (
@@ -1012,14 +952,8 @@ class TestAblation_Extended:
             components=["important"],
             n_splits=3, embargo=10,
         )
-        # 'important' component ablation should show positive impact (helps baseline)
         important_row = result[result["component"] == "important"]
         assert len(important_row) == 1
-
-
-# ####################################################################
-# 4. HAWKES — LOB & Trade Tick Mathematical Invariants
-# ####################################################################
 
 class TestLOB_MathInvariants:
     """LOB structural invariants."""
@@ -1066,7 +1000,6 @@ class TestLOB_MathInvariants:
         grid = np.arange(0, 50, 1.0)
         lob = generate_synthetic_lob(np.array([]), grid, depth_levels=3, seed=42)
         assert len(lob["mid_prices"]) == len(grid)
-        # All bids < all asks even with no events
         for i in range(len(grid)):
             for lev in range(3):
                 assert lob["bid_prices"][i][lev] < lob["ask_prices"][i][lev]
@@ -1089,7 +1022,6 @@ class TestLOB_MathInvariants:
             lob = generate_synthetic_lob(events, grid, depth_levels=depth, seed=42)
             assert lob["n_levels"] == depth
             assert len(lob["bid_prices"][0]) == depth
-
 
 class TestSyntheticTrades_MathInvariants:
     """Trade tick mathematical properties."""
@@ -1149,16 +1081,11 @@ class TestSyntheticTrades_MathInvariants:
         events = simulate_hawkes_events(1.0, 0.3, 1.0, 100.0, seed=42)
         trades = generate_synthetic_trades(events, seed=42)
         inter_event = np.diff(trades["time"].values, prepend=0)
-        # Group by quartile of inter-event time
-        # Short inter-event trades should have higher average size
         if len(trades) > 20:
             median_ie = np.median(inter_event)
             short_ie_mask = inter_event < median_ie
             long_ie_mask = inter_event >= median_ie
-            # This relationship isn't strict due to randomness, but on average
-            # shorter inter-event → larger size multiplier → larger sizes
             assert trades.loc[short_ie_mask, "size"].mean() >= trades.loc[long_ie_mask, "size"].mean() * 0.5
-
 
 class TestHawkes_IntensityInvariants:
 
@@ -1176,11 +1103,8 @@ class TestHawkes_IntensityInvariants:
         events = np.array([10.0])
         grid = np.array([9.0, 10.5, 11.0])
         lam = ground_truth_intensity(events, mu, alpha, beta, grid)
-        # Before event
         assert lam[0] == pytest.approx(mu, abs=1e-10)
-        # After event: λ > μ
         assert lam[1] > mu
-        # Further after: decays
         assert lam[2] < lam[1]
 
     def test_validate_estimation_perfect_match(self):
@@ -1203,11 +1127,6 @@ class TestHawkes_IntensityInvariants:
         assert eta == pytest.approx(1.0)
         rate = expected_event_rate(0.5, alpha, beta)
         assert rate == np.inf
-
-
-# ####################################################################
-# 5. K-FOLD — Purge, Embargo, Coverage Edge Cases
-# ####################################################################
 
 class TestPurgedKFold_MathProperties:
 
@@ -1232,7 +1151,6 @@ class TestPurgedKFold_MathProperties:
         for train_idx, test_idx in splits:
             test_min = test_idx.min()
             test_max = test_idx.max()
-            # Check that no train index is within embargo of test boundaries
             near_test = train_idx[
                 (train_idx >= test_min - embargo) & (train_idx <= test_max + embargo)
             ]
@@ -1242,22 +1160,16 @@ class TestPurgedKFold_MathProperties:
         """embargo=0 → only test fold removed from train."""
         splits = _purged_kfold_splits(100, 5, embargo=0)
         for train_idx, test_idx in splits:
-            # Train should have everything except the test fold
             assert len(train_idx) + len(test_idx) == 100
 
     def test_n_splits_1_all_test(self):
         """n_splits=1 → all data is test, train is empty (after purge+embargo) → fold discarded."""
         splits = _purged_kfold_splits(100, 1, embargo=5)
-        # With n_splits=1, the single fold uses ALL data as test, leaving no training data.
-        # The purge+embargo logic discards folds with empty train sets.
         assert len(splits) == 0
 
     def test_large_embargo_may_reduce_train(self):
         """Very large embargo → may have very small train set."""
         splits = _purged_kfold_splits(50, 5, embargo=100)
-        # With embargo=100 on a 50-sample dataset, train sets will be very small or empty
-        # Check that we don't crash
-        # Some folds may be skipped (empty train)
         for train, test in splits:
             assert len(train) >= 0
 
@@ -1265,7 +1177,6 @@ class TestPurgedKFold_MathProperties:
         for n in [3, 5, 7]:
             splits = _purged_kfold_splits(200, n, embargo=5)
             assert len(splits) <= n
-
 
 class TestPurgedKFold_Integration:
 
@@ -1291,11 +1202,6 @@ class TestPurgedKFold_Integration:
         assert loaded["n_splits"] == 3
         assert len(loaded["folds"]) == 3
 
-
-# ####################################################################
-# 6. WALK-FORWARD — Fold Generation Edge Cases
-# ####################################################################
-
 class TestWalkForward_FoldGeneration:
 
     def test_expanding_train_starts_at_zero(self):
@@ -1317,11 +1223,10 @@ class TestWalkForward_FoldGeneration:
 
     def test_with_overlap(self):
         folds = _generate_folds(2000, 500, 200, overlap=True)
-        # With overlap, test windows shift by half
         if len(folds) >= 2:
             _, _, ts0, te0 = folds[0]
             _, _, ts1, te1 = folds[1]
-            assert ts1 < te0  # should overlap
+            assert ts1 < te0
 
     def test_small_dataset_no_folds(self):
         """If dataset < train_window + test_window → no folds."""
@@ -1340,7 +1245,6 @@ class TestWalkForward_FoldGeneration:
         folds = _generate_folds(1000, 400, 100, overlap=False)
         for _, te, ts, _ in folds:
             assert te == ts
-
 
 class TestWalkForwardCV_Integration:
 
@@ -1362,15 +1266,11 @@ class TestWalkForwardCV_Integration:
             synth_df, score_fn=lambda df: _test_score_fn(df),
             train_window=400, test_window=100, expanding=False, symbol="ROLL",
         )
-        # Both should produce same number of folds
         assert r_exp.n_folds == r_roll.n_folds
-        # But train sizes differ: expanding grows, rolling stays constant
         if r_exp.n_folds >= 2:
             exp_sizes = [f.train_size for f in r_exp.folds]
             roll_sizes = [f.train_size for f in r_roll.folds]
-            # Expanding: sizes should increase
             assert exp_sizes[-1] > exp_sizes[0]
-            # Rolling: sizes should be constant
             assert roll_sizes[0] == roll_sizes[-1]
 
     def test_determinism(self, synth_df):
@@ -1384,11 +1284,6 @@ class TestWalkForwardCV_Integration:
         )
         assert r1.to_dict() == r2.to_dict()
 
-
-# ####################################################################
-# 7. PHASE 3 RUNNER — Helper & Integration Edge Tests
-# ####################################################################
-
 class TestAggregateOOS:
 
     def test_empty_folds(self):
@@ -1400,7 +1295,7 @@ class TestAggregateOOS:
         from validation.phase3_runner import _aggregate_oos
         folds = [{"error": "something failed"}]
         result = _aggregate_oos(folds, [5])
-        assert "note" in result  # no valid folds
+        assert "note" in result
 
     def test_single_valid_fold(self):
         from validation.phase3_runner import _aggregate_oos
@@ -1416,7 +1311,6 @@ class TestAggregateOOS:
         assert result["median_sortino"] == pytest.approx(1.5)
         assert result["n_valid_folds"] == 1
 
-
 class TestThresholdSweep:
 
     def test_higher_threshold_fewer_signals(self, synth_df):
@@ -1424,10 +1318,8 @@ class TestThresholdSweep:
         thresholds = [40, 60, 80, 95]
         sweep = _threshold_sweep(synth_df, _test_score_fn, {}, thresholds, [5])
         n_signals = [s["n_signals"] for s in sweep]
-        # Monotonically decreasing (or equal)
         for i in range(len(n_signals) - 1):
             assert n_signals[i] >= n_signals[i + 1]
-
 
 class TestSubsampleStability:
 
@@ -1445,7 +1337,6 @@ class TestSubsampleStability:
         assert "sortino_std" in result
         assert "ic_mean" in result
 
-
 class TestComputeChecksum:
 
     def test_determinism(self, tmp_path):
@@ -1455,7 +1346,7 @@ class TestComputeChecksum:
         c1 = _compute_checksum(str(path))
         c2 = _compute_checksum(str(path))
         assert c1 == c2
-        assert len(c1) == 64  # SHA256 hex
+        assert len(c1) == 64
 
     def test_different_content_different_hash(self, tmp_path):
         from validation.phase3_runner import _compute_checksum
@@ -1464,7 +1355,6 @@ class TestComputeChecksum:
         p1.write_text('{"a": 1}')
         p2.write_text('{"a": 2}')
         assert _compute_checksum(str(p1)) != _compute_checksum(str(p2))
-
 
 class TestPhase3Runner_Integration:
 
@@ -1507,7 +1397,6 @@ class TestPhase3Runner_Integration:
             cfg, output_dir=str(tmp_path),
         )
 
-        # Structural checks
         assert "oos_folds" in result
         assert "oos_summary" in result
         assert "tuning_traces" in result
@@ -1517,7 +1406,6 @@ class TestPhase3Runner_Integration:
         assert "subsample_stability" in result
         assert "checksum" in result
 
-        # Output file exists
         assert (tmp_path / "SYNTH_COMP_1d_tuning.json").exists()
 
     def test_determinism(self, tmp_path):
@@ -1564,15 +1452,9 @@ class TestPhase3Runner_Integration:
         )
         result = run_asset_validation(df, _test_score_fn, "NOSEARCH", "1d", cfg, str(tmp_path))
         assert "oos_folds" in result
-        # Tuning traces should note "no search space"
         for trace in result["tuning_traces"]:
             if "note" in trace:
                 assert trace["note"] == "no search space"
-
-
-# ####################################################################
-# 8. CROSS-CUTTING — Numerical Stability & Stress Tests
-# ####################################################################
 
 class TestNumericalStability:
     """Edge cases that may cause numerical issues."""
@@ -1614,7 +1496,6 @@ class TestNumericalStability:
         """Zero price → division by zero → inf/NaN in forward returns."""
         prices = pd.Series([100.0, 0.0, 50.0, 60.0])
         fwd = forward_returns(prices, horizon=1)
-        # Should handle gracefully (may produce inf at position 1)
         assert len(fwd) == 4
 
     def test_evaluate_signals_with_nan_returns(self):

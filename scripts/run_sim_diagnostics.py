@@ -17,14 +17,12 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-# Project root and backend on path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
-
 
 def main():
     ap = argparse.ArgumentParser(description="Run portfolio sim for diagnostics (cost-free, trade export)")
@@ -37,7 +35,6 @@ def main():
     ap.add_argument("--out", type=str, default="validation/debug", help="Output dir for summary JSON and trades CSV")
     args = ap.parse_args()
 
-    # Resolve symbols
     symbols = None
     if args.symbols:
         symbols = [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
@@ -58,7 +55,6 @@ def main():
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load simulator module (uses backend data_providers when prepare_multi_asset_data runs)
     sim_path = PROJECT_ROOT / "backtester" / "portfolio_simulator.py"
     import importlib.util
     spec = importlib.util.spec_from_file_location("portfolio_simulator", str(sim_path))
@@ -92,7 +88,6 @@ def main():
     simulator = mod.PortfolioSimulator(config)
     result = simulator.run(date_index, assets_data)
 
-    # Summary JSON (include benchmarks when run_benchmarks=True)
     summary = {
         "cost_free": args.cost_free,
         "symbols": symbols,
@@ -111,7 +106,6 @@ def main():
         json.dump(summary, f, indent=2)
     print(f"Summary written to {summary_path}")
 
-    # Trades CSV
     if args.export_trades and result.get("trades"):
         run_id = "cli_" + datetime.now().strftime("%Y%m%d_%H%M%S")
         csv_path = out_dir / f"trades_{run_id}.csv"
@@ -120,7 +114,6 @@ def main():
 
     print(f"Total return: {result.get('total_return_pct')}% | Trades: {result.get('total_trades')} | Costs: {result.get('total_costs')}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

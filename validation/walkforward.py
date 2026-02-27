@@ -31,12 +31,11 @@ from validation.metrics import (
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class WalkForwardConfig:
     """Configuration for walk-forward cross-validation."""
-    train_window: int = 756       # ~3 years of trading days
-    test_window: int = 252        # ~1 year
+    train_window: int = 756
+    test_window: int = 252
     overlap: bool = False
     expanding: bool = True
     forward_horizons: List[int] = field(default_factory=lambda: [5, 10, 20])
@@ -55,7 +54,6 @@ class WalkForwardConfig:
             exit_threshold=d.get("exit_threshold", 70.0),
         )
 
-
 @dataclass
 class WalkForwardFoldResult:
     """Result of a single walk-forward fold."""
@@ -68,7 +66,6 @@ class WalkForwardFoldResult:
     test_size: int
     metrics: Dict[str, Any] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)
-
 
 @dataclass
 class WalkForwardResult:
@@ -102,7 +99,6 @@ class WalkForwardResult:
     def to_json(self, path: str) -> None:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2, default=str)
-
 
 def _generate_folds(
     n_bars: int,
@@ -147,7 +143,6 @@ def _generate_folds(
         test_start += step
 
     return folds
-
 
 def walkforward_cv(
     df: pd.DataFrame,
@@ -218,12 +213,9 @@ def walkforward_cv(
         df_test = df.iloc[te_s:te_e]
 
         try:
-            # score_fn receives the *combined* context (train+test)
-            # so indicators can warm up on training data
             df_combined = pd.concat([df_train, df_test])
             entry_scores, exit_scores = score_fn(df_combined)
 
-            # Trim to test period only
             test_idx = df_test.index
             entry_test = entry_scores.reindex(test_idx)
             exit_test = exit_scores.reindex(test_idx)
@@ -265,10 +257,8 @@ def walkforward_cv(
 
         result.folds.append(fold_result)
 
-    # ── Summarise across folds ────────────────────────────────
     result.summary = _summarise_folds(all_fold_metrics, forward_horizons)
     return result
-
 
 def _summarise_folds(
     all_metrics: List[Dict[str, Any]],
@@ -280,7 +270,6 @@ def _summarise_folds(
 
     summary: Dict[str, Any] = {}
 
-    # Aggregate entry score metrics
     for h in forward_horizons:
         ic_key = f"ic_{h}d"
         hr_key = f"hit_rate_{h}d"
@@ -290,7 +279,6 @@ def _summarise_folds(
         summary[f"std_{ic_key}"] = float(np.nanstd(ics))
         summary[f"mean_{hr_key}"] = float(np.nanmean(hrs))
 
-    # Aggregate Sortino, CAGR, drawdown
     sortinos = [m["entry_metrics"].get("sortino", np.nan) for m in all_metrics]
     cagrs = [m["entry_metrics"].get("cagr", np.nan) for m in all_metrics]
     dds = [m["entry_metrics"].get("max_drawdown", np.nan) for m in all_metrics]
@@ -299,7 +287,6 @@ def _summarise_folds(
     summary["mean_cagr"] = float(np.nanmean(cagrs))
     summary["mean_max_drawdown"] = float(np.nanmean(dds))
 
-    # Signal metrics
     n_trades = [m["signal_metrics"].get("n_trades", 0) for m in all_metrics]
     rois = [m["signal_metrics"].get("roi_per_trade", np.nan) for m in all_metrics]
     wlrs = [m["signal_metrics"].get("win_loss_ratio", np.nan) for m in all_metrics]

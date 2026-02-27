@@ -7,7 +7,6 @@ MODE_OFFLINE = "offline"
 MODE_LIVE = "live"
 LIVE_FORWARD_MSG = "IC_EWMA_Weights: mode='live' forbids use of forward returns; use mode='offline' for evaluation only."
 
-
 def _spearman_ic(x: np.ndarray, y: np.ndarray) -> float:
     """Sample Spearman correlation (IC)."""
     mask = ~(np.isnan(x) | np.isnan(y))
@@ -16,7 +15,6 @@ def _spearman_ic(x: np.ndarray, y: np.ndarray) -> float:
     from scipy.stats import spearmanr
     r, _ = spearmanr(x[mask], y[mask])
     return float(r) if not np.isnan(r) else np.nan
-
 
 class IC_EWMA_Weights:
     def __init__(
@@ -63,7 +61,6 @@ class IC_EWMA_Weights:
             self._ewma_ic = np.zeros(n)
         assert n == self._n_components
 
-        # Rolling IC at current end (last ic_window bars)
         start = max(0, T - self.ic_window)
         fwd = forward_returns[start:T]
         if len(fwd) < self.ic_forward_horizon:
@@ -71,7 +68,6 @@ class IC_EWMA_Weights:
             meta = {"raw_ic": [], "ewma_ic": self._ewma_ic.tolist(), "prior_shrink": self.lambda_shrink}
             return w, meta
 
-        # Align: IC of component_returns[t] vs mean(forward_returns[t : t+horizon])
         n_vals = T - start - self.ic_forward_horizon
         horizon = min(self.ic_forward_horizon, max(1, len(forward_returns) - start - 1))
         if horizon < 1:
@@ -91,7 +87,6 @@ class IC_EWMA_Weights:
             raw_ic[i] = _spearman_ic(x, y)
         raw_ic = np.nan_to_num(raw_ic, nan=0.0)
 
-        # EWMA of IC
         if self._t == 0:
             self._ewma_ic = raw_ic.copy()
         else:
@@ -104,10 +99,8 @@ class IC_EWMA_Weights:
         z = (self._ewma_ic - mu_ic) / sigma_ic
         w_tilde = np.exp(self.alpha * z)
         w_tilde = np.maximum(w_tilde, 1e-12)
-        # Shrinkage toward uniform
         w_shrunk = (1 - self.lambda_shrink) * w_tilde + self.lambda_shrink * (1.0 / n)
         w = w_shrunk / np.sum(w_shrunk)
-        # Clip per-step change
         delta = np.clip(w - self._prev_weights, -self.max_weight_delta, self.max_weight_delta)
         w = self._prev_weights + delta
         w = np.maximum(w, 0)

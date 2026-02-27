@@ -21,15 +21,12 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
-# Backend first so "indicators" resolves to backend/indicators.py, not project indicators/
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-# After path setup
 from validation.metrics import information_coefficient, forward_returns
-
 
 def compute_decile_forward_returns(
     scores: pd.Series,
@@ -46,7 +43,6 @@ def compute_decile_forward_returns(
     fwd_a = fwd_a.loc[common]
     if len(scores_a) < 20:
         return {"deciles": [], "horizon": horizon}
-    # Decile bins: 1 = lowest 10%, 10 = highest 10%
     decile = pd.qcut(scores_a.rank(method="first"), 10, labels=False, duplicates="drop") + 1
     if decile is None or hasattr(decile, "isna") and decile.isna().all():
         return {"deciles": [], "horizon": horizon}
@@ -61,7 +57,6 @@ def compute_decile_forward_returns(
         se = float(rets.std() / np.sqrt(n)) if n > 1 and rets.std() > 0 else 0.0
         out.append({"decile": int(q), "mean_forward_return": mean_ret, "std_error": se, "n_bars": n})
     return {"deciles": out, "horizon": horizon}
-
 
 def main():
     ap = argparse.ArgumentParser(description="Compute IC and decile forward returns for composite score")
@@ -91,7 +86,6 @@ def main():
             print(f"  Skip {symbol}: insufficient data", file=sys.stderr)
             all_results[symbol] = {"error": "insufficient_data", "n_bars": len(df) if df is not None else 0}
             continue
-        # Normalize column names (yfinance may return Title case)
         cols = {c: c.title() if isinstance(c, str) else c for c in df.columns}
         df = df.rename(columns=cols)
         if "Close" not in df.columns:
@@ -122,7 +116,6 @@ def main():
 
     print(f"Results written to {out_path}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

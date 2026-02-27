@@ -29,7 +29,6 @@ _HMM_N_ITER = 200
 _HMM_TOL = 0.001
 _SEPARATION_RATIO = 1.3
 
-
 @dataclass
 class CryptoRegimeConfig:
     n_states: int = 3
@@ -43,7 +42,6 @@ class CryptoRegimeConfig:
     ema_fast: int = 12
     ema_slow: int = 26
     atr_period: int = 14
-
 
 def default_regime_config(timeframe: str) -> CryptoRegimeConfig:
     """Generate regime config seeds based on timeframe."""
@@ -59,7 +57,6 @@ def default_regime_config(timeframe: str) -> CryptoRegimeConfig:
         warmup_bars=int(21 * bpd),
     )
 
-
 def _extract_state_variances(model) -> np.ndarray:
     """Extract per-state total variance from covars_, handling both 2D and 3D shapes.
 
@@ -70,7 +67,6 @@ def _extract_state_variances(model) -> np.ndarray:
     if c.ndim == 3:
         return np.array([np.trace(c[i]) for i in range(c.shape[0])])
     return np.sum(c, axis=1)
-
 
 def _fit_hmm_best_of_n(
     X: np.ndarray,
@@ -101,7 +97,6 @@ def _fit_hmm_best_of_n(
             continue
     return best_model
 
-
 def _all_states_present(model, X: np.ndarray) -> bool:
     """Check that a fitted model produces all n_components states on the training data."""
     with warnings.catch_warnings():
@@ -109,14 +104,12 @@ def _all_states_present(model, X: np.ndarray) -> bool:
         states = model.predict(X)
     return len(set(states)) == model.n_components
 
-
 def _states_well_separated(model) -> bool:
     """Check that the highest-variance state has >= _SEPARATION_RATIO * lowest."""
     v = _extract_state_variances(model)
     if v.min() <= 0:
         return True
     return v.max() / v.min() >= _SEPARATION_RATIO
-
 
 class CryptoRegimeDetector:
     """Rolling regime detector using GaussianHMM.  No heuristic fallback."""
@@ -144,10 +137,6 @@ class CryptoRegimeDetector:
         labels = self._apply_circuit_breaker(ohlcv["close"], labels)
         labels = self._apply_hysteresis(labels)
         return labels
-
-    # ------------------------------------------------------------------
-    # Model fitting
-    # ------------------------------------------------------------------
 
     def _fit_model(self, features: np.ndarray, warmup: int) -> None:
         """Fit HMM on warmup window.  Tries 3-state diag → 3-state full → 2-state diag."""
@@ -219,10 +208,6 @@ class CryptoRegimeDetector:
     def _map_states(self, raw_label: int) -> str:
         return self._state_map.get(int(raw_label), REGIME_RANGING)
 
-    # ------------------------------------------------------------------
-    # Classification
-    # ------------------------------------------------------------------
-
     def _classify_hmm(
         self, features: np.ndarray, labels: pd.Series, warmup: int
     ) -> pd.Series:
@@ -275,10 +260,6 @@ class CryptoRegimeDetector:
                 )
                 if self.config.cooldown_bars > 0:
                     self._state_map = old_map
-
-    # ------------------------------------------------------------------
-    # Feature engineering  (expanding-window normalization — no look-ahead)
-    # ------------------------------------------------------------------
 
     def _prepare_features(self, ohlcv: pd.DataFrame) -> np.ndarray:
         """Build feature matrix: [log_return, rolling_vol, trend_spread, volume_ratio].
@@ -357,10 +338,6 @@ class CryptoRegimeDetector:
                 abs(low[i] - close[i - 1]),
             )
         return pd.Series(tr).rolling(period, min_periods=1).mean().values
-
-    # ------------------------------------------------------------------
-    # Post-processing
-    # ------------------------------------------------------------------
 
     def _apply_circuit_breaker(self, prices: pd.Series, labels: pd.Series) -> pd.Series:
         """Force STRESS when rolling drawdown exceeds threshold."""

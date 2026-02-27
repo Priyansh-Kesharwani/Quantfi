@@ -8,7 +8,6 @@ R1.1: Fill known-vector fixture with expected outputs once exact midrank is impl
 import numpy as np
 import pytest
 
-# Ensure project root on path when run as script
 import sys
 from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -17,11 +16,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from indicators.normalization_refactor import canonical_normalize
 
-
 def test_normalization_refactor_import():
     """Refactor normalizer module is importable."""
     assert canonical_normalize is not None
-
 
 def test_monotonic_input_gives_monotonic_output():
     """Monotonic raw input → monotonic s_t (approx mode)."""
@@ -32,7 +29,6 @@ def test_monotonic_input_gives_monotonic_output():
     if np.sum(valid) >= 2:
         s_valid = s_t[valid]
         assert np.all(np.diff(s_valid) >= -1e-10), "s_t should be monotonic in raw"
-
 
 def test_determinism_two_runs_same_bytes():
     """Two runs with same inputs → identical output (hash of s_t)."""
@@ -45,17 +41,15 @@ def test_determinism_two_runs_same_bytes():
     h2 = hashlib.sha256(s2.tobytes()).hexdigest()
     assert h1 == h2, "Two runs must produce identical s_t"
 
-
 def test_known_vector_placeholder():
     """Known sample vector → expected outputs (shape, bounds)."""
-    raw = np.array([1.0, 2.0, 3.0, 4.0, 5.0] * 20, dtype=np.float64)  # 100 points
+    raw = np.array([1.0, 2.0, 3.0, 4.0, 5.0] * 20, dtype=np.float64)
     s_t, meta = canonical_normalize(raw, k=1.0, eps=1e-9, mode="approx", min_obs=20)
     assert s_t.shape == raw.shape
     valid = ~np.isnan(s_t)
     assert np.all(s_t[valid] >= 0) and np.all(s_t[valid] <= 1)
     assert meta["n_obs"] >= 1
     assert meta["mode"] == "approx"
-
 
 def test_exact_mode_midrank_determinism():
     """Exact mode: two runs → identical output (hash)."""
@@ -66,7 +60,6 @@ def test_exact_mode_midrank_determinism():
     s2, _ = canonical_normalize(raw, k=1.0, mode="exact", min_obs=30)
     assert hashlib.sha256(s1.tobytes()).hexdigest() == hashlib.sha256(s2.tobytes()).hexdigest()
 
-
 def test_exact_mode_monotonic():
     """Exact mode: monotonic raw → monotonic s_t."""
     raw = np.sort(np.random.RandomState(42).rand(120))
@@ -76,18 +69,15 @@ def test_exact_mode_monotonic():
         assert np.all(np.diff(s_t[valid]) >= -1e-10)
     assert meta["mode"] == "exact"
 
-
 def test_exact_known_midrank_values():
     """Exact mode: for sorted [1..5] repeated, p_t at each step is (rank_less + 0.5*rank_equal)/n_t; scores increase in raw."""
-    raw = np.arange(1.0, 6.0, dtype=np.float64)  # 1,2,3,4,5
+    raw = np.arange(1.0, 6.0, dtype=np.float64)
     s_t, meta = canonical_normalize(raw, k=1.0, eps=1e-9, mode="exact", min_obs=2)
     assert meta["mode"] == "exact"
     valid = ~np.isnan(s_t)
     assert np.sum(valid) >= 3
-    # Strictly increasing raw → scores should be increasing
     s_valid = s_t[valid]
     assert np.all(np.diff(s_valid) >= -1e-10)
-
 
 def test_polarity_lower_is_favorable():
     """When higher_is_favorable=False, increasing raw should decrease score."""
@@ -96,7 +86,6 @@ def test_polarity_lower_is_favorable():
     s_low, _ = canonical_normalize(raw, mode="approx", higher_is_favorable=False, min_obs=10)
     valid = ~np.isnan(s_high) & ~np.isnan(s_low)
     assert np.allclose(s_low[valid], 1.0 - s_high[valid], rtol=1e-9, equal_nan=True)
-
 
 def test_exact_vs_approx_same_shape_and_bounds():
     """Exact and approx modes produce same shape and scores in [0, 1]."""
@@ -111,7 +100,6 @@ def test_exact_vs_approx_same_shape_and_bounds():
     assert meta_exact["mode"] == "exact"
     assert meta_approx["mode"] == "approx"
 
-
 def test_exact_vs_approx_outputs_close():
     """Exact (midrank) and approx (expanding_percentile) outputs are close on same input."""
     np.random.seed(88)
@@ -123,6 +111,5 @@ def test_exact_vs_approx_outputs_close():
     a = np.asarray(s_exact)[valid]
     b = np.asarray(s_approx)[valid]
     diff = np.abs(a - b)
-    # Small tolerance: exact uses midrank, approx uses expanding_percentile; some difference expected
     assert np.max(diff) < 0.15
     assert np.sqrt(np.mean(diff ** 2)) < 0.08

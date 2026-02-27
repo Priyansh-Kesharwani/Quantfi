@@ -18,7 +18,6 @@ sys.path.insert(0, str(ROOT))
 EXPORT_DIR = ROOT / "validation" / "trade_exports"
 SUMMARY_FILE = EXPORT_DIR / "verification_summary.json"
 
-
 def load_trades(csv_path: Path) -> list[dict]:
     trades = []
     with open(csv_path) as f:
@@ -36,7 +35,6 @@ def load_trades(csv_path: Path) -> list[dict]:
             trades.append(row)
     return trades
 
-
 def validate_directional_trade_pairing(trades: list[dict]) -> list[str]:
     """Verify directional trades come in entry/exit pairs."""
     issues = []
@@ -48,7 +46,7 @@ def validate_directional_trade_pairing(trades: list[dict]) -> list[str]:
     for t in dir_trades:
         if t["side"] in ("long_entry", "short_entry"):
             if open_pos is not None:
-                pass  # entries may overlap if closed by exit
+                pass
             open_pos = t["side"]
         elif t["side"] == "long_exit":
             open_pos = None
@@ -56,7 +54,6 @@ def validate_directional_trade_pairing(trades: list[dict]) -> list[str]:
             open_pos = None
 
     return issues
-
 
 def validate_prices_positive(trades: list[dict]) -> list[str]:
     issues = []
@@ -67,7 +64,6 @@ def validate_prices_positive(trades: list[dict]) -> list[str]:
             issues.append(f"Trade {i}: zero/negative units {t['units']}")
     return issues
 
-
 def validate_fees_nonneg(trades: list[dict]) -> list[str]:
     issues = []
     for i, t in enumerate(trades):
@@ -77,14 +73,12 @@ def validate_fees_nonneg(trades: list[dict]) -> list[str]:
             issues.append(f"Trade {i}: negative slippage {t['slippage']}")
     return issues
 
-
 def validate_timestamps_monotonic(trades: list[dict]) -> list[str]:
     issues = []
     for i in range(1, len(trades)):
         if trades[i]["timestamp"] < trades[i - 1]["timestamp"]:
             issues.append(f"Trades {i-1}->{i}: timestamps not monotonic ({trades[i-1]['timestamp']} > {trades[i]['timestamp']})")
     return issues
-
 
 def validate_bar_idx_monotonic(trades: list[dict]) -> list[str]:
     """In adaptive mode, bar_idx resets on mode switches (directional->grid), so
@@ -101,17 +95,16 @@ def validate_bar_idx_monotonic(trades: list[dict]) -> list[str]:
                 issues.append(f"Trades {i}: directional bar_idx decreased ({last_dir_idx} > {t['bar_idx']})")
             last_dir_idx = t["bar_idx"]
             if last_was_grid is True:
-                last_grid_idx = -1  # reset grid tracker on mode switch
+                last_grid_idx = -1
             last_was_grid = False
         elif t["side"] in grid_sides:
             if last_was_grid is False:
-                last_grid_idx = -1  # reset on mode switch into grid
+                last_grid_idx = -1
             if t["bar_idx"] < last_grid_idx:
                 issues.append(f"Trades {i}: grid bar_idx decreased ({last_grid_idx} > {t['bar_idx']})")
             last_grid_idx = t["bar_idx"]
             last_was_grid = True
     return issues
-
 
 def validate_exit_reasons(trades: list[dict]) -> list[str]:
     issues = []
@@ -123,11 +116,9 @@ def validate_exit_reasons(trades: list[dict]) -> list[str]:
             issues.append(f"Trade {i}: unknown exit_reason '{reason}'")
     return issues
 
-
 def analyze_side_distribution(trades: list[dict]) -> dict:
     counter = Counter(t["side"] for t in trades)
     return dict(counter)
-
 
 def analyze_pnl_distribution(trades: list[dict]) -> dict:
     pnls = [t["pnl"] for t in trades if t["pnl"] != 0]
@@ -143,7 +134,6 @@ def analyze_pnl_distribution(trades: list[dict]) -> dict:
         "win_pct": float((arr > 0).mean()),
         "total": float(np.sum(arr)),
     }
-
 
 def main():
     with open(SUMMARY_FILE) as f:
@@ -214,7 +204,6 @@ def main():
         print(f"  {strat:12s}: {total:>8,} trades across {len(counts)} files (avg {total/len(counts):.0f}/file)")
     print()
 
-    # Verify all summary entries match CSVs
     mismatches = 0
     for entry in summary:
         if "error" in entry:
@@ -230,7 +219,6 @@ def main():
     print(f"SUMMARY vs CSV TRADE COUNT CHECK: {len(summary) - mismatches}/{len(summary)} match")
     print()
 
-    # Sample a few CSVs for detailed PnL check
     print("SAMPLE PnL DISTRIBUTIONS (5 random files):")
     rng = np.random.RandomState(42)
     sample_files = rng.choice(csv_files, size=min(5, len(csv_files)), replace=False)
@@ -242,7 +230,6 @@ def main():
             print(f"    Trades with PnL: {pnl_stats['n']}, Win%: {pnl_stats['win_pct']:.1%}, Mean: ${pnl_stats['mean']:.2f}, Total: ${pnl_stats['total']:.2f}")
 
     return 0 if total_issues == 0 else 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

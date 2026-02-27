@@ -13,7 +13,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-
 def _synthetic_components(n: int = 100, seed: int = 42):
     np.random.seed(seed)
     idx = pd.RangeIndex(n)
@@ -31,7 +30,6 @@ def _synthetic_components(n: int = 100, seed: int = 42):
         "lambda_decay": pd.Series(np.random.rand(n), index=idx),
     }
 
-
 def test_composite_refactor_import():
     from indicators.composite_refactor import (
         load_refactor_config,
@@ -40,7 +38,6 @@ def test_composite_refactor_import():
     )
     assert load_refactor_config is not None
     assert compute_composite_score_refactor is not None
-
 
 def test_composite_score_bounded():
     """CompositeScore and Exit are in [0, 100] (Exit may have NaN during normalizer warm-up)."""
@@ -52,22 +49,19 @@ def test_composite_score_bounded():
     if len(exit_valid) > 0:
         assert (exit_valid >= 0).all() and (exit_valid <= 100).all()
 
-
 def test_gate_suppresses_when_r_low():
     """When R_t < r_thresh, Gate → 0 and CompositeScore suppressed."""
     from indicators.composite_refactor import compute_gate_refactor, compute_composite_score_refactor
     n = 50
     idx = pd.RangeIndex(n)
     comp = _synthetic_components(n, seed=2)
-    comp["R_t"] = pd.Series(np.zeros(n) + 0.1, index=idx)  # below r_thresh 0.2
+    comp["R_t"] = pd.Series(np.zeros(n) + 0.1, index=idx)
     comp["C_t"] = pd.Series(np.ones(n), index=idx)
     comp["L_t"] = pd.Series(np.ones(n), index=idx)
     gate = compute_gate_refactor(comp, r_thresh=0.2)
     assert (gate <= 0.01).all() or gate.max() < 0.2
     entry, _, _ = compute_composite_score_refactor(comp)
-    # Entry should be low when gate is 0 (RawFavor = Opp * 0)
-    assert entry.mean() < 60  # suppressed vs neutral 50
-
+    assert entry.mean() < 60
 
 def test_composite_determinism():
     """Same components and config → same Entry/Exit (hash)."""
@@ -79,23 +73,19 @@ def test_composite_determinism():
     assert hashlib.sha256(e1.values.tobytes()).hexdigest() == hashlib.sha256(e2.values.tobytes()).hexdigest()
     assert hashlib.sha256(x1.values.tobytes()).hexdigest() == hashlib.sha256(x2.values.tobytes()).hexdigest()
 
-
 def test_g_pers_refactor_shape():
     from indicators.composite_refactor import g_pers_refactor
     H = np.array([0.3, 0.5, 0.7])
     g = g_pers_refactor(H, k_pers=6.0)
     assert g.shape == H.shape
-    assert g[1] == pytest.approx(0.5, abs=1e-9)  # H=0.5 → g=0.5
+    assert g[1] == pytest.approx(0.5, abs=1e-9)
     assert g[0] < 0.5 and g[2] > 0.5
-
 
 def test_opportunity_uses_trimmed_mean():
     """Opportunity is deterministic and in [0,1]; with constant inputs it is constant."""
     from indicators.composite_refactor import compute_opportunity_refactor
     n = 40
     idx = pd.RangeIndex(n)
-    # U_weighted = U_t * g_pers(H_t); g_pers(0.5)=0.5 so U_weighted=0.25 if U_t=0.5
-    # Use U_t=1.0 so U_weighted=0.5 and all four inputs are 0.5
     comp = {
         "T_t": pd.Series(0.5 * np.ones(n), index=idx),
         "U_t": pd.Series(1.0 * np.ones(n), index=idx),
@@ -105,4 +95,4 @@ def test_opportunity_uses_trimmed_mean():
     }
     opp = compute_opportunity_refactor(comp, trim_frac=0.1, k_pers=6.0)
     assert (opp.dropna() >= 0).all() and (opp.dropna() <= 1).all()
-    assert opp.nunique() == 1  # constant
+    assert opp.nunique() == 1

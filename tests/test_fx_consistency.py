@@ -18,7 +18,6 @@ if str(BACKEND_DIR) not in sys.path:
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-
 @pytest.fixture(scope="module")
 def sim_module():
     """Load backtester portfolio_simulator without pulling project indicators package."""
@@ -29,7 +28,6 @@ def sim_module():
     sys.modules["portfolio_simulator"] = mod
     spec.loader.exec_module(mod)
     return mod
-
 
 def test_usd_asset_no_double_fx(sim_module):
     """Run sim with one USD asset; trade price and notional should be in listing-currency range."""
@@ -61,8 +59,6 @@ def test_usd_asset_no_double_fx(sim_module):
     assert isinstance(result["total_return_pct"], (int, float))
     assert result["total_costs"] >= 0
 
-    # USD equity: price should be in plausible range (e.g. AAPL ~100–200); if FX were applied
-    # twice we'd see price ~83x larger
     for t in result.get("trades", []):
         price = t.get("price") or 0
         notional = t.get("notional") or 0

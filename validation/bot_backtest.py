@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 
-
 @dataclass
 class _Position:
     symbol: str
@@ -28,13 +27,11 @@ class _Position:
     def bars_held(self, current_bar: int) -> int:
         return current_bar - self.entry_bar
 
-
 def _execution_price(raw_price: float, side: str, slippage_bps: float = 5.0) -> float:
     if slippage_bps <= 0:
         return raw_price
     mult = 1 + (slippage_bps / 10_000) * (1 if side == "buy" else -1)
     return raw_price * mult
-
 
 def _trade_cost(notional: float, cost_class: str, cost_free: bool = False) -> float:
     if cost_free:
@@ -44,7 +41,6 @@ def _trade_cost(notional: float, cost_class: str, cost_free: bool = False) -> fl
     pct_cost = notional * (cfg["bps_round_trip"] / 20_000)
     fixed = cfg["fixed_per_trade_inr"] / 2.0
     return pct_cost + fixed
-
 
 def run_bot_backtest(
     date_index: pd.DatetimeIndex,
@@ -99,7 +95,6 @@ def run_bot_backtest(
     for t in range(sim_start, sim_end + 1):
         dt = date_index[t].date() if hasattr(date_index[t], "date") else date_index[t]
 
-        # ── 1. Execute pending exits at today's open ─────────
         to_exit: List[str] = []
         for sym, pos in list(positions.items()):
             ad = assets[sym]
@@ -140,7 +135,6 @@ def run_bot_backtest(
                 "post_trade_equity": round(_current_equity(cash, positions, t), 2),
             })
 
-        # ── 2. Entry: score > threshold at close of t-1, execute at t open ─────────
         entry_candidates: List[Tuple[str, float]] = []
         for sym in symbols:
             if sym in positions:
@@ -192,7 +186,6 @@ def run_bot_backtest(
                     "slippage": round(exec_p - raw_p, 6), "post_trade_equity": 0.0,
                 })
 
-        # ── 3. Mark-to-market ─────────────────────────────────
         equity = _current_equity(cash, positions, t)
         invested_pct = ((equity - cash) / equity * 100) if equity > 0 else 0
         snapshots.append({
@@ -200,7 +193,6 @@ def run_bot_backtest(
             "n_positions": len(positions), "invested_pct": round(invested_pct, 1),
         })
 
-    # Force-close at end
     for sym, pos in list(positions.items()):
         ad = assets[sym]
         raw_p = float(ad.close[sim_end])
@@ -262,7 +254,6 @@ def run_bot_backtest(
         if ec[-1]["date"] != snapshots[-1]["date"]:
             ec.append({**snapshots[-1]})
 
-    # Benchmarks (buy-and-hold)
     bnh_alloc = initial_capital / len(symbols)
     bnh_units = {}
     for sym in symbols:

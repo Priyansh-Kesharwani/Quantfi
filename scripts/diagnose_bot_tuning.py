@@ -17,7 +17,6 @@ from validation.orchestrator import _load_data, run_backtest_on_split, _slice_as
 from validation.validator import CPCVConfig, generate_cpcv_splits
 from validation.objective import equity_curve_from_result, compute_gt_score
 
-
 def main():
     config_path = root / "config" / "tuning_cpcv_bot.yml"
     with open(config_path, "r") as f:
@@ -88,7 +87,6 @@ def main():
         gt = compute_gt_score(strat, bench)
         print(f"  GT-Score={gt}")
         if gt <= -1e5:
-            # Diagnose: len(eq)<2, mu<=mu_bm, etc.
             eq = strat.dropna()
             bm = bench.reindex(eq.index).ffill().bfill()
             print(f"  eq len={len(eq)}, bm.notna().sum()={bm.notna().sum()}")
@@ -101,7 +99,6 @@ def main():
                     mu_bm = float(ret_bm.loc[common].mean())
                     print(f"  mu(strat)={mu:.6f}, mu(bench)={mu_bm:.6f}, underperform={mu <= mu_bm}")
     print("\nDone.")
-
 
 if __name__ == "__main__":
     main()

@@ -9,7 +9,6 @@ from __future__ import annotations
 import numpy as np
 from typing import Dict, Any, Optional, Tuple
 
-
 class KalmanWeightsStub:
     """Stub: returns equal weights. Full Kalman/RLS to be added later."""
 
@@ -37,5 +36,5 @@ class KalmanWeightsStub:
 
     def weights(self) -> np.ndarray:
         if self._weights is None:
-            return np.ones(1)  # 1 component default
+            return np.ones(1)
         return self._weights.copy()

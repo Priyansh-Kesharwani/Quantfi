@@ -23,7 +23,6 @@ TIMEFRAME_TO_MS = {
     "1d": 86_400_000,
 }
 
-
 def get_annualization_factor(timeframe: str) -> int:
     """Return the number of bars per year for a given timeframe."""
     if timeframe not in ANNUALIZATION_FACTORS:
@@ -32,22 +31,18 @@ def get_annualization_factor(timeframe: str) -> int:
         )
     return ANNUALIZATION_FACTORS[timeframe]
 
-
 def bars_per_day(timeframe: str) -> float:
     """Number of bars in a calendar day."""
     return get_annualization_factor(timeframe) / 365.0
 
-
 _SHARPE_CAP = 50.0
-_CAGR_CAP = 99.99      # 9999%
+_CAGR_CAP = 99.99
 _CALMAR_CAP = 200.0
-_MIN_YEARS_FOR_ANNUALIZATION = 0.08  # ~1 month
-
+_MIN_YEARS_FOR_ANNUALIZATION = 0.08
 
 def _n_years(n_bars: int, timeframe: str) -> float:
     ann = get_annualization_factor(timeframe)
     return n_bars / ann if ann > 0 else 0.0
-
 
 def annualized_sharpe(
     returns: pd.Series,
@@ -62,7 +57,6 @@ def annualized_sharpe(
     excess = returns - rf_per_bar
     raw = float((excess.mean() / excess.std()) * np.sqrt(ann))
     return float(np.clip(raw, -_SHARPE_CAP, _SHARPE_CAP))
-
 
 def annualized_sortino(
     returns: pd.Series,
@@ -80,7 +74,6 @@ def annualized_sortino(
         return _SHARPE_CAP if excess.mean() > 0 else 0.0
     raw = float((excess.mean() / downside.std()) * np.sqrt(ann))
     return float(np.clip(raw, -_SHARPE_CAP, _SHARPE_CAP))
-
 
 def annualized_cagr(equity_curve: pd.Series, timeframe: str) -> float:
     """CAGR from an equity curve.
@@ -103,7 +96,6 @@ def annualized_cagr(equity_curve: pd.Series, timeframe: str) -> float:
     raw = float((final / initial) ** (1.0 / ny) - 1.0)
     return float(np.clip(raw, -_CAGR_CAP, _CAGR_CAP))
 
-
 def max_drawdown(equity_curve: pd.Series) -> float:
     """Maximum drawdown as a negative fraction (e.g. -0.15 = 15% drawdown)."""
     if len(equity_curve) < 2:
@@ -111,7 +103,6 @@ def max_drawdown(equity_curve: pd.Series) -> float:
     peak = equity_curve.expanding().max()
     dd = (equity_curve - peak) / (peak + 1e-12)
     return float(dd.min())
-
 
 def calmar_ratio(equity_curve: pd.Series, timeframe: str) -> float:
     """Calmar ratio = CAGR / |max drawdown|, capped to ±200."""
@@ -122,7 +113,6 @@ def calmar_ratio(equity_curve: pd.Series, timeframe: str) -> float:
     raw = cagr / mdd
     return float(np.clip(raw, -_CALMAR_CAP, _CALMAR_CAP))
 
-
 def profit_factor(trades_pnl: pd.Series) -> float:
     """Gross profit / gross loss."""
     gains = trades_pnl[trades_pnl > 0].sum()
@@ -130,7 +120,6 @@ def profit_factor(trades_pnl: pd.Series) -> float:
     if losses < 1e-12:
         return float("inf") if gains > 0 else 0.0
     return float(gains / losses)
-
 
 def bootstrap_sharpe_pvalue(
     returns: pd.Series,

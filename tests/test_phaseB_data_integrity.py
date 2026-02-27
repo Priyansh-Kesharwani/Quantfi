@@ -26,9 +26,6 @@ from validation.data_integrity import (
     REQUIRED_COLUMNS,
 )
 
-
-# ── Fixtures ──────────────────────────────────────────────
-
 @pytest.fixture
 def valid_df():
     """Create a valid OHLCV DataFrame."""
@@ -36,7 +33,7 @@ def valid_df():
     dates = pd.date_range("2020-01-01", periods=n, freq="B", tz="UTC")
     np.random.seed(42)
     close = 100 + np.cumsum(np.random.randn(n) * 0.5)
-    close = np.maximum(close, 1)  # ensure positive
+    close = np.maximum(close, 1)
 
     return pd.DataFrame({
         "open": close + np.random.randn(n) * 0.1,
@@ -46,12 +43,10 @@ def valid_df():
         "volume": np.abs(np.random.randn(n) * 1e6 + 5e6),
     }, index=dates)
 
-
 @pytest.fixture
 def missing_cols_df(valid_df):
     """DataFrame missing required columns."""
     return valid_df.drop(columns=["volume"])
-
 
 @pytest.fixture
 def non_monotonic_df(valid_df):
@@ -59,15 +54,13 @@ def non_monotonic_df(valid_df):
     shuffled = valid_df.sample(frac=1, random_state=42)
     return shuffled
 
-
 @pytest.fixture
 def nan_heavy_df(valid_df):
     """DataFrame with excessive NaNs."""
     df = valid_df.copy()
-    nan_mask = np.random.RandomState(42).rand(len(df)) < 0.05  # 5% NaN
+    nan_mask = np.random.RandomState(42).rand(len(df)) < 0.05
     df.loc[nan_mask, "volume"] = np.nan
     return df
-
 
 @pytest.fixture
 def no_tz_df(valid_df):
@@ -75,11 +68,6 @@ def no_tz_df(valid_df):
     df = valid_df.copy()
     df.index = df.index.tz_localize(None)
     return df
-
-
-# ====================================================================
-# Validation Tests
-# ====================================================================
 
 class TestValidateDataframe:
     def test_valid_df_passes(self, valid_df):
@@ -105,7 +93,6 @@ class TestValidateDataframe:
 
     def test_no_timezone_warns(self, no_tz_df):
         result = validate_dataframe(no_tz_df, symbol="TEST")
-        # Missing timezone is a warning, not an error
         assert any("timezone" in w.lower() for w in result["warnings"])
 
     def test_negative_prices_fail(self, valid_df):
@@ -124,7 +111,6 @@ class TestValidateDataframe:
 
     def test_high_lt_low_warns(self, valid_df):
         df = valid_df.copy()
-        # Force high < low for one bar
         df.iloc[10, df.columns.get_loc("high")] = df.iloc[10]["low"] - 1.0
         result = validate_dataframe(df, symbol="TEST")
         assert any("High < Low" in w for w in result["warnings"])
@@ -138,7 +124,6 @@ class TestValidateDataframe:
         assert "date_end" in stats
 
     def test_custom_required_columns(self, valid_df):
-        # Ask for a column that doesn't exist
         result = validate_dataframe(
             valid_df, symbol="TEST",
             required_columns=["open", "close", "vwap"]
@@ -155,11 +140,6 @@ class TestValidateDataframe:
         assert result["is_valid"] is False
         assert any("DatetimeIndex" in e for e in result["errors"])
 
-
-# ====================================================================
-# Cleaning Tests
-# ====================================================================
-
 class TestCleanDataframe:
     def test_sorts_non_monotonic(self, non_monotonic_df):
         cleaned, report = clean_dataframe(non_monotonic_df)
@@ -168,13 +148,11 @@ class TestCleanDataframe:
 
     def test_interpolates_small_nans(self, valid_df):
         df = valid_df.copy()
-        # Insert a tiny fraction of NaNs (within tolerance)
         df.iloc[50, df.columns.get_loc("volume")] = np.nan
         cleaned, report = clean_dataframe(df, max_nan_pct=0.01)
         assert cleaned["volume"].isna().sum() == 0
 
     def test_removes_duplicates(self, valid_df):
-        # Duplicate one row
         df = pd.concat([valid_df, valid_df.iloc[[0]]])
         cleaned, report = clean_dataframe(df)
         assert not cleaned.index.duplicated().any()
@@ -192,11 +170,6 @@ class TestCleanDataframe:
         cleaned, report = clean_dataframe(df)
         assert all(c.islower() for c in cleaned.columns)
 
-
-# ====================================================================
-# Canonicalization Tests
-# ====================================================================
-
 class TestCanonicalize:
     def test_valid_df_returns_canonical(self, valid_df):
         canonical, report = canonicalize(valid_df, symbol="TEST")
@@ -207,24 +180,17 @@ class TestCanonicalize:
     def test_dirty_df_gets_cleaned(self, non_monotonic_df):
         canonical, report = canonicalize(non_monotonic_df, symbol="TEST")
         assert canonical.index.is_monotonic_increasing
-        # Should have post-clean validation
         assert "post_clean_validation" in report or "cleaning" in report
 
     def test_canonical_columns_lowercase(self, valid_df):
         canonical, _ = canonicalize(valid_df, symbol="TEST")
         assert all(c.islower() for c in canonical.columns)
 
-
-# ====================================================================
-# Edge Cases
-# ====================================================================
-
 class TestEdgeCases:
     def test_empty_dataframe(self):
         df = pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
         df.index = pd.DatetimeIndex([], tz="UTC")
         result = validate_dataframe(df, symbol="EMPTY")
-        # Should not crash
         assert "n_rows" in result["stats"]
         assert result["stats"]["n_rows"] == 0
 
@@ -238,11 +204,6 @@ class TestEdgeCases:
         df["volume"] = np.nan
         result = validate_dataframe(df, symbol="TEST", max_nan_pct=0.001)
         assert result["is_valid"] is False
-
-
-# ====================================================================
-# Timezone Conversion Tests
-# ====================================================================
 
 class TestTimezoneConversion:
     def test_non_utc_converted_to_utc(self):
@@ -273,7 +234,6 @@ class TestTimezoneConversion:
         }, index=dates)
         cleaned, report = clean_dataframe(df)
         assert str(cleaned.index.tz) == "UTC"
-        # Should not have a conversion operation
         tz_ops = [op for op in report["operations"] if "converted" in op]
         assert len(tz_ops) == 0
 
@@ -291,11 +251,6 @@ class TestTimezoneConversion:
         canonical, report = canonicalize(df, symbol="TEST_TZ")
         assert str(canonical.index.tz) == "UTC"
         assert all(c.islower() for c in canonical.columns)
-
-
-# ====================================================================
-# Config Loader Tests
-# ====================================================================
 
 class TestLoadPhaseBConfig:
     def test_loads_config(self):
@@ -333,11 +288,6 @@ class TestLoadPhaseBConfig:
     def test_missing_config_raises(self):
         with pytest.raises(FileNotFoundError):
             load_phaseB_config("config/does_not_exist.yml")
-
-
-# ====================================================================
-# Walk-Forward / K-Fold Config Dataclass Tests
-# ====================================================================
 
 class TestConfigDataclasses:
     def test_walkforward_config_defaults(self):

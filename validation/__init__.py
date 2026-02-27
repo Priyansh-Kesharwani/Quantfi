@@ -47,7 +47,6 @@ from validation.objective import compute_gt_score, compute_dsr, equity_curve_fro
 from validation.orchestrator import run_orchestrator, OrchestratorResult
 
 __all__ = [
-    # Metrics
     "information_coefficient",
     "hit_rate",
     "sortino_ratio",
@@ -57,39 +56,32 @@ __all__ = [
     "evaluate_signals",
     "compute_score_metrics",
     "compute_all_metrics",
-    # Walk-forward
     "walkforward_cv",
     "WalkForwardResult",
     "WalkForwardFoldResult",
     "WalkForwardConfig",
-    # K-fold
     "purged_kfold",
     "KFoldResult",
     "KFoldFoldResult",
     "PurgedKFoldConfig",
-    # Data integrity
     "validate_dataframe",
     "clean_dataframe",
     "canonicalize",
     "fetch_and_validate",
     "load_phaseB_config",
-    # Reporting
     "generate_report",
-    # Execution model (Phase 3)
     "ExecutionConfig",
     "market_impact",
     "compute_fill_price",
     "apply_execution_costs",
     "slippage_sensitivity_matrix",
     "simulate_latency",
-    # Tuning (Phase 3)
     "TuningConfig",
     "TuningResult",
     "TuningTrialResult",
     "run_tuning",
     "parameter_sensitivity",
     "ablation_study",
-    # CPCV / GT-Score / MFBO
     "CPCVConfig",
     "CPCVSplit",
     "generate_cpcv_splits",

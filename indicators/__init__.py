@@ -118,7 +118,6 @@ __all__ = [
     "LLMConfig",
     "CollectionLimits",
     "TierWeights",
-    # Phase A — Microstructure
     "expanding_ecdf_sigmoid",
     "compute_ofi",
     "compute_ofi_reversal",
@@ -132,4 +131,4 @@ __all__ = [
     "load_phaseA_config",
 ]
 
-__version__ = "1.1.0"  # Phase A
+__version__ = "1.1.0"

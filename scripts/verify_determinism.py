@@ -18,7 +18,6 @@ import sys
 import os
 from pathlib import Path
 
-# Ensure project root is on the path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -32,16 +31,13 @@ from indicators.ldc import LDC, build_templates_from_labels
 from indicators.composite import compose_scores, PhaseAConfig
 from tests.fixtures import fbm_series, ou_series, hawkes_events
 
-
 def _dataframe_hash(df: pd.DataFrame) -> str:
     """Compute SHA-256 of a DataFrame's bytes."""
     buf = df.to_csv(index=True).encode("utf-8")
     return hashlib.sha256(buf).hexdigest()
 
-
 def _series_hash(s: pd.Series) -> str:
     return hashlib.sha256(s.to_csv(index=True).encode("utf-8")).hexdigest()
-
 
 def run_pipeline(seed: int = 42) -> dict:
     """Execute the full Phase A pipeline deterministically.
@@ -49,17 +45,13 @@ def run_pipeline(seed: int = 42) -> dict:
     Returns a dict of name → SHA-256 hash for every computed artefact.
     Also returns a second dict of the raw Series/arrays for snapshot use.
     """
-    # 1. Generate fixtures
     df = fbm_series(n=400, H=0.7, seed=seed)
 
-    # 2. Normalization
     norm_close = expanding_ecdf_sigmoid(df["close"], k=1.0, polarity=1, min_obs=50)
 
-    # 3. OFI + OFI reversal
     ofi = compute_ofi(df, window=20, normalize=True, min_obs=50)
     ofi_rev = compute_ofi_reversal(df, window=20, min_obs=50)
 
-    # 4. Hawkes intensity + λ-decay
     h_events = hawkes_events(mu=0.5, alpha=0.3, beta=1.0, T=100.0, seed=seed)
     timestamps = np.arange(0, 100, 1.0)
     intensity, hawkes_meta = estimate_hawkes({"trades": h_events}, timestamps)
@@ -67,7 +59,6 @@ def run_pipeline(seed: int = 42) -> dict:
         {"trades": h_events}, timestamps, min_obs=20,
     )
 
-    # 5. LDC
     np.random.seed(seed)
     n_feat = 5
     bull_feat = np.random.randn(50, n_feat) + 1.0
@@ -79,7 +70,6 @@ def run_pipeline(seed: int = 42) -> dict:
     ldc.fit(templates)
     ldc_scores = ldc.score_batch(features)
 
-    # 6. Composite — use real indicators where lengths match
     n = len(df)
     idx = df.index
     np.random.seed(seed)
@@ -110,7 +100,6 @@ def run_pipeline(seed: int = 42) -> dict:
         "breakdown": _dataframe_hash(breakdown),
     }
 
-    # Collect raw artefacts aligned to df.index for the snapshot
     raw = {
         "norm_close": norm_close,
         "ofi": ofi,
@@ -120,7 +109,6 @@ def run_pipeline(seed: int = 42) -> dict:
     }
 
     return hashes, raw
-
 
 def main():
     print("=" * 60)
@@ -145,7 +133,6 @@ def main():
     if all_ok:
         print("✅ All outputs are deterministic (identical hashes).")
 
-        # Save comprehensive verification snapshot
         snap_dir = PROJECT_ROOT / "data_snapshots"
         snap_dir.mkdir(exist_ok=True)
         snap_path = snap_dir / "verification_snapshot.parquet"
@@ -161,7 +148,6 @@ def main():
     else:
         print("❌ FAILED — non-deterministic output detected!")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

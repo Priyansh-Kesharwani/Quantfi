@@ -19,12 +19,10 @@ import base64
 
 logger = logging.getLogger(__name__)
 
-# Use Agg backend for headless rendering
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
 
 def _fig_to_base64(fig: plt.Figure, dpi: int = 100) -> str:
     """Convert a matplotlib figure to a base64 PNG string."""
@@ -35,17 +33,11 @@ def _fig_to_base64(fig: plt.Figure, dpi: int = 100) -> str:
     plt.close(fig)
     return encoded
 
-
 def _fig_to_file(fig: plt.Figure, path: str, dpi: int = 150) -> str:
     """Save a matplotlib figure to a file and return the path."""
     fig.savefig(path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
     return path
-
-
-# ====================================================================
-# Score Distribution Histogram
-# ====================================================================
 
 def plot_score_distribution(
     entry_scores: pd.Series,
@@ -89,11 +81,6 @@ def plot_score_distribution(
     if save_path:
         return _fig_to_file(fig, save_path)
     return _fig_to_base64(fig)
-
-
-# ====================================================================
-# Walk-Forward Summary Table
-# ====================================================================
 
 def plot_walkforward_summary(
     wf_result_dict: Dict[str, Any],
@@ -150,7 +137,6 @@ def plot_walkforward_summary(
     table.set_fontsize(9)
     table.scale(1.2, 1.5)
 
-    # Style header
     for j in range(len(col_labels)):
         table[0, j].set_facecolor("#1565C0")
         table[0, j].set_text_props(color="white", fontweight="bold")
@@ -164,11 +150,6 @@ def plot_walkforward_summary(
     if save_path:
         return _fig_to_file(fig, save_path)
     return _fig_to_base64(fig)
-
-
-# ====================================================================
-# Hawkes λ(t) Simulation Overlay
-# ====================================================================
 
 def plot_hawkes_overlay(
     grid: np.ndarray,
@@ -230,11 +211,6 @@ def plot_hawkes_overlay(
         return _fig_to_file(fig, save_path)
     return _fig_to_base64(fig)
 
-
-# ====================================================================
-# Entry Score vs Forward Return Heatmap
-# ====================================================================
-
 def plot_score_return_heatmap(
     scores: pd.Series,
     forward_returns: pd.Series,
@@ -281,11 +257,6 @@ def plot_score_return_heatmap(
         return _fig_to_file(fig, save_path)
     return _fig_to_base64(fig)
 
-
-# ====================================================================
-# Exit Signal ROC Curve
-# ====================================================================
-
 def plot_exit_roc(
     exit_scores: pd.Series,
     true_regime_flips: pd.Series,
@@ -319,7 +290,6 @@ def plot_exit_roc(
             return _fig_to_file(fig, save_path)
         return _fig_to_base64(fig)
 
-    # Manual ROC computation (no sklearn dependency)
     thresholds = np.sort(np.unique(scores))[::-1]
     tpr_list = []
     fpr_list = []
@@ -335,11 +305,9 @@ def plot_exit_roc(
         tpr_list.append(tpr)
         fpr_list.append(fpr)
 
-    # Add endpoints
     fpr_arr = np.array([0.0] + fpr_list + [1.0])
     tpr_arr = np.array([0.0] + tpr_list + [1.0])
 
-    # Sort by FPR
     order = np.argsort(fpr_arr)
     fpr_arr = fpr_arr[order]
     tpr_arr = tpr_arr[order]
@@ -362,11 +330,6 @@ def plot_exit_roc(
     if save_path:
         return _fig_to_file(fig, save_path)
     return _fig_to_base64(fig)
-
-
-# ====================================================================
-# Equity Curve Plot
-# ====================================================================
 
 def plot_equity_curve(
     equity: pd.Series,

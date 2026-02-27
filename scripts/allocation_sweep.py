@@ -2,7 +2,7 @@
 """Wide parameter sweep for AllocationEngine with cached regime computation."""
 import sys
 import os
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)  # line-buffered
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -177,7 +177,6 @@ def run_sweep(syms, start, end, label=""):
         "winners": len(results),
         "top_20": results[:20],
     }
-
 
 if __name__ == "__main__":
     all_results = {}

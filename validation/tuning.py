@@ -31,18 +31,13 @@ from validation.kfold import _purged_kfold_splits
 
 logger = logging.getLogger(__name__)
 
-
-# ====================================================================
-# Configuration
-# ====================================================================
-
 @dataclass
 class TuningConfig:
     """Hyperparameter tuning configuration."""
-    method: str = "random_search"   # grid | random_search | bayesian
+    method: str = "random_search"
     n_trials: int = 50
-    lambda_var: float = 0.5         # regulariser weight on IC variance
-    objective: str = "sortino"      # sortino | ir | ic
+    lambda_var: float = 0.5
+    objective: str = "sortino"
     inner_n_splits: int = 5
     inner_embargo: int = 20
     search_space: Dict[str, List] = field(default_factory=dict)
@@ -59,7 +54,6 @@ class TuningConfig:
             seed=seed,
         )
 
-
 @dataclass
 class TuningTrialResult:
     """Result of a single hyperparameter trial."""
@@ -70,7 +64,6 @@ class TuningTrialResult:
     median_metric: float
     std_metric: float
     elapsed_s: float
-
 
 @dataclass
 class TuningResult:
@@ -111,18 +104,12 @@ class TuningResult:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2, default=str)
 
-
-# ====================================================================
-# Search Space Sampling
-# ====================================================================
-
 def _generate_grid(search_space: Dict[str, List]) -> List[Dict[str, Any]]:
     """Generate all combinations from search space."""
     keys = list(search_space.keys())
     values = list(search_space.values())
     combos = list(product(*values))
     return [dict(zip(keys, c)) for c in combos]
-
 
 def _sample_random(
     search_space: Dict[str, List],
@@ -139,11 +126,6 @@ def _sample_random(
             params[k] = vals[rng.randint(len(vals))]
         candidates.append(params)
     return candidates
-
-
-# ====================================================================
-# Inner CV Evaluation
-# ====================================================================
 
 def _evaluate_inner_cv(
     df_train: pd.DataFrame,
@@ -190,17 +172,14 @@ def _evaluate_inner_cv(
             df_inner_train = df_train.iloc[train_idx]
             df_inner_test = df_train.iloc[test_idx]
 
-            # Generate scores on combined context, evaluate on test
             df_combined = pd.concat([df_inner_train, df_inner_test])
             entry_scores, exit_scores = score_fn(df_combined, params)
 
-            # Trim to test period
             test_index = df_inner_test.index
             entry_test = entry_scores.reindex(test_index)
             exit_test = exit_scores.reindex(test_index)
             prices_test = prices.reindex(test_index)
 
-            # Compute objective metric
             period_ret = prices_test.pct_change().fillna(0)
             mask = entry_test > entry_threshold
             signal_ret = period_ret.copy()
@@ -234,11 +213,6 @@ def _evaluate_inner_cv(
     std = float(np.std(fold_metrics))
     return fold_metrics, med, std
 
-
-# ====================================================================
-# Main Tuning Functions
-# ====================================================================
-
 def run_tuning(
     df_train: pd.DataFrame,
     score_fn: Callable[[pd.DataFrame, Dict[str, Any]], Tuple[pd.Series, pd.Series]],
@@ -269,13 +243,11 @@ def run_tuning(
     """
     rng = np.random.RandomState(config.seed)
 
-    # Generate candidate parameter sets
     if config.method == "grid":
         candidates = _generate_grid(config.search_space)
     elif config.method == "random_search":
         candidates = _sample_random(config.search_space, config.n_trials, rng)
     elif config.method == "bayesian":
-        # Bayesian falls back to random_search if scikit-optimize not available
         try:
             candidates = _bayesian_search(
                 df_train, score_fn, config, entry_threshold, exit_threshold,
@@ -313,7 +285,6 @@ def run_tuning(
             exit_threshold=exit_threshold,
         )
 
-        # S(θ) = median(M_f) − λ · std(M_f)
         score = median_m - config.lambda_var * std_m
 
         elapsed = time.time() - t0
@@ -345,7 +316,6 @@ def run_tuning(
     )
     return result
 
-
 def _bayesian_search(
     df_train: pd.DataFrame,
     score_fn: Callable,
@@ -375,7 +345,7 @@ def _bayesian_search(
             exit_threshold=exit_threshold,
         )
         score = med - config.lambda_var * std
-        return -score  # minimise
+        return -score
 
     result = gp_minimize(
         _objective,
@@ -384,14 +354,8 @@ def _bayesian_search(
         random_state=config.seed,
     )
 
-    # Return the candidates that were evaluated
     candidates = [dict(zip(keys, x)) for x in result.x_iters]
     return candidates
-
-
-# ====================================================================
-# Parameter Sensitivity Analysis
-# ====================================================================
 
 def parameter_sensitivity(
     df: pd.DataFrame,
@@ -448,7 +412,6 @@ def parameter_sensitivity(
 
     return pd.DataFrame(rows)
 
-
 def ablation_study(
     df: pd.DataFrame,
     score_fn: Callable[[pd.DataFrame, Dict[str, Any]], Tuple[pd.Series, pd.Series]],
@@ -475,7 +438,6 @@ def ablation_study(
     pd.DataFrame
         Columns: component, baseline_score, ablated_score, impact.
     """
-    # Baseline
     _, base_med, base_std = _evaluate_inner_cv(
         df, score_fn, base_params,
         n_splits=n_splits, embargo=embargo,
@@ -495,7 +457,7 @@ def ablation_study(
             objective=objective, entry_threshold=entry_threshold,
         )
         abl_score = abl_med - 0.5 * abl_std
-        impact = base_score - abl_score  # positive = component helps
+        impact = base_score - abl_score
 
         rows.append({
             "component": comp,

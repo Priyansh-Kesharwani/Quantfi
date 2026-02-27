@@ -19,7 +19,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Repo root
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -31,7 +30,6 @@ CFG = get_backend_config()
 TOL = 1e-9
 MIN_HISTORY = getattr(CFG, "indicator_min_history_rows", 200)
 
-
 def _make_fixture_df(n: int = 260, seed: int = 42) -> pd.DataFrame:
     """Small deterministic OHLCV DataFrame with backend column names."""
     from tests.fixtures import fbm_series
@@ -39,7 +37,6 @@ def _make_fixture_df(n: int = 260, seed: int = 42) -> pd.DataFrame:
     return df.rename(columns={
         "open": "Open", "high": "High", "low": "Low", "close": "Close",
     })[["Open", "High", "Low", "Close"]]
-
 
 def _run_a_full_series(df: pd.DataFrame) -> dict[str, pd.Series]:
     """Run A: compute each indicator as a full series on the full dataset."""
@@ -82,7 +79,6 @@ def _run_a_full_series(df: pd.DataFrame) -> dict[str, pd.Series]:
         "adx_14": adx_14,
     }
 
-
 def _run_b_incremental(df: pd.DataFrame) -> list[dict]:
     """Run B: for each t, run pipeline on df.iloc[:t+1], record last value only."""
     n = len(df)
@@ -92,7 +88,6 @@ def _run_b_incremental(df: pd.DataFrame) -> list[dict]:
         row = TechnicalIndicators.calculate_all_indicators(slice_df)
         out.append(row)
     return out
-
 
 def _compare_at_t(
     run_a_series: dict[str, pd.Series],
@@ -118,7 +113,6 @@ def _compare_at_t(
             else:
                 result[name] = bool(np.abs(a_f - b_float) <= tolerance)
     return result
-
 
 def run_leakage_check(
     df: pd.DataFrame | None = None,
@@ -148,7 +142,6 @@ def run_leakage_check(
         for t in range(n):
             run_b_row = run_b_rows[t]
             if not run_b_row:
-                # Backend returns {} when len(df) < min_history; skip comparison
                 continue
             matches = _compare_at_t(run_a_series, run_b_row, t, tolerance)
             if not matches.get(name, True):
@@ -160,7 +153,6 @@ def run_leakage_check(
             "first_mismatch_index": first_mismatch_index,
         }
     return summary
-
 
 def print_summary_table(summary: dict[str, dict]) -> None:
     """Print: Indicator Name | mismatch count | first mismatch index."""
@@ -177,13 +169,11 @@ def print_summary_table(summary: dict[str, dict]) -> None:
     else:
         print("\nNo leakage detected (full and incremental runs match within tolerance).")
 
-
 def main() -> int:
     df = _make_fixture_df()
     summary = run_leakage_check(df=df, tolerance=TOL)
     print_summary_table(summary)
     return 1 if any(d["mismatch_count"] > 0 for d in summary.values()) else 0
-
 
 def test_leakage_check_runs_and_prints_summary(capsys):
     """Run full vs incremental comparison; summary has expected structure."""
@@ -194,12 +184,10 @@ def test_leakage_check_runs_and_prints_summary(capsys):
     for name, data in summary.items():
         assert "mismatch_count" in data
         assert "first_mismatch_index" in data
-    # Optional: print table when run with -s
     print_summary_table(summary)
     out, _ = capsys.readouterr()
     assert "mismatch count" in out
     assert "first mismatch index" in out
-
 
 if __name__ == "__main__":
     sys.exit(main())

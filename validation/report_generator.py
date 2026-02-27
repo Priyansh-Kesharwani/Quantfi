@@ -31,7 +31,6 @@ from validation.plots import (
 
 logger = logging.getLogger(__name__)
 
-
 _HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -42,25 +41,25 @@ _HTML_TEMPLATE = """
 <style>
     body {{
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #0a0a0f;
-        color: #e0e0e0;
+        background:
+        color:
         margin: 0; padding: 20px;
         line-height: 1.6;
     }}
     .container {{ max-width: 1200px; margin: 0 auto; }}
     h1 {{
-        color: #ffd700;
-        border-bottom: 2px solid #333;
+        color:
+        border-bottom: 2px solid
         padding-bottom: 10px;
     }}
     h2 {{
-        color: #90caf9;
+        color:
         margin-top: 40px;
-        border-left: 4px solid #ffd700;
+        border-left: 4px solid
         padding-left: 12px;
     }}
     .meta {{
-        color: #888;
+        color:
         font-size: 0.85em;
         margin-bottom: 30px;
     }}
@@ -71,18 +70,18 @@ _HTML_TEMPLATE = """
         margin: 20px 0;
     }}
     .metric-card {{
-        background: #1a1a2e;
+        background:
         border-radius: 8px;
         padding: 16px;
-        border: 1px solid #333;
+        border: 1px solid
     }}
     .metric-card .label {{
-        color: #888;
+        color:
         font-size: 0.8em;
         text-transform: uppercase;
     }}
     .metric-card .value {{
-        color: #ffd700;
+        color:
         font-size: 1.5em;
         font-weight: bold;
     }}
@@ -93,7 +92,7 @@ _HTML_TEMPLATE = """
     .plot-section img {{
         max-width: 100%;
         border-radius: 8px;
-        border: 1px solid #333;
+        border: 1px solid
     }}
     table {{
         width: 100%;
@@ -101,35 +100,35 @@ _HTML_TEMPLATE = """
         margin: 20px 0;
     }}
     th {{
-        background: #1565c0;
+        background:
         color: white;
         padding: 10px;
         text-align: center;
     }}
     td {{
         padding: 8px 10px;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid
         text-align: center;
     }}
-    tr:hover {{ background: #1a1a2e; }}
-    .pass {{ color: #4caf50; font-weight: bold; }}
-    .fail {{ color: #f44336; font-weight: bold; }}
-    .warn {{ color: #ff9800; }}
+    tr:hover {{ background:
+    .pass {{ color:
+    .fail {{ color:
+    .warn {{ color:
     .section-divider {{
         border: 0;
         height: 1px;
-        background: linear-gradient(to right, transparent, #333, transparent);
+        background: linear-gradient(to right, transparent,
         margin: 40px 0;
     }}
     .json-block {{
-        background: #111;
+        background:
         border-radius: 6px;
         padding: 12px;
         overflow-x: auto;
         font-family: monospace;
         font-size: 0.85em;
         white-space: pre-wrap;
-        border: 1px solid #333;
+        border: 1px solid
     }}
 </style>
 </head>
@@ -147,7 +146,6 @@ _HTML_TEMPLATE = """
 </html>
 """
 
-
 def _metric_card(label: str, value: Any, fmt: str = ".3f") -> str:
     """Render a single metric card."""
     if isinstance(value, float):
@@ -164,11 +162,9 @@ def _metric_card(label: str, value: Any, fmt: str = ".3f") -> str:
     </div>
     """
 
-
 def _img_tag(b64_png: str) -> str:
     """Embed a base64 PNG in an <img> tag."""
     return f'<img src="data:image/png;base64,{b64_png}" />'
-
 
 def generate_report(
     symbol: str,
@@ -218,12 +214,10 @@ def generate_report(
     """
     sections = []
 
-    # ── Section 1: Score Distribution ─────────────────────────
     sections.append("<h2>📊 Score Distributions</h2>")
     dist_b64 = plot_score_distribution(entry_scores, exit_scores, title=f"{symbol} — Score Distributions")
     sections.append(f'<div class="plot-section">{_img_tag(dist_b64)}</div>')
 
-    # ── Section 2: Summary Metrics ────────────────────────────
     sections.append("<h2>📐 Summary Metrics</h2>")
     sections.append('<div class="metric-grid">')
 
@@ -239,14 +233,12 @@ def generate_report(
 
     sections.append("</div>")
 
-    # ── Section 3: Walk-Forward CV ────────────────────────────
     if walkforward_result:
         sections.append("<hr class='section-divider'>")
         sections.append("<h2>📈 Walk-Forward Cross-Validation</h2>")
         wf_b64 = plot_walkforward_summary(walkforward_result)
         sections.append(f'<div class="plot-section">{_img_tag(wf_b64)}</div>')
 
-        # Summary metrics
         summary = walkforward_result.get("summary", {})
         if summary:
             sections.append('<div class="metric-grid">')
@@ -257,7 +249,6 @@ def generate_report(
                 sections.append(_metric_card(k.replace("_", " ").title(), v, fmt))
             sections.append("</div>")
 
-    # ── Section 4: K-Fold CV ──────────────────────────────────
     if kfold_result:
         sections.append("<hr class='section-divider'>")
         sections.append("<h2>🧪 Purged K-Fold Cross-Validation</h2>")
@@ -271,7 +262,6 @@ def generate_report(
                 sections.append(_metric_card(k.replace("_", " ").title(), v, fmt))
             sections.append("</div>")
 
-        # Per-fold table
         folds = kfold_result.get("folds", [])
         if folds:
             sections.append("<table><tr><th>Fold</th><th>Test Period</th><th>Train</th><th>Test</th><th>Warnings</th></tr>")
@@ -286,7 +276,6 @@ def generate_report(
                 )
             sections.append("</table>")
 
-    # ── Section 5: Hawkes Simulations ─────────────────────────
     if hawkes_regimes or hawkes_validations:
         sections.append("<hr class='section-divider'>")
         sections.append("<h2>🧬 Hawkes λ(t) Simulation Tests</h2>")
@@ -315,7 +304,6 @@ def generate_report(
                 )
                 sections.append(f'<div class="plot-section">{_img_tag(b64)}</div>')
 
-    # ── Section 6: Score vs Return Heatmap ────────────────────
     sections.append("<hr class='section-divider'>")
     sections.append("<h2>🔥 Entry Score vs Forward Return Heatmap</h2>")
     from validation.metrics import forward_returns as fwd_ret_fn
@@ -326,14 +314,12 @@ def generate_report(
     )
     sections.append(f'<div class="plot-section">{_img_tag(heatmap_b64)}</div>')
 
-    # ── Section 7: Exit ROC ───────────────────────────────────
     if regime_flips is not None:
         sections.append("<hr class='section-divider'>")
         sections.append("<h2>📉 Exit Signal ROC Curve</h2>")
         roc_b64 = plot_exit_roc(exit_scores, regime_flips, title=f"{symbol} — Exit Score ROC")
         sections.append(f'<div class="plot-section">{_img_tag(roc_b64)}</div>')
 
-    # ── Assemble HTML ─────────────────────────────────────────
     html = _HTML_TEMPLATE.format(
         symbol=symbol,
         timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
@@ -342,7 +328,6 @@ def generate_report(
         sections="\n".join(sections),
     )
 
-    # Save
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{symbol}_phaseB_report.html"

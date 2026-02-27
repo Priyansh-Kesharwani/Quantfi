@@ -14,7 +14,6 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-
 def main():
     ap = argparse.ArgumentParser(description="Suggest entry threshold from decile forward returns")
     ap.add_argument("--input", type=str, default="validation/debug/ic_results.json", help="Path to ic_results.json")
@@ -44,7 +43,6 @@ def main():
     deciles_by_h = blob.get("decile_forward_returns", {})
     h_key = f"horizon_{args.horizon}"
     if h_key not in deciles_by_h:
-        # try horizon_20 etc
         for k, v in deciles_by_h.items():
             if isinstance(v, dict) and v.get("horizon") == args.horizon:
                 h_key = k
@@ -75,17 +73,12 @@ def main():
         rec = "  <-- suggest entry in this range" if q >= min_d and mean_ret > 0 else ""
         print(f"   {q:2d}   | {pct:7.2f}%             | {sep:6.2f}%   | {n:5d}{rec}")
 
-    # Approximate score threshold: decile 8 = top 20% => roughly 80th percentile of score.
-    # Score is 0-100; top 20% might be score >= 80. We output a suggested numeric threshold.
-    suggested_score = 50 + (min_d - 1) * 5  # rough: decile 8 -> 50 + 35 = 85? No: decile 1 = lowest 10%, decile 10 = top 10%.
-    # So decile >= 8 means top 30% of scores. 70th percentile of 0-100 is ~70. Use 50 + (10 - min_d) * 5 for "top X deciles".
-    # Top 3 deciles (8,9,10) => score in upper 30% => threshold ~70.
+    suggested_score = 50 + (min_d - 1) * 5
     suggested_score = max(50, min(95, 50 + (10 - min_d) * 5))
     print("")
     print(f"Suggested entry_score_threshold (approximate): {suggested_score}")
     print("(Use with --min-decile to tune; then run turnover_sensitivity around this value.)")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

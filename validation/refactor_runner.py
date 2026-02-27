@@ -17,7 +17,6 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-
 def run_refactor_pipeline(
     runid: str = "refactor_run",
     seed: int = 42,
@@ -34,7 +33,6 @@ def run_refactor_pipeline(
     if snapshot_path is None:
         snapshot_path = PROJECT_ROOT / "data_snapshots" / "refactor_verification.parquet"
     if not snapshot_path.exists():
-        # Synthetic data
         raw = np.random.RandomState(seed).randn(500).cumsum() + 100
         n = len(raw)
         idx = pd.RangeIndex(n)
@@ -72,7 +70,6 @@ def run_refactor_pipeline(
     breakdown.to_parquet(artifacts_dir / "breakdown.parquet", index=True)
     return artifacts_dir
 
-
 def main() -> int:
     import argparse
     parser = argparse.ArgumentParser()
@@ -84,7 +81,6 @@ def main() -> int:
     run_refactor_pipeline(args.runid, args.seed, Path(path) if path else None)
     print(f"Artifacts written to validation/artifacts/{args.runid}/")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

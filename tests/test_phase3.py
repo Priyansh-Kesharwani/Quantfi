@@ -22,11 +22,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from tests.fixtures import fbm_series
 
-
-# ====================================================================
-# Execution Model Tests
-# ====================================================================
-
 class TestMarketImpact:
     def test_zero_order_zero_impact(self):
         from validation.execution_model import market_impact
@@ -44,20 +39,18 @@ class TestMarketImpact:
 
     def test_sqrt_law(self):
         from validation.execution_model import market_impact
-        # With gamma=0.5 (sqrt), doubling size should increase impact by sqrt(2)
         i1 = market_impact(100, 1e6, k_impact=1.0, gamma=0.5)
         i2 = market_impact(200, 1e6, k_impact=1.0, gamma=0.5)
         ratio = i2 / i1
         assert ratio == pytest.approx(np.sqrt(2), abs=0.01)
 
-
 class TestFillPrice:
     def test_buy_costs_more(self):
         from validation.execution_model import compute_fill_price, ExecutionConfig
-        cfg = ExecutionConfig(sigma_slip=0.0)  # no noise
+        cfg = ExecutionConfig(sigma_slip=0.0)
         rng = np.random.RandomState(42)
         fill, _ = compute_fill_price(100.0, side=1, order_size=100, adv=1e6, config=cfg, rng=rng)
-        assert fill > 100.0  # buy should cost more than mid
+        assert fill > 100.0
 
     def test_sell_costs_less(self):
         from validation.execution_model import compute_fill_price, ExecutionConfig
@@ -75,7 +68,6 @@ class TestFillPrice:
         assert "commission_frac" in bd
         assert "total_cost_frac" in bd
 
-
 class TestLatencySimulation:
     def test_determinism(self):
         from validation.execution_model import simulate_latency
@@ -92,7 +84,6 @@ class TestLatencySimulation:
         from validation.execution_model import simulate_latency
         lats = simulate_latency(100, seed=42)
         assert (lats > 0).all()
-
 
 class TestApplyExecutionCosts:
     @pytest.fixture
@@ -116,9 +107,9 @@ class TestApplyExecutionCosts:
     def test_costs_reduce_returns(self, signal_data):
         from validation.execution_model import apply_execution_costs, ExecutionConfig
         returns, entry, exit_, volume = signal_data
-        cfg = ExecutionConfig(k_impact=0.01)  # high impact
+        cfg = ExecutionConfig(k_impact=0.01)
         adj, report = apply_execution_costs(returns, entry, exit_, volume, config=cfg)
-        assert adj.sum() <= returns.sum()  # costs reduce total returns
+        assert adj.sum() <= returns.sum()
 
     def test_zero_impact_minimal_change(self, signal_data):
         from validation.execution_model import apply_execution_costs, ExecutionConfig
@@ -126,7 +117,6 @@ class TestApplyExecutionCosts:
         cfg = ExecutionConfig(k_impact=0, sigma_slip=0, commission_bps=0, spread_bps=0)
         adj, report = apply_execution_costs(returns, entry, exit_, volume, config=cfg)
         np.testing.assert_allclose(adj.values, returns.values, atol=1e-10)
-
 
 class TestSlippageMatrix:
     def test_returns_dataframe(self):
@@ -143,11 +133,6 @@ class TestSlippageMatrix:
         assert isinstance(matrix, pd.DataFrame)
         assert matrix.shape[0] > 0
         assert matrix.shape[1] > 0
-
-
-# ====================================================================
-# Execution Config Tests
-# ====================================================================
 
 class TestExecutionConfig:
     def test_from_dict(self):
@@ -167,15 +152,9 @@ class TestExecutionConfig:
         assert cfg.k_impact == 0.001
         assert cfg.gamma == 0.5
 
-
-# ====================================================================
-# Tuning Engine Tests
-# ====================================================================
-
 @pytest.fixture(scope="module")
 def synth_df_large():
     return fbm_series(n=1200, H=0.6, seed=42)
-
 
 def _test_score_fn(df, params=None):
     """Deterministic score function for testing tuning."""
@@ -192,7 +171,6 @@ def _test_score_fn(df, params=None):
     )
     return entry, exit_
 
-
 class TestTuningConfig:
     def test_from_dict(self):
         from validation.tuning import TuningConfig
@@ -207,7 +185,6 @@ class TestTuningConfig:
         cfg = TuningConfig()
         assert cfg.method == "random_search"
         assert cfg.lambda_var == 0.5
-
 
 class TestSearchSpace:
     def test_grid_generation(self):
@@ -226,7 +203,6 @@ class TestSearchSpace:
         for s in samples:
             assert "a" in s
             assert "b" in s
-
 
 class TestInnerCV:
     def test_runs_without_error(self, synth_df_large):
@@ -249,10 +225,8 @@ class TestInnerCV:
             synth_df_large, _test_score_fn, {"S_scale": 2.0},
             n_splits=3, embargo=10,
         )
-        # Results may be the same due to deterministic seed, but should not crash
         assert isinstance(med1, float)
         assert isinstance(med2, float)
-
 
 class TestRunTuning:
     def test_runs_random_search(self, synth_df_large):
@@ -280,7 +254,7 @@ class TestRunTuning:
             seed=42,
         )
         result = run_tuning(synth_df_large, _test_score_fn, cfg, symbol="SYNTH")
-        assert len(result.trials) == 2  # grid has 2 combos
+        assert len(result.trials) == 2
 
     def test_serialisation(self, synth_df_large):
         from validation.tuning import run_tuning, TuningConfig
@@ -313,7 +287,6 @@ class TestRunTuning:
         assert r1.best_score == r2.best_score
         assert r1.best_params == r2.best_params
 
-
 class TestParameterSensitivity:
     def test_returns_dataframe(self, synth_df_large):
         from validation.tuning import parameter_sensitivity
@@ -329,7 +302,6 @@ class TestParameterSensitivity:
         assert "median_metric" in result.columns
         assert "score" in result.columns
 
-
 class TestAblation:
     def test_returns_dataframe(self, synth_df_large):
         from validation.tuning import ablation_study
@@ -339,7 +311,7 @@ class TestAblation:
             n = len(df)
             base = 50 + np.random.randn(n) * 15
             if params and params.get("disable_ofi"):
-                base *= 0.9  # simulate degradation
+                base *= 0.9
             return (
                 pd.Series(np.clip(base, 0, 100), index=df.index),
                 pd.Series(np.clip(100 - base, 0, 100), index=df.index),
@@ -352,13 +324,8 @@ class TestAblation:
             n_splits=3, embargo=10,
         )
         assert isinstance(result, pd.DataFrame)
-        assert len(result) == 3  # baseline + 2 ablations
+        assert len(result) == 3
         assert "impact" in result.columns
-
-
-# ====================================================================
-# Hawkes LOB & Trade Tick Tests
-# ====================================================================
 
 class TestSyntheticLOB:
     def test_generates_lob(self):
@@ -397,7 +364,6 @@ class TestSyntheticLOB:
             for lev in range(3):
                 assert lob["bid_prices"][i][lev] < lob["ask_prices"][i][lev]
 
-
 class TestSyntheticTrades:
     def test_generates_trades(self):
         from simulations.hawkes_simulator import simulate_hawkes_events, generate_synthetic_trades
@@ -427,11 +393,6 @@ class TestSyntheticTrades:
         t2 = generate_synthetic_trades(events, seed=42)
         pd.testing.assert_frame_equal(t1, t2)
 
-
-# ====================================================================
-# Phase 3 Config Tests
-# ====================================================================
-
 class TestPhase3Config:
     def test_loads_from_yaml(self):
         from validation.phase3_runner import Phase3Config
@@ -457,11 +418,6 @@ class TestPhase3Config:
         cfg = Phase3Config.from_yaml("config/phase3.yml")
         assert "threshold_sweep" in cfg.robustness
         assert "subsample_n_trials" in cfg.robustness
-
-
-# ====================================================================
-# Phase 3 Runner Integration Tests
-# ====================================================================
 
 class TestPhase3Runner:
     @pytest.fixture(scope="class")
@@ -526,7 +482,7 @@ class TestPhase3Runner:
 
     def test_hawkes_validations_pass(self, synth_run):
         for v in synth_run["hawkes_stress"]["validations"]:
-            assert v["passed"]  # self-check should always pass
+            assert v["passed"]
 
     def test_has_slippage_matrix(self, synth_run):
         assert "slippage_matrix" in synth_run
@@ -534,7 +490,7 @@ class TestPhase3Runner:
     def test_has_threshold_sweep(self, synth_run):
         assert "threshold_sweep" in synth_run
         sweep = synth_run["threshold_sweep"]
-        assert len(sweep) == 3  # 50, 70, 90
+        assert len(sweep) == 3
 
     def test_has_subsample_stability(self, synth_run):
         assert "subsample_stability" in synth_run
@@ -570,7 +526,6 @@ class TestPhase3Runner:
         r1 = run_asset_validation(df, _test_score_fn, "DET", "1d", cfg, "validation/outputs")
         r2 = run_asset_validation(df, _test_score_fn, "DET", "1d", cfg, "validation/outputs")
 
-        # OOS summary should be identical (handle NaN == NaN via JSON roundtrip)
         s1 = json.loads(json.dumps(r1["oos_summary"], default=str))
         s2 = json.loads(json.dumps(r2["oos_summary"], default=str))
         assert s1 == s2

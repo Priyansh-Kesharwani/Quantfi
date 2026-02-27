@@ -23,11 +23,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 import numpy as np
 import pandas as pd
 
-
 def _file_hash(path: Path) -> str:
     with open(path, "rb") as f:
         return hashlib.sha256(f.read()).hexdigest()
-
 
 def run_refactor_pipeline(seed: int, runid: str, artifacts_dir: Path) -> None:
     """Run refactor pipeline once and write artifacts to artifacts_dir."""
@@ -64,7 +62,6 @@ def run_refactor_pipeline(seed: int, runid: str, artifacts_dir: Path) -> None:
         json.dump(metrics, f, indent=2)
     scores.to_csv(artifacts_dir / "scores.csv", index=True)
 
-
 def main() -> int:
     import argparse
     parser = argparse.ArgumentParser()
@@ -76,12 +73,10 @@ def main() -> int:
     artifacts_base.mkdir(parents=True, exist_ok=True)
     run_dir = artifacts_base / args.runid
 
-    # Run 1
     run_refactor_pipeline(args.seed, args.runid, run_dir)
     hash1_metrics = _file_hash(run_dir / "metrics.json")
     hash1_scores = _file_hash(run_dir / "scores.csv")
 
-    # Run 2
     run_refactor_pipeline(args.seed, args.runid, run_dir)
     hash2_metrics = _file_hash(run_dir / "metrics.json")
     hash2_scores = _file_hash(run_dir / "scores.csv")
@@ -91,7 +86,6 @@ def main() -> int:
         return 1
     print("Determinism check passed: identical hashes across two runs")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

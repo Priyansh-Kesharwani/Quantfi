@@ -9,13 +9,11 @@ import json
 import sys
 from pathlib import Path
 
-# Allow running from project root with PYTHONPATH or from scripts/
 try:
     from validation.validator import CPCVConfig, generate_cpcv_splits
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from validation.validator import CPCVConfig, generate_cpcv_splits
-
 
 def _ts_to_iso(ts) -> str:
     if hasattr(ts, "to_pydatetime"):
@@ -23,7 +21,6 @@ def _ts_to_iso(ts) -> str:
     if hasattr(ts, "isoformat"):
         return str(ts)[:10]
     return str(ts)[:10]
-
 
 def main():
     ap = argparse.ArgumentParser(description="Inspect CPCV split boundaries")
@@ -62,7 +59,6 @@ def main():
             print(f"Could not load data for dates: {e}", file=sys.stderr)
             print("Proceeding with n_samples from config/estimate only.\n", file=sys.stderr)
     if n_samples is None:
-        # Rough estimate: 252 * years
         start_s = data_cfg.get("start_date", "2018-01-01")
         end_s = data_cfg.get("end_date", "2024-01-01")
         y1, y2 = int(start_s[:4]), int(end_s[:4])
@@ -99,7 +95,6 @@ def main():
             json.dump(records, f, indent=2)
         print(f"\nWrote {out_path}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

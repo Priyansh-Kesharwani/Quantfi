@@ -10,7 +10,6 @@ from __future__ import annotations
 import numpy as np
 from typing import Dict, Any, Optional
 
-
 def lorentzian_distance(
     x: np.ndarray,
     y: np.ndarray,
@@ -30,7 +29,6 @@ def lorentzian_distance(
     diff = (x - y) / np.maximum(gamma, 1e-12)
     return float(np.sum(np.log(1.0 + diff * diff)))
 
-
 def build_templates_from_labels(
     features: np.ndarray,
     labels: np.ndarray,
@@ -48,7 +46,6 @@ def build_templates_from_labels(
         "bull": np.mean(features[bull_mask], axis=0),
         "bear": np.mean(features[bear_mask], axis=0),
     }
-
 
 class LDC:
     """Lorentzian Distance Classifier: score = sigmoid(kappa * (d_bear - d_bull))."""
@@ -74,7 +71,6 @@ class LDC:
         x = np.asarray(x, dtype=np.float64).ravel()
         d_bull = lorentzian_distance(x, self._templates["bull"])
         d_bear = lorentzian_distance(x, self._templates["bear"])
-        # s = 1/(1+exp(kappa*(d_bull - d_bear))): closer to bull -> d_bull small -> s > 0.5
         logit = self.kappa * (d_bear - d_bull)
         logit = np.clip(logit, -500, 500)
         return float(1.0 / (1.0 + np.exp(-logit)))

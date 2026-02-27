@@ -26,11 +26,6 @@ import time
 
 logger = logging.getLogger(__name__)
 
-
-# ════════════════════════════════════════════════════════════════
-# 1. COST MODEL
-# ════════════════════════════════════════════════════════════════
-
 COST_PRESETS = {
     "IN_EQ":          {"bps_round_trip": 40,  "fixed_per_trade_inr": 20},
     "US_EQ_FROM_IN":  {"bps_round_trip": 140, "fixed_per_trade_inr": 0},
@@ -40,7 +35,6 @@ COST_PRESETS = {
     "INDEX":          {"bps_round_trip": 40,  "fixed_per_trade_inr": 0},
     "NONE":           {"bps_round_trip": 0,   "fixed_per_trade_inr": 0},
 }
-
 
 def resolve_cost_class(asset_type: str, currency: str, cost_class_override: Optional[str] = None) -> str:
     """Map (asset_type, currency) → cost class key.
@@ -61,11 +55,9 @@ def resolve_cost_class(asset_type: str, currency: str, cost_class_override: Opti
         return "IN_EQ"
     return "US_EQ_FROM_IN"
 
-
 SLIPPAGE_MODEL_FIXED = "fixed"
 SLIPPAGE_MODEL_SIZE_DEPENDENT = "size_dependent"
 DEFAULT_REFERENCE_NOTIONAL = 100_000.0
-
 
 def execution_price(
     raw_price: float,
@@ -87,7 +79,6 @@ def execution_price(
         effective_bps = slippage_bps
     mult = 1 + (effective_bps / 10_000) * (1 if side == "buy" else -1)
     return raw_price * mult
-
 
 def validate_slippage_dry_run(
     raw_price: float = 100.0,
@@ -127,22 +118,15 @@ def validate_slippage_dry_run(
         "passed": ok,
     }
 
-
 def trade_cost(notional: float, cost_class: str, side: str = "entry", cost_free: bool = False) -> float:
     """Compute one-side transaction cost (half the round-trip bps + half fixed).
     If cost_free is True, returns 0 regardless of cost_class."""
     if cost_free:
         return 0.0
     cfg = COST_PRESETS.get(cost_class, COST_PRESETS["US_EQ_FROM_IN"])
-    pct_cost = notional * (cfg["bps_round_trip"] / 20_000)  # half per side
+    pct_cost = notional * (cfg["bps_round_trip"] / 20_000)
     fixed = cfg["fixed_per_trade_inr"] / 2.0
     return pct_cost + fixed
-
-
-# ════════════════════════════════════════════════════════════════
-# 2. VECTORIZED SCORER  (same rules as ScoringEngine, 100× faster)
-#    Rule constants imported from scoring.composite to prevent drift.
-# ════════════════════════════════════════════════════════════════
 
 try:
     from scoring.composite import SCORING_RULES as _SR, DEFAULT_WEIGHTS as _DW
@@ -150,14 +134,11 @@ except ImportError:
     _SR = None
     _DW = None
 
-
-# ── Sigmoid smoothing for continuous scoring ──────────────────
 def _soft_below(x: np.ndarray, threshold, width=5.0) -> np.ndarray:
     """Smooth 1→0 transition: ~1 when x << threshold, ~0 when x >> threshold."""
     w = np.maximum(width, 0.01)
     arg = np.clip((x - threshold) / w, -30, 30)
     return 1.0 / (1.0 + np.exp(arg))
-
 
 def _soft_above(x: np.ndarray, threshold, width=5.0) -> np.ndarray:
     """Smooth 0→1 transition: ~0 when x << threshold, ~1 when x >> threshold."""
@@ -165,15 +146,12 @@ def _soft_above(x: np.ndarray, threshold, width=5.0) -> np.ndarray:
     arg = np.clip(-(x - threshold) / w, -30, 30)
     return 1.0 / (1.0 + np.exp(arg))
 
-
-# ── Regime constants ──────────────────────────────────────────
 REGIME_TREND = 2
 REGIME_REVERT = 1
 REGIME_STRESS = 0
 
-TREND_EXIT_DEFAULTS = None   # set after ExitParams is defined (below)
+TREND_EXIT_DEFAULTS = None
 STRESS_EXIT_DEFAULTS = None
-
 
 def _compute_raw_indicators(
     close: np.ndarray,
@@ -280,7 +258,6 @@ def _compute_raw_indicators(
         "adx": adx,
     }
 
-
 def _apply_mean_reversion_rules(
     ind: Dict[str, np.ndarray],
     usd_inr_rate: float,
@@ -360,7 +337,6 @@ def _apply_mean_reversion_rules(
     )
     return composite
 
-
 def _apply_trend_following_rules(
     ind: Dict[str, np.ndarray],
     usd_inr_rate: float,
@@ -432,7 +408,6 @@ def _apply_trend_following_rules(
     )
     return composite
 
-
 def vectorized_scores(
     close: np.ndarray,
     high: np.ndarray,
@@ -472,7 +447,6 @@ def vectorized_scores(
     composite = _apply_mean_reversion_rules(raw_indicators, usd_inr_rate, weights)
     return composite, raw_indicators["atr"]
 
-
 def vectorized_trend_scores(
     close: np.ndarray,
     high: np.ndarray,
@@ -506,9 +480,6 @@ def vectorized_trend_scores(
     composite = _apply_trend_following_rules(raw_indicators, usd_inr_rate, weights)
     return composite, raw_indicators["atr"]
 
-
-# ── HMM Regime Detection ──────────────────────────────────────
-
 def _label_hmm_states(
     log_returns: np.ndarray,
     state_probs: np.ndarray,
@@ -538,7 +509,6 @@ def _label_hmm_states(
     regime[valid] = state_map[assignments[valid]]
     return regime
 
-
 def _compute_hmm_regime(
     close: np.ndarray,
     dates_index: pd.DatetimeIndex,
@@ -567,11 +537,6 @@ def _compute_hmm_regime(
     )
     return _label_hmm_states(log_returns, probs.values)
 
-
-# ════════════════════════════════════════════════════════════════
-# 3. DATA PREPARATION
-# ════════════════════════════════════════════════════════════════
-
 @dataclass
 class AssetData:
     """Pre-computed per-asset arrays aligned to the simulation date index."""
@@ -582,12 +547,11 @@ class AssetData:
     close: np.ndarray
     score: np.ndarray
     atr: np.ndarray
-    tradeable: np.ndarray   # bool — True on real trading days (not forward-filled)
-    first_valid_idx: int    # index in the aligned array where data + warm-up is valid
+    tradeable: np.ndarray
+    first_valid_idx: int
     cost_class: str
-    trend_score: Optional[np.ndarray] = None   # trend-following composite score (0-100)
-    regime: Optional[np.ndarray] = None         # int array: 0=stress, 1=revert, 2=trend
-
+    trend_score: Optional[np.ndarray] = None
+    regime: Optional[np.ndarray] = None
 
 def prepare_multi_asset_data(
     symbols: List[str],
@@ -718,24 +682,18 @@ def prepare_multi_asset_data(
 
     return date_index, assets
 
-
-# ════════════════════════════════════════════════════════════════
-# 4. EXIT FRAMEWORK
-# ════════════════════════════════════════════════════════════════
-
 @dataclass
 class ExitParams:
-    atr_init_mult: float = 2.0          # initial stop: entry − k1 × ATR
-    atr_trail_mult: float = 2.5         # trailing stop: peak − k2 × ATR
-    min_stop_pct: float = 4.0           # minimum stop distance (%)
-    score_rel_mult: float = 0.4         # exit when score < entry_score × this
-    score_abs_floor: float = 35.0       # AND score < this absolute level
-    max_holding_days: int = 30          # forced time exit (trading days)
-    min_hold_before_trail: int = 3      # don't activate trail until N days held
-    use_atr_stop: bool = True           # when False, disables ATR stop entirely
-    min_holding_days: int = 0           # prevents any exit within the first N days
-    vol_regime_stop_widen: float = 1.5  # widen ATR mult by this factor in high-vol regimes
-
+    atr_init_mult: float = 2.0
+    atr_trail_mult: float = 2.5
+    min_stop_pct: float = 4.0
+    score_rel_mult: float = 0.4
+    score_abs_floor: float = 35.0
+    max_holding_days: int = 30
+    min_hold_before_trail: int = 3
+    use_atr_stop: bool = True
+    min_holding_days: int = 0
+    vol_regime_stop_widen: float = 1.5
 
 TREND_EXIT_DEFAULTS = ExitParams(
     atr_init_mult=3.0, atr_trail_mult=3.5, min_stop_pct=3.0,
@@ -747,7 +705,6 @@ STRESS_EXIT_DEFAULTS = ExitParams(
     score_rel_mult=0.5, score_abs_floor=45.0, max_holding_days=15,
     min_hold_before_trail=2, use_atr_stop=True, min_holding_days=0,
 )
-
 
 @dataclass
 class Position:
@@ -761,7 +718,6 @@ class Position:
 
     def days_held(self, current_date: date) -> int:
         return (current_date - self.entry_date).days
-
 
 def check_exit(
     pos: Position,
@@ -782,23 +738,18 @@ def check_exit(
     """
     days = pos.days_held(current_date)
 
-    # Honour min_holding_days — suppress all exits during grace period
     if days < getattr(params, "min_holding_days", 0):
         pos.peak_price = max(pos.peak_price, current_close)
         return False, ""
 
-    # Update peak
     pos.peak_price = max(pos.peak_price, current_close)
 
-    # Guard: ATR might be NaN early on
     safe_atr = current_atr if not np.isnan(current_atr) else current_close * 0.02
 
-    # ── Risk stop (trailing + initial) ─────────────────────────
     use_atr_stop = getattr(params, "use_atr_stop", True)
     if use_atr_stop:
         trail_mult = params.atr_trail_mult
         init_mult = params.atr_init_mult
-        # Widen stops during high-volatility regimes to avoid whipsaw
         if high_vol_regime:
             widen = getattr(params, "vol_regime_stop_widen", 1.5)
             trail_mult *= widen
@@ -815,7 +766,6 @@ def check_exit(
         if current_close <= stop_price:
             return True, "stop"
 
-    # ── Score-based take-profit (mean-reversion completion) ────
     score_exit = (
         current_score < pos.entry_score * params.score_rel_mult
         and current_score < params.score_abs_floor
@@ -823,63 +773,47 @@ def check_exit(
     if score_exit:
         return True, "score"
 
-    # ── Time-based exit ────────────────────────────────────────
     if days >= params.max_holding_days:
         return True, "time"
 
     return False, ""
 
-
-# ════════════════════════════════════════════════════════════════
-# 5. SIMULATION CONFIG
-# ════════════════════════════════════════════════════════════════
-
 @dataclass
 class SimConfig:
     """All knobs for a portfolio simulation run."""
-    # Universe & dates
     symbols: List[str] = field(default_factory=list)
     start_date: datetime = None
     end_date: datetime = None
     initial_capital: float = 100_000.0
 
-    # Entry
     entry_score_threshold: float = 70.0
-    entry_threshold_mode: str = "fixed"   # "fixed" or "quantile"
-    entry_score_quantile: float = 0.70    # when mode=quantile, use this percentile of in-sample scores
-    entry_confirmation_bars: int = 1      # score must be >= threshold for N consecutive bars before entry
+    entry_threshold_mode: str = "fixed"
+    entry_score_quantile: float = 0.70
+    entry_confirmation_bars: int = 1
 
-    # Exit
     exit_params: ExitParams = field(default_factory=ExitParams)
 
-    # Position sizing
     max_positions: int = 10
     use_score_weighting: bool = True
     min_position_notional: float = 3_000.0
-    use_volatility_scaling: bool = False   # scale allocation down by 1 + k * (ATR/price)
+    use_volatility_scaling: bool = False
     volatility_scale_k: float = 0.5
 
-    # Cost
     slippage_bps: float = 5.0
     slippage_model: str = SLIPPAGE_MODEL_FIXED
     slippage_impact_k: float = 10.0
     slippage_impact_gamma: float = 0.5
     cost_free: bool = False
-    cost_class_override: Optional[str] = None  # e.g. "US_EQ_DIRECT" to force a cost preset
+    cost_class_override: Optional[str] = None
 
-    # Core-satellite allocation
-    min_invested_fraction: float = 0.0  # 0 = pure tactical; 0.5 = always keep 50% in equal-weight baseline
+    min_invested_fraction: float = 0.0
 
-    # Scoring / regime
-    scoring_mode: str = "mean_reversion"  # "mean_reversion" | "adaptive" | "trend_following"
+    scoring_mode: str = "mean_reversion"
 
-    # Execution convention
-    execution: str = "next_open"   # "next_open" or "same_close"
+    execution: str = "next_open"
 
-    # Diagnostic: add Gaussian noise to scores (for stability/noise-sensitivity testing)
-    score_noise_sigma: float = 0.0   # when > 0, score at t becomes score_t + N(0, sigma), clamped [0,100]
+    score_noise_sigma: float = 0.0
 
-    # Benchmarks
     run_benchmarks: bool = True
 
     def to_dict(self) -> Dict[str, Any]:
@@ -918,16 +852,11 @@ class SimConfig:
             "scoring_mode": getattr(self, "scoring_mode", "mean_reversion"),
         }
 
-
-# ════════════════════════════════════════════════════════════════
-# 6. PORTFOLIO SIMULATOR  (day-by-day state machine)
-# ════════════════════════════════════════════════════════════════
-
 @dataclass
 class TradeRecord:
     date: str
     symbol: str
-    side: str           # "ENTRY" or "EXIT"
+    side: str
     units: float
     price: float
     notional: float
@@ -936,9 +865,8 @@ class TradeRecord:
     exit_reason: str = ""
     pnl: float = 0.0
     holding_days: int = 0
-    slippage: float = 0.0       # execution_price - raw_price (for diagnostics)
-    post_trade_equity: float = 0.0  # portfolio value after this trade (for diagnostics)
-
+    slippage: float = 0.0
+    post_trade_equity: float = 0.0
 
 @dataclass
 class DailySnapshot:
@@ -947,7 +875,6 @@ class DailySnapshot:
     cash: float
     n_positions: int
     invested_pct: float
-
 
 class PortfolioSimulator:
     """
@@ -970,7 +897,6 @@ class PortfolioSimulator:
         t0 = time.time()
         cfg = self.cfg
 
-        # Trim date index to simulation window
         sim_mask = np.ones(len(date_index), dtype=bool)
         if cfg.start_date:
             sim_mask &= date_index >= pd.Timestamp(cfg.start_date)
@@ -984,7 +910,6 @@ class PortfolioSimulator:
         sim_start_idx = sim_indices[0]
         sim_end_idx = sim_indices[-1]
 
-        # Effective entry threshold (fixed or quantile-based)
         effective_threshold = cfg.entry_score_threshold
         if getattr(cfg, "entry_threshold_mode", "fixed") == "quantile":
             all_scores = []
@@ -998,18 +923,15 @@ class PortfolioSimulator:
                 effective_threshold = float(np.percentile(all_scores, q))
                 warnings.append(f"Quantile threshold: {q}th percentile of in-sample scores = {effective_threshold:.1f}")
 
-        # State
         cash = cfg.initial_capital
         positions: Dict[str, Position] = {}
         trade_log: List[TradeRecord] = []
         snapshots: List[DailySnapshot] = []
         warnings: List[str] = []
 
-        # Pending signals (signal at T close → execute at T+1 open)
         pending_exits: List[Dict] = []
         pending_entries: List[Dict] = []
 
-        # Entry confirmation counter: sym → consecutive bars above threshold
         confirmation_counter: Dict[str, int] = {}
         confirm_bars_needed = max(1, getattr(cfg, "entry_confirmation_bars", 1))
 
@@ -1021,10 +943,8 @@ class PortfolioSimulator:
         slip_gamma = getattr(cfg, "slippage_impact_gamma", 0.5)
         score_noise_sigma = getattr(cfg, "score_noise_sigma", 0.0)
 
-        # Core-satellite: keep a minimum fraction always invested
         min_invested_frac = getattr(cfg, "min_invested_fraction", 0.0)
 
-        # Cost class override from config
         cost_class_ovr = getattr(cfg, "cost_class_override", None)
 
         scoring_mode = getattr(cfg, "scoring_mode", "mean_reversion")
@@ -1069,7 +989,6 @@ class PortfolioSimulator:
                     eq += p.units * assets[s].close[t]
                 return round(eq, 2)
 
-            # ── 1. Execute pending signals at today's Open ─────────
             for sig in pending_exits:
                 sym = sig["symbol"]
                 if sym not in positions:
@@ -1149,7 +1068,6 @@ class PortfolioSimulator:
             pending_exits.clear()
             pending_entries.clear()
 
-            # ── 2. Check EXIT conditions (today's Close) ──────────
             for sym, pos in list(positions.items()):
                 ad = assets[sym]
                 score_t = _effective_score(ad, t)
@@ -1164,8 +1082,6 @@ class PortfolioSimulator:
                     high_vol_regime=_is_stress_regime(ad, t),
                 )
                 if should_exit:
-                    # Core-satellite guard: don't exit if it would bring
-                    # invested fraction below the minimum threshold.
                     if min_invested_frac > 0 and len(positions) > 1:
                         equity_now = cash + sum(
                             p.units * assets[s].close[t] for s, p in positions.items()
@@ -1181,7 +1097,6 @@ class PortfolioSimulator:
                         "score": score_t,
                     })
 
-            # ── 3. Check ENTRY conditions (today's Close/Score) ───
             entry_candidates = []
             for sym, ad in assets.items():
                 if sym in positions:
@@ -1201,14 +1116,11 @@ class PortfolioSimulator:
                 else:
                     confirmation_counter[sym] = 0
 
-            # Rank by score descending, limit to available slots
             entry_candidates.sort(key=lambda x: x[1], reverse=True)
             available_slots = cfg.max_positions - len(positions) + len(pending_exits)
             pre_filter_count = len(entry_candidates)
             entry_candidates = entry_candidates[:max(0, available_slots)]
 
-            # Core-satellite: if we have no positions and min_invested_fraction > 0,
-            # deploy baseline equal-weight allocation across all tradeable assets.
             if (
                 min_invested_frac > 0
                 and not positions
@@ -1226,11 +1138,8 @@ class PortfolioSimulator:
                         if per_asset >= cfg.min_position_notional:
                             entry_candidates.append((sym, effective_threshold))
 
-            # Size allocations
             if entry_candidates and cash > cfg.min_position_notional:
                 total_score = sum(s for _, s in entry_candidates)
-                # When core-satellite is active, limit tactical overlay to
-                # the non-core fraction so the core stays invested.
                 if min_invested_frac > 0:
                     allocatable = cash * 0.95
                 else:
@@ -1262,7 +1171,6 @@ class PortfolioSimulator:
                         "allocation": alloc,
                     })
 
-            # ── 4. Mark-to-market ─────────────────────────────────
             equity = cash
             for sym, pos in positions.items():
                 equity += pos.units * assets[sym].close[t]
@@ -1278,7 +1186,6 @@ class PortfolioSimulator:
                 invested_pct=round(invested_pct, 1),
             ))
 
-        # ── Finalize: force-close any remaining positions at last close ──
         final_t = sim_end_idx
         final_dt = date_index[final_t].date()
         for sym, pos in list(positions.items()):
@@ -1317,7 +1224,6 @@ class PortfolioSimulator:
 
         elapsed = round(time.time() - t0, 2)
 
-        # ── Compute analytics ─────────────────────────────────────
         result = self._compute_analytics(
             snapshots, trade_log, cfg, date_index, assets,
             sim_start_idx, sim_end_idx, elapsed, warnings,
@@ -1344,7 +1250,6 @@ class PortfolioSimulator:
             warnings.append("Insufficient data for analytics")
             return {"warnings": warnings, "equity_curve": [], "trades": []}
 
-        # Returns
         daily_returns = np.diff(equities) / equities[:-1]
         daily_returns = daily_returns[~np.isnan(daily_returns)]
 
@@ -1353,28 +1258,23 @@ class PortfolioSimulator:
         n_years = n_days / 252
         cagr = ((equities[-1] / equities[0]) ** (1 / max(n_years, 0.01)) - 1) * 100
 
-        # Sharpe (annualised, excess over 0 for simplicity)
         if daily_returns.std() > 0:
             sharpe = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252)
         else:
             sharpe = 0.0
 
-        # Sortino (downside deviation)
         neg_returns = daily_returns[daily_returns < 0]
         if len(neg_returns) > 0 and neg_returns.std() > 0:
             sortino = (daily_returns.mean() / neg_returns.std()) * np.sqrt(252)
         else:
             sortino = 0.0
 
-        # Max drawdown
         running_max = np.maximum.accumulate(equities)
         drawdowns = (equities - running_max) / running_max * 100
         max_dd = float(np.min(drawdowns))
 
-        # Calmar
         calmar = cagr / abs(max_dd) if max_dd != 0 else 0.0
 
-        # Trade stats
         exits = [t for t in trade_log if t.side == "EXIT"]
         total_trades = len(exits)
         wins = [t for t in exits if t.pnl > 0]
@@ -1383,17 +1283,14 @@ class PortfolioSimulator:
         total_costs = sum(t.cost for t in trade_log)
         cost_drag = total_costs / cfg.initial_capital * 100
 
-        # Time in market
         invested_pcts = [s.invested_pct for s in snapshots]
         time_in_market = np.mean(invested_pcts) if invested_pcts else 0
 
-        # Exit reason breakdown
         exit_reasons = {}
         for t in exits:
             r = t.exit_reason or "unknown"
             exit_reasons[r] = exit_reasons.get(r, 0) + 1
 
-        # Per-asset breakdown
         asset_breakdown = {}
         for sym in assets:
             sym_trades = [t for t in exits if t.symbol == sym]
@@ -1411,15 +1308,12 @@ class PortfolioSimulator:
                     ),
                 }
 
-        # ── Benchmarks ────────────────────────────────────────────
         benchmarks = {}
         if cfg.run_benchmarks:
             benchmarks = self._run_benchmarks(
                 date_index, assets, sim_start_idx, sim_end_idx, cfg.initial_capital,
             )
 
-        # ── Build result ──────────────────────────────────────────
-        # Thin equity curve for frontend (max 500 points)
         ec = [{"date": s.date, "equity": s.equity, "cash": s.cash,
                "n_positions": s.n_positions, "invested_pct": s.invested_pct}
               for s in snapshots]
@@ -1483,7 +1377,6 @@ class PortfolioSimulator:
         if n_assets == 0 or n < 2:
             return {}
 
-        # ── Buy-and-Hold (equal-weight at start) ──────────────────
         bnh_alloc = initial_capital / n_assets
         bnh_units = {}
         for sym in syms:
@@ -1511,7 +1404,6 @@ class PortfolioSimulator:
         bnh_rm = np.maximum.accumulate(bnh_equity)
         bnh_dd = float(np.min((bnh_equity - bnh_rm) / bnh_rm * 100))
 
-        # ── Uniform Periodic (monthly equal investment) ───────────
         unif_cash = initial_capital
         unif_units = {s: 0.0 for s in syms}
         unif_invested = 0.0
@@ -1543,8 +1435,6 @@ class PortfolioSimulator:
         unif_return = (unif_equity[-1] / unif_equity[0] - 1) * 100 if unif_equity[0] > 0 else 0
         unif_cagr = ((unif_equity[-1] / unif_equity[0]) ** (1 / max(n_years, 0.01)) - 1) * 100 if unif_equity[0] > 0 else 0
 
-        # Per-asset price curves normalised to initial_capital base
-        # so they can be overlaid on the equity chart at comparable scale
         asset_price_curves: Dict[str, List[Dict[str, Any]]] = {}
         for sym in syms:
             ad = assets[sym]
@@ -1560,7 +1450,6 @@ class PortfolioSimulator:
                 curve.append({"date": d, "value": round(float(ad.close[t]) * scale, 2)})
             asset_price_curves[sym] = curve
 
-        # Thin benchmark curves
         bnh_curve = []
         unif_curve = []
         step = max(1, n // 500)
@@ -1585,7 +1474,6 @@ class PortfolioSimulator:
             },
             "asset_prices": asset_price_curves,
         }
-
 
 def export_trades_csv(
     csv_path: str,
@@ -1634,14 +1522,8 @@ def export_trades_csv(
             raise ValueError("Provide either trade_log or trades")
     return str(path.resolve())
 
-
-# ════════════════════════════════════════════════════════════════
-# 8. ALLOCATION ENGINE  (regime-aware, always-invested)
-# ════════════════════════════════════════════════════════════════
-
 RISK_ON = 1
 RISK_OFF = 0
-
 
 def _compute_jump_regime(
     close: np.ndarray,
@@ -1732,7 +1614,6 @@ def _compute_jump_regime(
 
     return regime, prob_risk_off
 
-
 def _align_jump_states_by_variance(model, n_states: int) -> Dict[int, int]:
     """Map Jump Model states to RISK_ON/RISK_OFF by emission variance on the
     volatility feature (index 1). Low variance = calm = RISK_ON."""
@@ -1756,7 +1637,6 @@ def _align_jump_states_by_variance(model, n_states: int) -> Dict[int, int]:
         state_map[int(sorted_states[idx])] = RISK_OFF
     return state_map
 
-
 def _drawdown_circuit_breaker(
     close: np.ndarray,
     lookback: int = 20,
@@ -1766,7 +1646,6 @@ def _drawdown_circuit_breaker(
     rolling_max = pd.Series(close).rolling(lookback, min_periods=1).max().values
     dd = (close - rolling_max) / (rolling_max + 1e-8)
     return dd < threshold
-
 
 class RegimeHysteresis:
     """Stateful hysteresis filter to prevent regime whipsaw."""
@@ -1803,7 +1682,6 @@ class RegimeHysteresis:
             self.days_since_change = 0
 
         return self.current
-
 
 @dataclass
 class AllocationConfig:
@@ -1861,7 +1739,6 @@ class AllocationConfig:
             "cost_free": self.cost_free,
         }
 
-
 def compute_target_weights(
     scores: Dict[str, float],
     regime: int,
@@ -1902,7 +1779,6 @@ def compute_target_weights(
     weights["_CASH"] = max(0.0, 1.0 - equity_pct)
     return weights
 
-
 def _compute_rebalance_trades(
     current_weights: Dict[str, float],
     target_weights: Dict[str, float],
@@ -1922,7 +1798,6 @@ def _compute_rebalance_trades(
         if abs(delta) >= min_delta:
             trades[sym] = delta * equity
     return trades
-
 
 class AllocationEngine:
     """Regime-aware allocation engine that stays always-invested.

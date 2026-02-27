@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Noise sensitivity: run portfolio sim with and without score noise, compare return and trade count.
 
@@ -20,7 +19,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
-
 
 def main():
     ap = argparse.ArgumentParser(description="Noise sensitivity: baseline vs noisy scores")
@@ -109,7 +107,6 @@ def main():
     with open(json_path, "w") as f:
         json.dump({"rows": rows, "seed": seed}, f, indent=2)
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

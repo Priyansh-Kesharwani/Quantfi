@@ -32,18 +32,14 @@ TIMEFRAMES = ["1h", "4h", "1d"]
 OUT_DIR = ROOT / "validation" / "trade_exports"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-
 def _freq_for_tf(tf: str) -> str:
     return {"1m": "1min", "5m": "5min", "15m": "15min", "1h": "1h", "4h": "4h", "1d": "1D"}[tf]
-
 
 def _n_bars_for_tf(tf: str) -> int:
     return {"1m": 5000, "5m": 3000, "15m": 2000, "1h": 2000, "4h": 1500, "1d": 1000}[tf]
 
-
 def _warmup_for_n(n: int) -> int:
     return min(500, n // 4)
-
 
 def _generate_data(n: int, symbol: str, tf: str) -> tuple[pd.DataFrame, pd.Series]:
     params = {
@@ -91,7 +87,6 @@ def _generate_data(n: int, symbol: str, tf: str) -> tuple[pd.DataFrame, pd.Serie
 
     return ohlcv, funding
 
-
 def run_combo(symbol, strategy, leverage, timeframe):
     n = _n_bars_for_tf(timeframe)
     ohlcv, funding = _generate_data(n, symbol, timeframe)
@@ -121,7 +116,6 @@ def run_combo(symbol, strategy, leverage, timeframe):
     result = svc.run(ohlcv, cfg, funding_rates=funding)
     return result, ohlcv
 
-
 def export_trades(result, symbol, strategy, leverage, timeframe):
     trades = result["trades"]
     slug = f"{symbol.replace('/', '_').replace(':', '')}_{strategy}_{leverage}x_{timeframe}"
@@ -143,7 +137,6 @@ def export_trades(result, symbol, strategy, leverage, timeframe):
                 t.leverage, t.bar_idx,
             ])
     return path
-
 
 def verify_trades(result, config_capital=10000.0):
     """Verify trade-level data integrity."""
@@ -189,7 +182,6 @@ def verify_trades(result, config_capital=10000.0):
 
     return issues
 
-
 def verify_regimes(result):
     """Verify HMM produced all 3 regimes."""
     regimes = result["regimes"]
@@ -204,7 +196,6 @@ def verify_regimes(result):
             issues.append(f"Regime {r} dominates at {pct:.0%}")
     return issues
 
-
 def verify_scores(result):
     """Verify scores have no NaN and reasonable distribution."""
     scores = result["scores"]
@@ -214,7 +205,6 @@ def verify_scores(result):
     if (scores.abs() > 100).any():
         issues.append(f"Scores exceed [-100, 100]: max={float(scores.abs().max()):.1f}")
     return issues
-
 
 def main():
     total = len(SYMBOLS) * len(STRATEGIES) * len(LEVERAGES) * len(TIMEFRAMES)
@@ -296,7 +286,6 @@ def main():
             for iss in issues:
                 print(f"  {label}: {iss}")
 
-    # Aggregate stats
     valid = [r for r in all_results if "error" not in r]
     if valid:
         print(f"\nAGGREGATE STATS:")
@@ -308,7 +297,6 @@ def main():
         print(f"  Total fees paid: ${sum(r['total_fees'] for r in valid):.2f}")
 
     return 0 if n_err == 0 else 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -9,13 +9,10 @@ import numpy as np
 import pandas as pd
 from typing import Optional
 
-
-# ── Fractional Brownian Motion (FBM) ──────────────────────
 def _cholesky_fbm(n: int, H: float) -> np.ndarray:
     """Generate FBM increments via Cholesky decomposition of the
     autocovariance matrix.  Deterministic given a fixed RNG state.
     """
-    # Autocovariance  γ(i, j) = 0.5 (|i|^{2H} + |j|^{2H} - |i-j|^{2H})
     indices = np.arange(1, n + 1, dtype=np.float64)
     cov = np.zeros((n, n))
     for i in range(n):
@@ -26,13 +23,11 @@ def _cholesky_fbm(n: int, H: float) -> np.ndarray:
                 ti ** (2 * H) + tj ** (2 * H) - abs(ti - tj) ** (2 * H)
             )
 
-    # Add small regularisation for numerical stability
     cov += np.eye(n) * 1e-10
 
     L = np.linalg.cholesky(cov)
     z = np.random.randn(n)
     return L @ z
-
 
 def fbm_series(
     n: int = 500,
@@ -67,7 +62,6 @@ def fbm_series(
     log_prices = np.cumsum(increments)
     close = start_price * np.exp(log_prices)
 
-    # Synthetic OHLV
     noise_hi = np.abs(np.random.randn(n)) * start_price * 0.005
     noise_lo = np.abs(np.random.randn(n)) * start_price * 0.005
     high = close + noise_hi
@@ -89,8 +83,6 @@ def fbm_series(
         index=dates,
     )
 
-
-# ── Ornstein-Uhlenbeck (OU) process ──────────────────────
 def ou_series(
     n: int = 500,
     theta: float = 0.15,
@@ -152,8 +144,6 @@ def ou_series(
         index=dates,
     )
 
-
-# ── Synthetic event arrivals (for Hawkes tests) ──────────
 def poisson_events(
     rate: float = 1.0,
     T: float = 100.0,
@@ -166,7 +156,6 @@ def poisson_events(
     times = np.cumsum(inter_arrivals)
     return times[times <= T]
 
-
 def hawkes_events(
     mu: float = 0.5,
     alpha: float = 0.3,
@@ -178,26 +167,23 @@ def hawkes_events(
     np.random.seed(seed)
     events = []
     t = 0.0
-    lam_star = mu  # upper bound on intensity
+    lam_star = mu
 
     while t < T:
-        # Draw next candidate
         u = np.random.rand()
         w = -np.log(u) / lam_star
         t = t + w
         if t >= T:
             break
 
-        # Compute actual intensity at t
         lam_t = mu
         for s in events:
             lam_t += alpha * np.exp(-beta * (t - s))
 
-        # Accept / reject
         d = np.random.rand()
         if d <= lam_t / lam_star:
             events.append(t)
-            lam_star = lam_t + alpha  # update upper bound
+            lam_star = lam_t + alpha
         else:
             lam_star = lam_t
 

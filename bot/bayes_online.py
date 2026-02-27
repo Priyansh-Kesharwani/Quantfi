@@ -10,7 +10,6 @@ from __future__ import annotations
 import numpy as np
 from typing import Dict, Optional
 
-
 class BayesOnline:
     """
     Bayesian linear regression with exponential forgetting (λ ∈ (0, 1)).
@@ -37,11 +36,8 @@ class BayesOnline:
         x = np.asarray(x, dtype=np.float64).ravel()
         if x.shape[0] != self.dim:
             raise ValueError(f"x must have length {self.dim}, got {x.shape[0]}")
-        # b = (1/λ) Σ_t^{-1} μ_t + (1/σ²) x y  (use current Sigma_inv)
         b = (1.0 / self.lambda_) * (self._Sigma_inv @ self._mu) + (1.0 / self.sigma2) * x * y
-        # Σ_{t+1}^{-1} = (1/λ) Σ_t^{-1} + (1/σ²) x x'
         self._Sigma_inv = (1.0 / self.lambda_) * self._Sigma_inv + (1.0 / self.sigma2) * np.outer(x, x)
-        # μ_{t+1} = Σ_{t+1} b
         self._mu = np.linalg.solve(self._Sigma_inv, b)
 
     def predict(self, x: np.ndarray) -> float:
@@ -50,7 +46,6 @@ class BayesOnline:
         if x.shape[0] != self.dim:
             raise ValueError(f"x must have length {self.dim}, got {x.shape[0]}")
         return float(np.dot(self._mu, x))
-
 
 class BayesHierarchical:
     """
@@ -81,7 +76,6 @@ class BayesHierarchical:
         self._global.update(x, y)
         r = self._get_regime(regime_id)
         r.update(x, y)
-        # Shrink regime mean toward global: μ_r := (1-η) μ_r + η μ_global
         self._regimes[regime_id]._mu = (1.0 - self.eta) * r._mu + self.eta * self._global._mu
 
     def predict(self, x: np.ndarray, regime_id: Optional[int] = None) -> float:

@@ -19,18 +19,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class ExecutionConfig:
     """Configuration for the execution-cost model."""
-    k_impact: float = 0.001         # Kyle impact coefficient
-    gamma: float = 0.5              # impact exponent (0.5–1.0)
-    sigma_slip: float = 0.0001      # Gaussian noise std-dev on fill price
-    order_size_pct: float = 0.01    # order size as fraction of ADV
-    commission_bps: float = 2.0     # commission per side (basis points)
-    spread_bps: float = 1.0         # effective half-spread (basis points)
-    mean_latency_ms: float = 50.0   # mean latency for intraday
-    latency_jitter: bool = True     # add exponential jitter
+    k_impact: float = 0.001
+    gamma: float = 0.5
+    sigma_slip: float = 0.0001
+    order_size_pct: float = 0.01
+    commission_bps: float = 2.0
+    spread_bps: float = 1.0
+    mean_latency_ms: float = 50.0
+    latency_jitter: bool = True
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "ExecutionConfig":
@@ -47,7 +46,6 @@ class ExecutionConfig:
             mean_latency_ms=lat.get("mean_latency_ms", 50.0),
             latency_jitter=lat.get("jitter", True),
         )
-
 
 def market_impact(
     order_size: float,
@@ -79,7 +77,6 @@ def market_impact(
         return 0.0
     ratio = abs(order_size) / adv
     return k_impact * (ratio ** gamma)
-
 
 def compute_fill_price(
     mid_price: float,
@@ -123,11 +120,9 @@ def compute_fill_price(
     noise_frac = rng.normal(0, config.sigma_slip) if config.sigma_slip > 0 else 0.0
     spread_frac = config.spread_bps * 1e-4
 
-    # Total slippage: impact + noise + half-spread
     total_slip_frac = side * (impact_frac + spread_frac) + noise_frac
     fill = mid_price * (1.0 + total_slip_frac)
 
-    # Commission
     commission_frac = config.commission_bps * 1e-4
 
     breakdown = {
@@ -141,7 +136,6 @@ def compute_fill_price(
         "total_cost_frac": abs(total_slip_frac) + commission_frac,
     }
     return fill, breakdown
-
 
 def simulate_latency(
     n: int,
@@ -171,7 +165,6 @@ def simulate_latency(
     if jitter and mean_ms > 0:
         return rng.exponential(mean_ms, size=n)
     return np.full(n, mean_ms)
-
 
 def apply_execution_costs(
     returns: pd.Series,
@@ -219,7 +212,6 @@ def apply_execution_costs(
     n = len(returns)
     adj = returns.copy().values.astype(float)
 
-    # Rolling ADV (20-bar)
     adv = volumes.rolling(20, min_periods=1).mean().values
 
     entry_vals = entry_signals.values
@@ -235,7 +227,6 @@ def apply_execution_costs(
             if not np.isnan(entry_vals[i]) and entry_vals[i] > entry_threshold:
                 in_trade = True
                 n_trades += 1
-                # Entry cost: impact + spread + commission
                 order_sz = config.order_size_pct * adv[i] if adv[i] > 0 else 1.0
                 impact = market_impact(order_sz, adv[i], config.k_impact, config.gamma)
                 spread = config.spread_bps * 1e-4
@@ -251,7 +242,6 @@ def apply_execution_costs(
             )
             if should_exit:
                 in_trade = False
-                # Exit cost
                 order_sz = config.order_size_pct * adv[i] if adv[i] > 0 else 1.0
                 impact = market_impact(order_sz, adv[i], config.k_impact, config.gamma)
                 spread = config.spread_bps * 1e-4
@@ -272,7 +262,6 @@ def apply_execution_costs(
     }
 
     return adjusted, cost_report
-
 
 def slippage_sensitivity_matrix(
     returns: pd.Series,

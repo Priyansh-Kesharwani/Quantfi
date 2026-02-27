@@ -23,7 +23,6 @@ from validation.objective import (
 )
 from validation.validator import CPCVConfig, CPCVSplit, generate_cpcv_splits
 
-
 def _ts_to_iso(ts) -> str:
     """Convert timestamp to ISO date string for metadata."""
     if hasattr(ts, "to_pydatetime"):
@@ -31,7 +30,6 @@ def _ts_to_iso(ts) -> str:
     if hasattr(ts, "isoformat"):
         return ts.isoformat()[:10]
     return str(ts)[:10]
-
 
 @dataclass
 class OrchestratorResult:
@@ -42,7 +40,6 @@ class OrchestratorResult:
     dsr_by_config: Dict[str, float] = field(default_factory=dict)
     n_trials: int = 0
     artifact_paths: Dict[str, str] = field(default_factory=dict)
-
 
 def _load_data(
     symbols: List[str],
@@ -60,7 +57,6 @@ def _load_data(
         asset_meta=meta,
     )
     return date_index, assets
-
 
 def _config_to_sim_config(
     config: Dict[str, Any],
@@ -101,7 +97,6 @@ def _config_to_sim_config(
         scoring_mode=config.get("scoring_mode", "mean_reversion"),
     )
 
-
 def _config_to_alloc_config(
     config: Dict[str, Any],
     symbols: List[str],
@@ -138,7 +133,6 @@ def _config_to_alloc_config(
         run_benchmarks=True,
     )
 
-
 def _slice_assets_for_split(
     assets: Any,
     test_start: int,
@@ -153,7 +147,6 @@ def _slice_assets_for_split(
         end_inclusive = test_end + 1
         fvi_orig = getattr(ad, "first_valid_idx", 0)
         fvi_sliced = max(0, fvi_orig - test_start)
-        # Cap so we have at least 2 bars (GT-Score needs len(eq) >= 2)
         first_valid_idx = min(fvi_sliced, slice_len - 2) if slice_len >= 2 else 0
         trend_sc = ad.trend_score[test_start:end_inclusive] if getattr(ad, "trend_score", None) is not None else None
         regime_sl = ad.regime[test_start:end_inclusive] if getattr(ad, "regime", None) is not None else None
@@ -172,7 +165,6 @@ def _slice_assets_for_split(
             regime=regime_sl,
         )
     return sliced
-
 
 def run_backtest_on_split(
     date_index: pd.DatetimeIndex,
@@ -212,7 +204,6 @@ def run_backtest_on_split(
         sim = PortfolioSimulator(sim_cfg)
         return sim.run(date_index, assets)
 
-
 def _sharpe_from_result(result: Dict[str, Any]) -> float:
     ec = result.get("equity_curve") or []
     if len(ec) < 2:
@@ -225,7 +216,6 @@ def _sharpe_from_result(result: Dict[str, Any]) -> float:
     if ret.std() <= 0:
         return 0.0
     return float((ret.mean() / ret.std()) * np.sqrt(252))
-
 
 def run_orchestrator(
     config_path: str,

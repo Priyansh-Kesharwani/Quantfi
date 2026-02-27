@@ -18,7 +18,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ── Try importing tick ──────────────────────────────────────
 _HAS_TICK = False
 try:
     from tick.hawkes import HawkesExpKern  # type: ignore
@@ -26,8 +25,6 @@ try:
 except ImportError:
     logger.info("tick not installed — using custom MLE fallback for Hawkes estimation.")
 
-
-# ── Custom MLE Fallback ────────────────────────────────────
 def _hawkes_log_likelihood(
     params: np.ndarray,
     event_times: np.ndarray,
@@ -39,18 +36,16 @@ def _hawkes_log_likelihood(
     """
     mu, alpha, beta = params
     if mu <= 0 or alpha < 0 or beta <= 0 or alpha >= beta:
-        return 1e12   # infeasible
+        return 1e12
 
     n = len(event_times)
     if n == 0:
         return mu * T_end
 
-    # Recursive computation of Σ e^{-β(t_i - t_j)} for j < i
     A = np.zeros(n)
     for i in range(1, n):
         A[i] = np.exp(-beta * (event_times[i] - event_times[i - 1])) * (1.0 + A[i - 1])
 
-    # log-likelihood components
     lambda_vals = mu + alpha * A
     lambda_vals = np.maximum(lambda_vals, 1e-30)
 
@@ -58,8 +53,7 @@ def _hawkes_log_likelihood(
     ll -= mu * T_end
     ll -= (alpha / beta) * np.sum(1.0 - np.exp(-beta * (T_end - event_times)))
 
-    return -ll   # negate for minimisation
-
+    return -ll
 
 def _fit_hawkes_mle(
     event_times: np.ndarray,
@@ -84,15 +78,12 @@ def _fit_hawkes_mle(
     )
 
     mu, alpha, beta = res.x
-    # Ensure stationarity: α < β
     if alpha >= beta:
         alpha = beta * 0.99
         logger.warning("Hawkes MLE: α ≥ β, clamped to 0.99·β for stationarity.")
 
     return float(mu), float(alpha), float(beta)
 
-
-# ── Intensity computation ──────────────────────────────────
 def _compute_intensity(
     event_times: np.ndarray,
     timestamps: np.ndarray,
@@ -114,8 +105,6 @@ def _compute_intensity(
 
     return lam
 
-
-# ── Public API ─────────────────────────────────────────────
 def estimate_hawkes(
     events: Dict[str, np.ndarray],
     timestamps: np.ndarray,
@@ -155,14 +144,12 @@ def estimate_hawkes(
     meta : dict
         Fitted parameters and diagnostic info.
     """
-    # Flatten all events into a single sorted array (univariate aggregation)
     all_events = np.sort(np.concatenate(list(events.values())))
     T_end = float(timestamps[-1]) if len(timestamps) > 0 else 1.0
 
     meta: Dict[str, Any] = {"backend": None, "mu": None, "alpha": None, "beta": None}
 
     if _HAS_TICK and len(all_events) > 5:
-        # ── tick backend ──────────────────────────
         try:
             learner = HawkesExpKern(decay, max_iter=max_iter, tol=tol, verbose=False)
             learner.fit([all_events.tolist()])
@@ -177,7 +164,6 @@ def estimate_hawkes(
             )
             meta["backend"] = "custom_mle"
     else:
-        # ── custom MLE fallback ───────────────────
         mu_hat, alpha_hat, beta_hat = _fit_hawkes_mle(
             all_events, T_end, mu_init, alpha_init, decay, max_iter, tol
         )
@@ -195,7 +181,6 @@ def estimate_hawkes(
     meta["mean_lambda"] = float(np.mean(lam))
 
     return intensity, meta
-
 
 def hawkes_lambda_decay(
     events: Dict[str, np.ndarray],
@@ -224,8 +209,6 @@ def hawkes_lambda_decay(
 
     intensity, _meta = estimate_hawkes(events, timestamps, decay=decay, **kwargs)
 
-    # Normalise via expanding ECDF-sigmoid with inverted polarity
-    # polarity=-1 → low intensity maps to high score (exit signal)
     norm = expanding_ecdf_sigmoid(
         intensity, k=norm_k, polarity=-1, min_obs=min_obs,
     )

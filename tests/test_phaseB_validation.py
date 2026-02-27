@@ -41,26 +41,20 @@ from validation.kfold import (
     KFoldResult,
 )
 
-
-# ── Fixtures ──────────────────────────────────────────────
-
 @pytest.fixture(scope="module")
 def synth_df():
     """Synthetic price DataFrame (FBM-based, 1000 bars)."""
     return fbm_series(n=1000, H=0.6, seed=42)
-
 
 @pytest.fixture(scope="module")
 def synth_scores(synth_df):
     """Deterministic synthetic Entry_Score and Exit_Score."""
     np.random.seed(42)
     n = len(synth_df)
-    # Scores correlated with future returns (positive IC)
     close = synth_df["close"].values
     fwd_5 = np.roll(close, -5) / close - 1
     fwd_5[-5:] = 0
 
-    # Generate scores with some signal + noise
     signal = (fwd_5 - fwd_5.mean()) / max(fwd_5.std(), 1e-12)
     entry = 50 + 15 * signal + np.random.randn(n) * 10
     entry = np.clip(entry, 0, 100)
@@ -71,7 +65,6 @@ def synth_scores(synth_df):
         pd.Series(entry, index=synth_df.index, name="Entry_Score"),
         pd.Series(exit_, index=synth_df.index, name="Exit_Score"),
     )
-
 
 def _dummy_score_fn(df):
     """A deterministic score function for testing walk-forward / kfold."""
@@ -86,11 +79,6 @@ def _dummy_score_fn(df):
         index=df.index, name="Exit_Score"
     )
     return entry, exit_
-
-
-# ====================================================================
-# Score Metrics Tests
-# ====================================================================
 
 class TestInformationCoefficient:
     def test_perfect_positive_ic(self):
@@ -117,7 +105,6 @@ class TestInformationCoefficient:
         ic = information_coefficient(scores, returns)
         assert np.isnan(ic)
 
-
 class TestHitRate:
     def test_all_hits(self):
         scores = pd.Series([80, 90, 75, 85])
@@ -137,7 +124,6 @@ class TestHitRate:
         hr = hit_rate(scores, returns, threshold=70)
         assert np.isnan(hr)
 
-
 class TestSortinoRatio:
     def test_all_positive_returns(self):
         returns = pd.Series([0.01, 0.02, 0.01, 0.015, 0.02])
@@ -154,7 +140,6 @@ class TestSortinoRatio:
         s = sortino_ratio(returns)
         assert s == 0.0
 
-
 class TestMaxDrawdown:
     def test_monotonic_increase(self):
         equity = pd.Series([100, 110, 120, 130, 140])
@@ -164,7 +149,6 @@ class TestMaxDrawdown:
     def test_known_drawdown(self):
         equity = pd.Series([100, 110, 90, 95, 85])
         dd = max_drawdown(equity)
-        # Peak=110, trough=85 → drawdown = (85-110)/110 ≈ -0.2273
         assert dd == pytest.approx(-25 / 110, abs=0.001)
 
     def test_single_point(self):
@@ -172,30 +156,24 @@ class TestMaxDrawdown:
         dd = max_drawdown(equity)
         assert dd == 0.0
 
-
 class TestCAGR:
     def test_doubling_in_one_year(self):
-        # 252 bars → 1 year
         equity = pd.Series(np.linspace(100, 200, 253))
         c = cagr(equity, periods_per_year=252)
-        assert c == pytest.approx(1.0, abs=0.01)  # ~100% CAGR
+        assert c == pytest.approx(1.0, abs=0.01)
 
     def test_flat_equity(self):
         equity = pd.Series([100] * 100)
         c = cagr(equity)
         assert c == 0.0
 
-
 class TestForwardReturns:
     def test_correct_shift(self):
         prices = pd.Series([100, 110, 105, 120, 115, 130])
         fwd = forward_returns(prices, horizon=2)
-        # At t=0: price[2]/price[0] - 1 = 105/100 - 1 = 0.05
         assert fwd.iloc[0] == pytest.approx(0.05, abs=1e-6)
-        # Last 2 should be NaN
-        assert fwd.iloc[-1] != fwd.iloc[-1]  # NaN check
+        assert fwd.iloc[-1] != fwd.iloc[-1]
         assert fwd.iloc[-2] != fwd.iloc[-2]
-
 
 class TestEvaluateSignals:
     def test_no_signals(self):
@@ -217,28 +195,20 @@ class TestEvaluateSignals:
         assert result["n_trades"] >= 1
         assert result["roi_per_trade"] > 0
 
-
-# ====================================================================
-# Walk-Forward Tests
-# ====================================================================
-
 class TestWalkForwardFolds:
     def test_no_overlap(self):
         folds = _generate_folds(1000, 500, 100, overlap=False)
-        # Should get 5 folds: test=[500:600], [600:700], [700:800], [800:900], [900:1000]
         assert len(folds) == 5
         for _, _, ts, te in folds:
             assert te - ts == 100
 
     def test_expanding_train(self):
         folds = _generate_folds(1000, 300, 100, overlap=False, expanding=True)
-        # All folds should start training from index 0
         for ts, _, _, _ in folds:
             assert ts == 0
 
     def test_rolling_train(self):
         folds = _generate_folds(1000, 300, 100, overlap=False, expanding=False)
-        # Train window should slide
         for ts, te, test_s, _ in folds:
             assert te == test_s
             assert te - ts == 300
@@ -248,8 +218,7 @@ class TestWalkForwardFolds:
         for i in range(len(folds) - 1):
             _, _, _, te_i = folds[i]
             _, _, ts_j, _ = folds[i + 1]
-            assert ts_j >= te_i  # no overlap
-
+            assert ts_j >= te_i
 
 class TestWalkForwardCV:
     def test_runs_without_error(self, synth_df):
@@ -311,16 +280,10 @@ class TestWalkForwardCV:
         )
         assert r1.to_dict() == r2.to_dict()
 
-
-# ====================================================================
-# Purged K-Fold Tests
-# ====================================================================
-
 class TestPurgedKFoldSplits:
     def test_no_leak(self):
         splits = _purged_kfold_splits(1000, 5, embargo=20)
         for train_idx, test_idx in splits:
-            # No overlap between train and test
             overlap = np.intersect1d(train_idx, test_idx)
             assert len(overlap) == 0
 
@@ -329,11 +292,9 @@ class TestPurgedKFoldSplits:
         for train_idx, test_idx in splits:
             test_min = test_idx.min()
             test_max = test_idx.max()
-            # No training sample within 20 bars of test boundaries
             near_test = train_idx[
                 (train_idx >= test_min - 20) & (train_idx <= test_max + 20)
             ]
-            # All near-test indices should be outside the embargo zone
             assert len(near_test) == 0
 
     def test_correct_number_of_splits(self):
@@ -343,9 +304,7 @@ class TestPurgedKFoldSplits:
     def test_full_coverage(self):
         splits = _purged_kfold_splits(100, 5, embargo=2)
         all_test = np.concatenate([t for _, t in splits])
-        # All indices should appear in at least one test fold
         assert len(np.unique(all_test)) == 100
-
 
 class TestPurgedKFold:
     def test_runs_without_error(self, synth_df):
@@ -382,11 +341,6 @@ class TestPurgedKFold:
         d = result.to_dict()
         assert d["n_splits"] == 3
         assert d["embargo"] == 10
-
-
-# ====================================================================
-# Composite Metrics Tests
-# ====================================================================
 
 class TestComputeAllMetrics:
     def test_returns_all_keys(self, synth_df, synth_scores):

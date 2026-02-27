@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 from typing import Tuple, Optional
 
-
 class TBLManager:
     """
     Triple barrier: upper (tp), lower (sl), time (tmax).
@@ -57,7 +56,6 @@ class TBLManager:
             return True, "time"
         return False, ""
 
-
 def estimate_ou_params(series: pd.Series) -> Tuple[float, float, float]:
     """
     Estimate (theta, mu, sigma) for dX = θ(μ − X)dt + σ dW from discretized OU.
@@ -71,7 +69,6 @@ def estimate_ou_params(series: pd.Series) -> Tuple[float, float, float]:
         raise ValueError("series must have at least 3 non-NaN points")
     y = np.diff(x)
     X_lag = x[:-1].reshape(-1, 1)
-    # y = α + β x_{t-1}  =>  [1, x_{t-1}] @ [α, β]' = y
     ones = np.ones((len(X_lag), 1), dtype=np.float64)
     reg = np.hstack([ones, X_lag])
     coeffs, residuals, rank, _ = np.linalg.lstsq(reg, y, rcond=None)
@@ -79,7 +76,6 @@ def estimate_ou_params(series: pd.Series) -> Tuple[float, float, float]:
     theta = -float(beta)
     if theta <= 0:
         theta = 0.01
-    # Discrete OU: X_t - X_{t-1} = θ μ dt - θ X_{t-1} dt + ε => α = θ μ, β = -θ => μ = α/θ
     mu = float(alpha) / theta if theta != 0 else float(np.mean(x))
     resid = y - reg @ coeffs
     sigma_resid = np.std(resid)
@@ -95,14 +91,12 @@ def estimate_ou_params(series: pd.Series) -> Tuple[float, float, float]:
                 dt = float(series.index[1] - series.index[0]) if len(series.index) > 1 else 1.0
         except Exception:
             dt = 1.0
-    # Discrete: var(ε) ≈ σ² * (1 - exp(-2θ*dt)) / (2θ)  =>  σ² = var(ε) * 2θ / (1 - exp(-2θ*dt))
     factor = 1.0 - np.exp(-2 * theta * dt)
     if factor <= 0:
         factor = 1e-10
     sigma_sq = (sigma_resid ** 2) * (2 * theta) / factor
     sigma = float(np.sqrt(max(sigma_sq, 1e-20)))
     return theta, mu, sigma
-
 
 def var_future(theta: float, sigma: float, T: float) -> float:
     """

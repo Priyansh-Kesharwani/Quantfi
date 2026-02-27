@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Suggest score component weights from rolling IC of each sub-score vs forward returns.
 
@@ -24,7 +23,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from validation.metrics import information_coefficient, forward_returns
-
 
 def compute_scores_and_breakdown(df, backend_engine):
     """Return (scores, breakdown_df) with columns technical_momentum, volatility_opportunity, statistical_deviation, macro_fx."""
@@ -87,7 +85,6 @@ def compute_scores_and_breakdown(df, backend_engine):
 
     return scores, pd.DataFrame(breakdown, index=df.index)
 
-
 def main():
     ap = argparse.ArgumentParser(description="Suggest score weights from rolling IC per component")
     ap.add_argument("--assets", type=str, default="AAPL,SPY")
@@ -142,7 +139,6 @@ def main():
                     ics[c] = information_coefficient(ser.loc[common], fwd_slice.loc[common])
             for c in components:
                 rolling_ic[c].append(ics.get(c, np.nan))
-        # Last rolling window suggestion
         suggested = {}
         last_ics = {c: (np.nanmean([x for x in rolling_ic[c] if not np.isnan(x)]) if rolling_ic[c] else np.nan) for c in components}
         total = sum(max(0, last_ics[c]) for c in components if not np.isnan(last_ics[c]))
@@ -163,7 +159,6 @@ def main():
         json.dump(all_results, f, indent=2)
     print(f"Results written to {out_path}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import pandas as pd
 
-
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Map common column names to canonical lower-case names."""
     col_map = {c.lower(): c for c in df.columns}
@@ -21,7 +20,6 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     if renames:
         out = out.rename(columns=renames)
     return out
-
 
 def build_bars(ticks: pd.DataFrame, freq: str) -> pd.DataFrame:
     """
@@ -44,7 +42,6 @@ def build_bars(ticks: pd.DataFrame, freq: str) -> pd.DataFrame:
     df = _normalize_columns(ticks)
     col_lower = {c.lower(): c for c in df.columns}
 
-    # Resolve timestamp
     ts_col = None
     for name in ["timestamp", "timestamp_utc", "ts", "time", "datetime"]:
         if name in df.columns:
@@ -66,7 +63,6 @@ def build_bars(ticks: pd.DataFrame, freq: str) -> pd.DataFrame:
     if ts.dt.tz is None:
         ts = ts.dt.tz_localize("UTC", ambiguous="infer")
 
-    # Resolve price/size
     price_col = col_lower.get("price") or col_lower.get("close")
     if not price_col:
         for c in df.columns:

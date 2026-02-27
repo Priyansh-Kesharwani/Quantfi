@@ -18,14 +18,12 @@ import pandas as pd
 
 from validation.metrics import information_coefficient, forward_returns
 
-
 def _refactor_composite_score_from_df(df: pd.DataFrame) -> pd.Series:
     """Build refactor components and return Entry CompositeScore series."""
     from indicators.refactor_components import ofi_refactor, vwap_z_refactor, hurst_refactor
     from indicators.composite_refactor import compute_composite_score_refactor
     from indicators.normalization_refactor import canonical_normalize
 
-    # Normalize column names
     cols = {c: c.lower() if isinstance(c, str) else c for c in df.columns}
     df = df.rename(columns=cols)
     close = df["close"].values
@@ -33,7 +31,6 @@ def _refactor_composite_score_from_df(df: pd.DataFrame) -> pd.Series:
 
     ofi_s, _ = ofi_refactor(df, window=20, min_obs=50)
     vwap_s, _ = vwap_z_refactor(close, volume, vol_window=60, index=df.index)
-    # VWAP z: lower is favorable → normalize to [0,1] with higher=better for composite
     vwap_norm, _ = canonical_normalize(np.nan_to_num(vwap_s.values, nan=0), mode="approx", higher_is_favorable=False, min_obs=50)
     vwap_norm_s = pd.Series(vwap_norm, index=df.index)
     hurst_s, _ = hurst_refactor(close, window=min(200, len(df) // 2), method="rs", index=df.index)
@@ -58,7 +55,6 @@ def _refactor_composite_score_from_df(df: pd.DataFrame) -> pd.Series:
     entry, _, _ = compute_composite_score_refactor(components)
     return entry
 
-
 def compute_decile_forward_returns(scores: pd.Series, prices: pd.Series, horizon: int) -> dict:
     """Decile mean forward return and std err per decile."""
     fwd = forward_returns(prices, horizon=horizon)
@@ -82,7 +78,6 @@ def compute_decile_forward_returns(scores: pd.Series, prices: pd.Series, horizon
         se = float(rets.std() / np.sqrt(n)) if n > 1 and rets.std() > 0 else 0.0
         out.append({"decile": int(q), "mean_forward_return": mean_ret, "std_error": se, "n_bars": n})
     return {"deciles": out, "horizon": horizon}
-
 
 def main() -> int:
     import argparse
@@ -143,7 +138,6 @@ def main() -> int:
         json.dump(all_results, f, indent=2)
     print(f"Wrote {out_path}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -33,7 +33,6 @@ import argparse
 
 logger = logging.getLogger(__name__)
 
-# Ensure project root is on path
 _PROJECT_ROOT = Path(__file__).parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
@@ -58,11 +57,6 @@ from simulations.hawkes_simulator import (
     run_all_regimes, validate_estimation,
     generate_synthetic_lob, generate_synthetic_trades,
 )
-
-
-# ====================================================================
-# Configuration
-# ====================================================================
 
 @dataclass
 class Phase3Config:
@@ -94,11 +88,6 @@ class Phase3Config:
             scoring=raw.get("scoring", {}),
             reporting=raw.get("reporting", {}),
         )
-
-
-# ====================================================================
-# Per-Asset Run
-# ====================================================================
 
 def run_asset_validation(
     df: pd.DataFrame,
@@ -146,14 +135,12 @@ def run_asset_validation(
     exit_thr = config.scoring.get("exit_threshold", 70.0)
     fwd_horizons = config.scoring.get("forward_horizons", [5, 10, 20])
 
-    # ── Step 1: Walk-Forward Outer Loop with Inner Tuning ────
     logger.info(f"[{symbol}/{interval}] Step 1: Walk-forward + tuning")
 
     tuning_cfg = TuningConfig.from_dict(config.tuning, seed=config.seed)
     tuning_cfg.inner_n_splits = config.inner_cv.get("n_splits", 5)
     tuning_cfg.inner_embargo = config.inner_cv.get("embargo_bars", 20)
 
-    # Generate outer folds
     from validation.walkforward import _generate_folds
     folds = _generate_folds(
         len(df), wf_cfg.train_window, wf_cfg.test_window,
@@ -169,7 +156,6 @@ def run_asset_validation(
         df_train = df.iloc[tr_s:tr_e]
         df_test = df.iloc[te_s:te_e]
 
-        # Inner tuning (on train only)
         if config.tuning.get("search_space"):
             tune_result = run_tuning(
                 df_train, score_fn, tuning_cfg,
@@ -182,7 +168,6 @@ def run_asset_validation(
             best_params = {}
             tuning_results.append({"fold": fold_i, "params": {}, "note": "no search space"})
 
-        # OOS evaluation on test fold
         try:
             df_combined = pd.concat([df_train, df_test])
             entry_scores, exit_scores = score_fn(df_combined, best_params)
@@ -200,7 +185,6 @@ def run_asset_validation(
                 entry_threshold=entry_thr, exit_threshold=exit_thr,
             )
 
-            # Apply execution costs
             period_ret = prices_test.pct_change().fillna(0)
             vol_col = col_map.get("volume", "volume")
             volumes = df_test[vol_col] if vol_col in df_test.columns else pd.Series(
@@ -234,11 +218,9 @@ def run_asset_validation(
     results["oos_folds"] = oos_fold_results
     results["tuning_traces"] = tuning_results
 
-    # ── Step 2: Aggregate OOS Metrics ────────────────────────
     logger.info(f"[{symbol}/{interval}] Step 2: Aggregating OOS metrics")
     results["oos_summary"] = _aggregate_oos(oos_fold_results, fwd_horizons)
 
-    # ── Step 3: Hawkes Stress Test ───────────────────────────
     logger.info(f"[{symbol}/{interval}] Step 3: Hawkes stress tests")
     if config.hawkes_stress.get("regimes"):
         hawkes_results = run_all_regimes(
@@ -261,7 +243,6 @@ def run_asset_validation(
             "validations": hawkes_validations,
         }
 
-    # ── Step 4: Slippage Sensitivity ─────────────────────────
     logger.info(f"[{symbol}/{interval}] Step 4: Slippage sensitivity")
     try:
         col_map = {c.lower(): c for c in df.columns}
@@ -269,7 +250,6 @@ def run_asset_validation(
         period_ret = prices.pct_change().fillna(0)
         volumes = df[col_map.get("volume", "volume")]
 
-        # Use scores from full dataset for sensitivity analysis
         entry_full, exit_full = score_fn(df, best_params if tuning_results else {})
         slip_matrix = slippage_sensitivity_matrix(
             period_ret, entry_full, exit_full, volumes,
@@ -281,11 +261,9 @@ def run_asset_validation(
         logger.warning(f"Slippage sensitivity failed: {e}")
         results["slippage_matrix"] = {"error": str(e)}
 
-    # ── Step 5: Robustness Tests ─────────────────────────────
     logger.info(f"[{symbol}/{interval}] Step 5: Robustness tests")
     robustness = config.robustness
 
-    # Threshold sweep
     if robustness.get("threshold_sweep"):
         threshold_results = _threshold_sweep(
             df, score_fn, best_params if tuning_results else {},
@@ -293,7 +271,6 @@ def run_asset_validation(
         )
         results["threshold_sweep"] = threshold_results
 
-    # Subsampling stability
     if robustness.get("subsample_n_trials"):
         subsample_results = _subsample_stability(
             df, score_fn, best_params if tuning_results else {},
@@ -304,22 +281,15 @@ def run_asset_validation(
         )
         results["subsample_stability"] = subsample_results
 
-    # ── Save Results ─────────────────────────────────────────
     results["elapsed_s"] = time.time() - t0
     results_path = out / f"{symbol}_{interval}_tuning.json"
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2, default=str)
     logger.info(f"Results saved to {results_path}")
 
-    # Determinism checksum
     results["checksum"] = _compute_checksum(results_path)
 
     return results
-
-
-# ====================================================================
-# Helpers
-# ====================================================================
 
 def _aggregate_oos(
     fold_results: List[Dict[str, Any]],
@@ -332,7 +302,6 @@ def _aggregate_oos(
     if not valid_folds:
         return {"note": "no valid OOS folds"}
 
-    # Collect Sortino, CAGR, IC across folds
     sortinos = []
     cagrs = []
     dds = []
@@ -357,14 +326,12 @@ def _aggregate_oos(
         summary[f"median_{key}"] = float(np.nanmedian(vals))
         summary[f"std_{key}"] = float(np.nanstd(vals))
 
-    # Execution cost aggregates
     costs = [f.get("execution_costs", {}) for f in valid_folds]
     avg_erosion = np.nanmean([c.get("pnl_erosion", 0) for c in costs])
     summary["avg_pnl_erosion"] = float(avg_erosion)
     summary["n_valid_folds"] = len(valid_folds)
 
     return summary
-
 
 def _threshold_sweep(
     df: pd.DataFrame,
@@ -407,7 +374,6 @@ def _threshold_sweep(
 
     return results
 
-
 def _subsample_stability(
     df: pd.DataFrame,
     score_fn: Callable,
@@ -429,7 +395,6 @@ def _subsample_stability(
     sample_size = int(n * fraction)
 
     for trial in range(n_trials):
-        # Contiguous block subsample (preserves time structure)
         start = rng.randint(0, n - sample_size)
         df_sub = df.iloc[start:start + sample_size]
         prices_sub = prices.iloc[start:start + sample_size]
@@ -458,7 +423,6 @@ def _subsample_stability(
         "ic_std": float(np.nanstd(ics)) if ics else np.nan,
     }
 
-
 def _compute_checksum(path: str) -> str:
     """Compute SHA256 of a file for determinism verification."""
     h = hashlib.sha256()
@@ -466,11 +430,6 @@ def _compute_checksum(path: str) -> str:
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()
-
-
-# ====================================================================
-# CLI Entry Point
-# ====================================================================
 
 def main():
     """Command-line entry point for Phase 3 runner."""
@@ -495,7 +454,6 @@ def main():
     if args.trials:
         config.tuning["n_trials"] = args.trials
 
-    # Determine assets and intervals
     if args.assets:
         asset_syms = [s.strip() for s in args.assets.split(",")]
     else:
@@ -504,7 +462,6 @@ def main():
     logger.info(f"Phase 3 runner: assets={asset_syms}")
     logger.info(f"Config seed: {config.seed}")
 
-    # Default score function (deterministic synthetic for testing)
     def _default_score_fn(df, params=None):
         np.random.seed(config.seed)
         n = len(df)
@@ -528,7 +485,6 @@ def main():
         for interval in intervals:
             logger.info(f"=== Running {sym}/{interval} ===")
 
-            # Load data
             df, fetch_report = fetch_and_validate(
                 sym, save_csv=False,
                 min_history_years=asset_cfg.get("min_history_years", 10) if asset_cfg else 10,
@@ -550,7 +506,6 @@ def main():
             )
 
     logger.info("Phase 3 runner complete.")
-
 
 if __name__ == "__main__":
     main()

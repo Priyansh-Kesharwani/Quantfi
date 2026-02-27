@@ -14,7 +14,6 @@ from crypto.models import (
     OrderIntent,
 )
 
-
 @pytest.fixture
 def long_position():
     return FuturesPosition(
@@ -28,7 +27,6 @@ def long_position():
         entry_time=datetime(2024, 1, 1, 12, 0),
         peak_price=50_000.0,
     )
-
 
 @pytest.fixture
 def short_position():
@@ -44,14 +42,13 @@ def short_position():
         peak_price=3_000.0,
     )
 
-
 class TestFuturesPosition:
     def test_notional(self, long_position):
         assert long_position.notional == pytest.approx(5_000.0)
 
     def test_unrealized_pnl_long_profit(self, long_position):
         pnl = long_position.unrealized_pnl(51_000.0)
-        assert pnl == pytest.approx(100.0)  # 0.1 * (51000 - 50000)
+        assert pnl == pytest.approx(100.0)
 
     def test_unrealized_pnl_long_loss(self, long_position):
         pnl = long_position.unrealized_pnl(49_000.0)
@@ -114,7 +111,6 @@ class TestFuturesPosition:
         expected = 100.0 / long_position.margin
         assert pct == pytest.approx(expected)
 
-
 class TestGridOrder:
     def test_creation(self):
         order = GridOrder(
@@ -138,7 +134,6 @@ class TestGridOrder:
         assert restored.fill_time == order.fill_time
         assert restored.fill_price == pytest.approx(order.fill_price)
 
-
 class TestCryptoTradeRecord:
     def test_creation(self):
         rec = CryptoTradeRecord(
@@ -160,7 +155,6 @@ class TestCryptoTradeRecord:
         assert d["symbol"] == "BTC/USDT:USDT"
         assert d["side"] == "long_entry"
 
-
 class TestOrderIntent:
     def test_market_order(self):
         intent = OrderIntent(
@@ -172,7 +166,6 @@ class TestOrderIntent:
         )
         assert intent.price is None
         assert intent.reduce_only is False
-
 
 class TestBotState:
     def test_roundtrip(self):

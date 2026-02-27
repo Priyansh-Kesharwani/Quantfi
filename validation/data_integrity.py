@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 REQUIRED_COLUMNS = {"open", "high", "low", "close", "volume"}
 OPTIONAL_COLUMNS = {"bid", "ask", "vwap"}
 
-
 def validate_dataframe(
     df: pd.DataFrame,
     symbol: str = "UNKNOWN",
@@ -61,43 +60,36 @@ def validate_dataframe(
     warnings: List[str] = []
     stats: Dict[str, Any] = {}
 
-    # ── Column check ──────────────────────────────────────────
-    # Case-insensitive column matching
     col_lower = {c.lower(): c for c in df.columns}
     present = set(col_lower.keys())
     missing = req_cols - present
     if missing:
         errors.append(f"Missing required columns: {sorted(missing)}")
 
-    # ── Index check ───────────────────────────────────────────
     if not isinstance(df.index, pd.DatetimeIndex):
         errors.append("Index is not a DatetimeIndex")
     else:
-        # Timezone check
         if df.index.tz is None:
             warnings.append("Index has no timezone; UTC expected")
         elif str(df.index.tz) != "UTC":
             warnings.append(f"Index timezone is {df.index.tz}, expected UTC")
 
-        # Monotonicity
         if not df.index.is_monotonic_increasing:
             errors.append("Index is not monotonically increasing")
 
-        # Bar interval stability
         if len(df) > 2:
-            deltas = np.diff(df.index.asi8)  # nanosecond diffs
+            deltas = np.diff(df.index.asi8)
             median_delta = np.median(deltas)
             if median_delta > 0:
                 deviations = np.abs(deltas - median_delta) / median_delta
                 unstable_pct = float((deviations > bar_interval_tol).mean())
                 stats["bar_interval_unstable_pct"] = unstable_pct
-                if unstable_pct > 0.10:  # more than 10% bars deviate
+                if unstable_pct > 0.10:
                     warnings.append(
                         f"Bar interval unstable: {unstable_pct:.1%} of bars "
                         f"deviate >{bar_interval_tol:.0%} from median"
                     )
 
-    # ── NaN check ─────────────────────────────────────────────
     nan_report: Dict[str, float] = {}
     for col_name in req_cols.intersection(present):
         actual_col = col_lower[col_name]
@@ -110,7 +102,6 @@ def validate_dataframe(
             )
     stats["nan_rates"] = nan_report
 
-    # ── Value sanity checks ───────────────────────────────────
     if "close" in present and "open" in present:
         close = df[col_lower["close"]]
         open_ = df[col_lower["open"]]
@@ -131,7 +122,6 @@ def validate_dataframe(
         if (vol < 0).any():
             errors.append("Negative volume detected")
 
-    # ── Summary stats ─────────────────────────────────────────
     stats["n_rows"] = len(df)
     stats["n_columns"] = len(df.columns)
     if isinstance(df.index, pd.DatetimeIndex) and len(df) > 0:
@@ -161,7 +151,6 @@ def validate_dataframe(
 
     return result
 
-
 def clean_dataframe(
     df: pd.DataFrame,
     max_nan_pct: float = 0.001,
@@ -188,22 +177,18 @@ def clean_dataframe(
 
     cleaned = df.copy()
 
-    # Normalise column names to lowercase
     cleaned.columns = [c.lower() for c in cleaned.columns]
     report["operations"].append("lowered column names")
 
-    # Sort by index
     if not cleaned.index.is_monotonic_increasing:
         cleaned = cleaned.sort_index()
         report["operations"].append("sorted index")
 
-    # Remove duplicate timestamps
     n_dupes = int(cleaned.index.duplicated().sum())
     if n_dupes > 0:
         cleaned = cleaned[~cleaned.index.duplicated(keep="first")]
         report["operations"].append(f"removed {n_dupes} duplicate timestamps")
 
-    # Interpolate small NaN gaps
     for col in cleaned.columns:
         nan_frac = float(cleaned[col].isna().mean())
         if 0 < nan_frac <= max_nan_pct:
@@ -212,7 +197,6 @@ def clean_dataframe(
                 f"interpolated NaNs in '{col}' ({nan_frac:.4%})"
             )
 
-    # Ensure UTC timezone
     if isinstance(cleaned.index, pd.DatetimeIndex):
         if cleaned.index.tz is None:
             cleaned.index = cleaned.index.tz_localize("UTC")
@@ -223,7 +207,6 @@ def clean_dataframe(
             report["operations"].append(f"converted index from {old_tz} to UTC")
 
     return cleaned, report
-
 
 def canonicalize(
     df: pd.DataFrame,
@@ -245,9 +228,7 @@ def canonicalize(
     )
 
     if not validation["is_valid"]:
-        # Attempt cleaning
         cleaned, clean_report = clean_dataframe(df, max_nan_pct=max_nan_pct)
-        # Re-validate
         revalidation = validate_dataframe(
             cleaned, symbol=symbol, interval=interval, max_nan_pct=max_nan_pct
         )
@@ -264,11 +245,6 @@ def canonicalize(
             "cleaning": clean_report,
         }
         return cleaned, report
-
-
-# ====================================================================
-# Data Acquisition & End-to-End Pipeline
-# ====================================================================
 
 def fetch_and_validate(
     symbol: str,
@@ -312,13 +288,11 @@ def fetch_and_validate(
         "canonical": False,
     }
 
-    # ── Step 1: Fetch ─────────────────────────────────────────
     try:
         import yfinance as yf
         ticker = yf.Ticker(symbol)
         raw = ticker.history(period=period)
     except ImportError:
-        # Fallback: try the project's DataFetcher
         try:
             from data.fetcher import DataFetcher
             fetcher = DataFetcher()
@@ -340,7 +314,6 @@ def fetch_and_validate(
     report["fetch"]["rows"] = len(raw)
     report["fetch"]["date_range"] = f"{raw.index[0]} → {raw.index[-1]}"
 
-    # ── Step 2: Save raw CSV ──────────────────────────────────
     if save_csv:
         raw_dir = Path(raw_data_dir)
         raw_dir.mkdir(parents=True, exist_ok=True)
@@ -349,13 +322,11 @@ def fetch_and_validate(
         report["fetch"]["csv_path"] = str(csv_path)
         logger.info(f"Saved raw CSV: {csv_path}")
 
-    # ── Step 3: Canonicalize ──────────────────────────────────
     canonical, canon_report = canonicalize(
         raw, symbol=symbol, interval="1d", max_nan_pct=max_nan_pct
     )
     report["validation"] = canon_report
 
-    # ── Step 4: Check history length ──────────────────────────
     if len(canonical) > 1:
         years = (canonical.index[-1] - canonical.index[0]).days / 365.25
         report["history_years"] = round(years, 1)
@@ -372,7 +343,6 @@ def fetch_and_validate(
 
     report["canonical"] = True
     return canonical, report
-
 
 def load_phaseB_config(
     path: str = "config/phaseB.yml",

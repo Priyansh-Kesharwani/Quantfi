@@ -17,13 +17,11 @@ from indicators.normalization import expanding_ecdf_sigmoid
 
 logger = logging.getLogger(__name__)
 
-
 def _signed_volume(close: np.ndarray, volume: np.ndarray) -> np.ndarray:
     """Compute signed volume proxy: sign(Δclose) × volume."""
     delta = np.diff(close, prepend=close[0])
     sign = np.sign(delta)
     return sign * volume
-
 
 def compute_ofi(
     df: pd.DataFrame,
@@ -55,7 +53,6 @@ def compute_ofi(
     pd.Series
         Normalised OFI ∈ (0, 1), or raw rolling OFI if normalize=False.
     """
-    # Resolve column names (case-insensitive)
     col_map = {c.lower(): c for c in df.columns}
     close_col = col_map.get("close", "close")
     volume_col = col_map.get("volume", "volume")
@@ -80,7 +77,6 @@ def compute_ofi(
     ofi_norm.name = "ofi"
     return ofi_norm
 
-
 def compute_ofi_reversal(
     df: pd.DataFrame,
     window: int = 20,
@@ -96,6 +92,6 @@ def compute_ofi_reversal(
         df,
         window=window,
         normalize=True,
-        norm_polarity=-1,   # invert: selling pressure → high score
+        norm_polarity=-1,
         min_obs=min_obs,
     )

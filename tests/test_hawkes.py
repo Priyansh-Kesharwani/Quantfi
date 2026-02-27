@@ -18,7 +18,6 @@ from indicators.hawkes import (
 )
 from tests.fixtures import poisson_events, hawkes_events
 
-
 class TestHawkesLogLikelihood:
 
     def test_empty_events_returns_mu_T(self):
@@ -32,12 +31,11 @@ class TestHawkesLogLikelihood:
 
     def test_infeasible_params_return_large(self):
         nll = _hawkes_log_likelihood(
-            np.array([-1.0, 0.3, 1.0]),   # mu < 0
+            np.array([-1.0, 0.3, 1.0]),
             event_times=np.array([1.0, 2.0]),
             T_end=10.0,
         )
         assert nll >= 1e10
-
 
 class TestFitHawkesMLE:
 
@@ -45,7 +43,6 @@ class TestFitHawkesMLE:
         """For a homogeneous Poisson process, α should be ≈ 0."""
         events = poisson_events(rate=2.0, T=200.0, seed=42)
         mu, alpha, beta = _fit_hawkes_mle(events, T_end=200.0)
-        # mu should be close to 2.0, alpha close to 0
         assert abs(mu - 2.0) < 1.0, f"Expected mu ≈ 2.0, got {mu:.3f}"
         assert alpha < 0.5, f"Expected small alpha, got {alpha:.3f}"
 
@@ -54,7 +51,6 @@ class TestFitHawkesMLE:
         events = hawkes_events(mu=0.5, alpha=0.8, beta=1.5, T=300.0, seed=42)
         mu, alpha, beta = _fit_hawkes_mle(events, T_end=300.0, beta_init=1.5)
         assert alpha > 0.1, f"Expected meaningful excitation, got α = {alpha:.3f}"
-
 
 class TestComputeIntensity:
 
@@ -77,7 +73,6 @@ class TestComputeIntensity:
         ts = np.array([5.1, 6.0, 10.0])
         lam = _compute_intensity(events, ts, mu=0.5, alpha=2.0, beta=1.0)
         assert lam[0] > lam[1] > lam[2], "Intensity should decay over time"
-
 
 class TestEstimateHawkes:
 
@@ -108,7 +103,6 @@ class TestEstimateHawkes:
         _, meta = estimate_hawkes({"trades": events}, ts)
         assert meta["backend"] in ("tick", "custom_mle")
 
-
 class TestHawkesLambdaDecay:
 
     def test_output_bounded_zero_one(self):
@@ -131,9 +125,7 @@ class TestHawkesLambdaDecay:
         """With no events (constant μ), short series → all NaN (warm-up)."""
         ts = np.arange(0, 10, 1.0)
         decay = hawkes_lambda_decay({"trades": np.array([])}, ts, min_obs=50)
-        # Only 10 points, min_obs=50 → everything is NaN
         assert decay.isna().all()
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

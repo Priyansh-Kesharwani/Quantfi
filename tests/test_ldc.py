@@ -10,8 +10,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from indicators.ldc import LDC, lorentzian_distance, build_templates_from_labels
 
-
-# ── Lorentzian distance ────────────────────────────────────
 class TestLorentzianDistance:
 
     def test_identical_vectors_zero_distance(self):
@@ -47,8 +45,6 @@ class TestLorentzianDistance:
         expected = np.log(1 + ((1 - 3) / 1) ** 2) + np.log(1 + ((2 - 5) / 2) ** 2)
         assert lorentzian_distance(x, y, gamma) == pytest.approx(expected)
 
-
-# ── LDC class ──────────────────────────────────────────────
 class TestLDC:
 
     @pytest.fixture
@@ -102,10 +98,9 @@ class TestLDC:
         ldc_sharp = LDC(kappa=10.0)
         ldc_sharp.fit(templates)
 
-        x = np.array([0.5, 0.5])  # slightly bullish
+        x = np.array([0.5, 0.5])
         s_gentle = ldc_gentle.score(x)
         s_sharp = ldc_sharp.score(x)
-        # Both should be > 0.5, but sharp should be more extreme
         assert s_sharp > s_gentle
 
     def test_score_batch(self, simple_ldc):
@@ -116,8 +111,8 @@ class TestLDC:
         ])
         scores = simple_ldc.score_batch(X)
         assert scores.shape == (3,)
-        assert scores[0] > 0.5  # bull
-        assert scores[1] < 0.5  # bear
+        assert scores[0] > 0.5
+        assert scores[1] < 0.5
 
     def test_deterministic(self, simple_ldc):
         x = np.array([0.3, -0.2, 0.8])
@@ -125,8 +120,6 @@ class TestLDC:
         s2 = simple_ldc.score(x)
         assert s1 == s2
 
-
-# ── Motif separation (ROC AUC) ─────────────────────────────
 class TestLDCMotifSeparation:
 
     def test_roc_auc_above_threshold(self):
@@ -147,13 +140,10 @@ class TestLDCMotifSeparation:
 
         scores = ldc.score_batch(features)
 
-        # Manual AUC calculation (no sklearn dependency required)
         from tests._auc_helper import manual_roc_auc
         auc = manual_roc_auc(labels, scores)
         assert auc > 0.8, f"AUC = {auc:.3f}, expected > 0.8"
 
-
-# ── Serialisation ──────────────────────────────────────────
 class TestLDCSerialisation:
 
     def test_round_trip(self):
@@ -166,7 +156,6 @@ class TestLDCSerialisation:
         ldc2 = LDC.from_dict(d)
         x = np.array([0.5, 0.5])
         assert ldc.score(x) == pytest.approx(ldc2.score(x))
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

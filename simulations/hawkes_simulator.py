@@ -28,7 +28,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 def simulate_hawkes_events(
     mu: float,
     alpha: float,
@@ -59,10 +58,9 @@ def simulate_hawkes_events(
     rng = np.random.RandomState(seed)
     events: List[float] = []
     t = 0.0
-    lam_star = mu  # initial intensity upper bound
+    lam_star = mu
 
     while t < T:
-        # Draw next candidate inter-arrival
         u = rng.rand()
         if u <= 0:
             u = 1e-15
@@ -71,21 +69,18 @@ def simulate_hawkes_events(
         if t >= T:
             break
 
-        # Compute actual intensity at t
         lam_t = mu
         for s in events:
             lam_t += alpha * np.exp(-beta * (t - s))
 
-        # Accept/reject
         d = rng.rand()
         if d <= lam_t / lam_star:
             events.append(t)
-            lam_star = lam_t + alpha  # update upper bound
+            lam_star = lam_t + alpha
         else:
-            lam_star = max(lam_t, mu)  # tighten bound
+            lam_star = max(lam_t, mu)
 
     return np.array(events)
-
 
 def ground_truth_intensity(
     events: np.ndarray,
@@ -119,8 +114,6 @@ def ground_truth_intensity(
     n_grid = len(grid)
     lam = np.full(n_grid, mu, dtype=np.float64)
 
-    # Use recursive computation for efficiency
-    # Sort events (should already be sorted)
     events_sorted = np.sort(events)
 
     for k, t in enumerate(grid):
@@ -129,7 +122,6 @@ def ground_truth_intensity(
             lam[k] += alpha * np.sum(np.exp(-beta * (t - past)))
 
     return lam
-
 
 def branching_ratio(alpha: float, beta: float) -> float:
     """Compute Hawkes branching ratio η = α/β.
@@ -147,7 +139,6 @@ def branching_ratio(alpha: float, beta: float) -> float:
         return np.inf
     return alpha / beta
 
-
 def expected_event_rate(mu: float, alpha: float, beta: float) -> float:
     """Expected stationary event rate: μ / (1 - α/β).
 
@@ -162,7 +153,6 @@ def expected_event_rate(mu: float, alpha: float, beta: float) -> float:
     if eta >= 1.0:
         return np.inf
     return mu / (1.0 - eta)
-
 
 def intensity_rmse(
     estimated: np.ndarray,
@@ -184,7 +174,6 @@ def intensity_rmse(
     """
     return float(np.sqrt(np.mean((estimated - truth) ** 2)))
 
-
 def relative_rmse(
     estimated: np.ndarray,
     truth: np.ndarray,
@@ -200,11 +189,6 @@ def relative_rmse(
     if mean_truth == 0:
         return np.inf
     return intensity_rmse(estimated, truth) / mean_truth
-
-
-# ====================================================================
-# Regime Simulation Scenarios
-# ====================================================================
 
 def simulate_regime(
     regime_name: str,
@@ -254,7 +238,6 @@ def simulate_regime(
         "seed": seed,
     }
 
-
 def run_all_regimes(
     regimes: List[Dict[str, Any]],
     base_seed: int = 0,
@@ -296,7 +279,6 @@ def run_all_regimes(
 
     return results
 
-
 def validate_estimation(
     estimated_intensity: np.ndarray,
     regime_result: Dict[str, Any],
@@ -319,7 +301,6 @@ def validate_estimation(
     """
     truth = regime_result["true_intensity"]
 
-    # Align lengths (estimation might be on different grid)
     min_len = min(len(estimated_intensity), len(truth))
     est = estimated_intensity[:min_len]
     tru = truth[:min_len]
@@ -339,11 +320,6 @@ def validate_estimation(
         "mean_estimated": float(np.mean(est)),
         "mean_truth": float(np.mean(tru)),
     }
-
-
-# ====================================================================
-# Phase 3 — Synthetic LOB & Trade Tick Generation
-# ====================================================================
 
 def generate_synthetic_lob(
     events: np.ndarray,
@@ -387,11 +363,9 @@ def generate_synthetic_lob(
     rng = np.random.RandomState(seed)
     n = len(grid)
 
-    # Simulate mid-price random walk
     returns = rng.normal(0, volatility, n)
     mid_prices = base_mid * np.exp(np.cumsum(returns))
 
-    # Count events in windows around each grid point
     event_counts = np.zeros(n)
     for k, t in enumerate(grid):
         window = 1.0
@@ -399,9 +373,8 @@ def generate_synthetic_lob(
             (events >= t - window) & (events < t + window)
         )
 
-    # Normalised activity (higher activity → thinner book)
     max_count = max(event_counts.max(), 1)
-    activity = event_counts / max_count  # [0, 1]
+    activity = event_counts / max_count
 
     bid_prices_all = []
     ask_prices_all = []
@@ -410,7 +383,7 @@ def generate_synthetic_lob(
 
     for k in range(n):
         mid = mid_prices[k]
-        spread_mult = 1.0 + activity[k] * 2.0  # wider spread when active
+        spread_mult = 1.0 + activity[k] * 2.0
 
         bids = []
         asks = []
@@ -421,7 +394,6 @@ def generate_synthetic_lob(
             bids.append(mid - offset)
             asks.append(mid + offset)
 
-            # Depth decreases closer to mid, modulated by activity
             depth = base_depth * (1.0 - 0.5 * activity[k]) / (lev + 1)
             depth = max(depth + rng.normal(0, depth * 0.1), 1.0)
             b_depths.append(depth)
@@ -442,7 +414,6 @@ def generate_synthetic_lob(
         "event_counts": event_counts,
         "n_levels": depth_levels,
     }
-
 
 def generate_synthetic_trades(
     events: np.ndarray,
@@ -485,20 +456,15 @@ def generate_synthetic_trades(
             columns=["time", "price", "size", "side", "ofi_contribution"]
         )
 
-    # Price random walk at trade times
     returns = rng.normal(0, volatility, n)
     prices = base_mid * np.exp(np.cumsum(returns))
 
-    # Trade directions
     sides = np.where(rng.rand(n) < buy_prob, 1, -1)
 
-    # Trade sizes (burstier periods → larger trades)
     inter_event = np.diff(events, prepend=0)
-    # Shorter inter-event → larger cluster → larger size
     size_mult = np.clip(1.0 / (inter_event + 0.01), 0.5, 5.0)
     sizes = base_size * size_mult * (1 + rng.exponential(0.3, n))
 
-    # OFI contribution: side * size
     ofi = sides * sizes
 
     return pd.DataFrame({

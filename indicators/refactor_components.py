@@ -18,7 +18,6 @@ from indicators.hurst import estimate_hurst
 from indicators.hawkes import estimate_hawkes
 from indicators.ldc import LDC, build_templates_from_labels
 
-
 def _standard_meta(
     name: str,
     window: int,
@@ -38,7 +37,6 @@ def _standard_meta(
     }
     meta.update(extra)
     return meta
-
 
 def ofi_refactor(
     df: pd.DataFrame,
@@ -61,7 +59,6 @@ def ofi_refactor(
     )
     series = series.rename("OFI")
     return series, meta
-
 
 def vwap_z_refactor(
     price_series: np.ndarray,
@@ -86,12 +83,11 @@ def vwap_z_refactor(
         window=vol_window,
         n_obs=n_obs,
         unit="z_score",
-        polarity="lower_favorable",  # negative z = below VWAP = undervalued
+        polarity="lower_favorable",
         warnings=[inner_meta.get("notes", "")] if inner_meta.get("notes") else [],
     )
     meta["method"] = inner_meta.get("method", "vwap")
     return series, meta
-
 
 def hurst_refactor(
     series: np.ndarray,
@@ -103,7 +99,6 @@ def hurst_refactor(
     Hurst / persistence H_t. DFA or wavelet per config; fallback R/S.
     Returns (Series, meta). Polarity: higher H = more persistent = often favorable.
     """
-    # estimate_hurst uses "auto" | "rs" | "wavelet"; map "dfa" -> "rs" (no DFA impl yet)
     actual_method = "wavelet" if method == "dfa" else method
     if actual_method == "dfa":
         actual_method = "rs"
@@ -123,7 +118,6 @@ def hurst_refactor(
     )
     meta["method"] = inner_meta.get("method", actual_method)
     return s, meta
-
 
 def hawkes_refactor(
     events: Dict[str, np.ndarray],
@@ -146,10 +140,10 @@ def hawkes_refactor(
     n_obs = len(intensity)
     meta = _standard_meta(
         name="Hawkes_lambda",
-        window=0,  # N/A
+        window=0,
         n_obs=n_obs,
         unit="intensity",
-        polarity="lower_favorable",  # high intensity often unfavorable
+        polarity="lower_favorable",
         warnings=[],
     )
     meta["mu"] = inner_meta.get("mu")
@@ -157,7 +151,6 @@ def hawkes_refactor(
     meta["beta"] = inner_meta.get("beta")
     meta["n_events"] = inner_meta.get("n_events")
     return intensity, meta
-
 
 def ldc_refactor(
     features: np.ndarray,

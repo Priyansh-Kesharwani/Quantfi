@@ -11,7 +11,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from indicators.composite import compose_scores, PhaseAConfig
 
-
 def _make_components(n: int = 200, seed: int = 42) -> dict:
     """Generate deterministic neutral-ish component series."""
     np.random.seed(seed)
@@ -25,12 +24,10 @@ def _make_components(n: int = 200, seed: int = 42) -> dict:
         "OFI_t": pd.Series(np.random.uniform(0.3, 0.7, n), index=idx),
         "P_move_t": pd.Series(np.random.uniform(0.3, 0.7, n), index=idx),
         "S_t": pd.Series(np.zeros(n), index=idx),
-        # Exit components
         "TBL_flag": pd.Series(np.random.uniform(0.2, 0.8, n), index=idx),
         "OFI_rev": pd.Series(np.random.uniform(0.2, 0.8, n), index=idx),
         "lambda_decay": pd.Series(np.random.uniform(0.2, 0.8, n), index=idx),
     }
-
 
 class TestComposeScoresContract:
 
@@ -64,7 +61,6 @@ class TestComposeScoresContract:
         _, _, breakdown = compose_scores(comps)
         for col in ["Opp_t", "Gate_t", "RawFavor", "Entry_Score", "Exit_Score"]:
             assert col in breakdown.columns, f"Missing column: {col}"
-
 
 class TestEntryScore:
 
@@ -108,7 +104,6 @@ class TestEntryScore:
         e_wide, _, _ = compose_scores(comps, cfg_wide)
         assert e_wide.std() > e_narrow.std()
 
-
 class TestExitScore:
 
     def test_weights_sum_to_one(self):
@@ -125,7 +120,6 @@ class TestExitScore:
         }
         _, exit_, _ = compose_scores(comps)
         assert exit_.mean() > 60
-
 
 class TestPhaseAConfig:
 
@@ -161,7 +155,6 @@ logging:
         assert d["S_scale"] == 2.0
         assert d["gamma_1"] == 0.5
 
-
 class TestDeterminism:
 
     def test_same_input_same_output(self):
@@ -170,7 +163,6 @@ class TestDeterminism:
         e2, x2, b2 = compose_scores(comps)
         pd.testing.assert_series_equal(e1, e2)
         pd.testing.assert_series_equal(x1, x2)
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

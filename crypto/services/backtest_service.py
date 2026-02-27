@@ -34,7 +34,6 @@ from crypto.strategies.base import compute_first_valid_bar
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class CryptoBacktestConfig:
     symbol: str = "BTC/USDT:USDT"
@@ -79,7 +78,6 @@ class CryptoBacktestConfig:
     ic_horizon: int = 20
     ic_alpha: float = 5.0
     ic_shrink: float = 0.2
-
 
 class CryptoBacktestService:
     """Runs full backtests for the crypto trading bot."""
@@ -160,10 +158,6 @@ class CryptoBacktestService:
 
         return result
 
-    # ------------------------------------------------------------------
-    # Input validation
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _validate_inputs(
         ohlcv: pd.DataFrame,
@@ -208,10 +202,6 @@ class CryptoBacktestService:
 
         return scores, regimes, atr, funding_rates
 
-    # ------------------------------------------------------------------
-    # Regime → mode mapping (adaptive)
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _regime_to_mode(regime: str) -> str:
         if regime == "TRENDING":
@@ -219,10 +209,6 @@ class CryptoBacktestService:
         elif regime == "RANGING":
             return "grid"
         return "directional"
-
-    # ------------------------------------------------------------------
-    # Main loop
-    # ------------------------------------------------------------------
 
     def _run_bar_by_bar(
         self,
@@ -261,16 +247,12 @@ class CryptoBacktestService:
         score_below_count = 0
 
         for i in range(1, n):
-            # Current bar: used for mark-to-market, liquidation, and grid fills
             close = float(ohlcv["close"].iloc[i])
             high_val = float(ohlcv.get("high", ohlcv["close"]).iloc[i])
             low_val = float(ohlcv.get("low", ohlcv["close"]).iloc[i])
             open_val = float(ohlcv.get("open", ohlcv["close"]).iloc[i])
             ts = ohlcv.index[i] if isinstance(ohlcv.index, pd.DatetimeIndex) else datetime(2024, 1, 1)
 
-            # LOOK-AHEAD FIX: decision signals come from the PREVIOUS bar.
-            # Score/regime/ATR at bar i-1 are fully known at its close;
-            # we act on them at bar i's open — never on the signal candle.
             prev = i - 1
             signal_score = float(scores.iloc[prev]) if not np.isnan(scores.iloc[prev]) else 0.0
             signal_regime = str(regimes.iloc[prev])
@@ -307,7 +289,6 @@ class CryptoBacktestService:
                 equity[i] = capital + margin + unrealized
                 continue
 
-            # Entries/exits execute at the OPEN of the current bar
             exec_price = open_val
 
             if config.strategy_mode == "adaptive":
@@ -409,10 +390,6 @@ class CryptoBacktestService:
                 trades.append(t)
 
         return capital, None, 0
-
-    # ------------------------------------------------------------------
-    # Directional step with score-proportional sizing and stress reduction
-    # ------------------------------------------------------------------
 
     def _directional_step(
         self,
@@ -534,10 +511,6 @@ class CryptoBacktestService:
 
         return capital
 
-    # ------------------------------------------------------------------
-    # Position sizing: score-proportional with Kelly overlay
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _position_fraction(
         config: CryptoBacktestConfig,
@@ -564,10 +537,6 @@ class CryptoBacktestService:
         frac = base_frac * (0.5 + 0.5 * score_scale)
         max_frac = 3.0 / max(c.leverage, 1.0)
         return min(frac, max_frac)
-
-    # ------------------------------------------------------------------
-    # Exit logic: patience-based score exit, no forced stress exit
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _check_exit(
@@ -604,10 +573,6 @@ class CryptoBacktestService:
             score_below_count = 0
 
         return None, score_below_count
-
-    # ------------------------------------------------------------------
-    # Analytics & baselines
-    # ------------------------------------------------------------------
 
     def _compute_analytics(
         self,

@@ -8,7 +8,7 @@ for use in deterministic unit tests and verify_refactor_determinism.py.
 
 Usage:
     python scripts/create_refactor_snapshot.py --symbols SPY AAPL --start 2020-01-01 --end 2023-12-31
-    python scripts/create_refactor_snapshot.py   # defaults: SPY, 2020-01-01 to 2023-12-31
+    python scripts/create_refactor_snapshot.py
 """
 
 import argparse
@@ -20,7 +20,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd
 import yfinance as yf
-
 
 def fetch_ohlcv(symbol: str, start: str, end: str) -> pd.DataFrame | None:
     """Fetch daily OHLCV from yfinance; return DataFrame with lowercase columns."""
@@ -38,7 +37,6 @@ def fetch_ohlcv(symbol: str, start: str, end: str) -> pd.DataFrame | None:
         return df
     except Exception:
         return None
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create refactor verification snapshot")
@@ -69,7 +67,6 @@ def main() -> int:
     combined.to_parquet(out_path, index=True)
     print(f"Wrote {len(combined)} rows to {out_path}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

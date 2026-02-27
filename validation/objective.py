@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-
 def compute_gt_score(
     equity_curve: pd.Series,
     benchmark_curve: pd.Series,
@@ -83,7 +82,6 @@ def compute_gt_score(
     mu = float(ret.mean())
     mu_bm = float(ret_bm.mean())
 
-    # Scale benchmark by invested fraction for fair conditional-vs-B&H comparison
     if invested_fraction is not None and 0.0 < invested_fraction <= 1.0:
         mu_bm_adj = mu_bm * invested_fraction
     else:
@@ -127,7 +125,6 @@ def compute_gt_score(
         gt -= turnover_penalty_lambda * turnover_rate
 
     return float(gt)
-
 
 def compute_dsr(
     sharpes: List[float],
@@ -178,7 +175,6 @@ def compute_dsr(
     if skew is not None or kurtosis is not None:
         pass
     return float(deflated)
-
 
 def equity_curve_from_result(result: Dict[str, Any]) -> Tuple[pd.Series, pd.Series]:
     """

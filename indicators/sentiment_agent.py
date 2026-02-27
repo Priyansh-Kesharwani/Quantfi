@@ -14,12 +14,10 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 logger = logging.getLogger(__name__)
 
-
 class TierWeights(BaseModel):
     news: float = Field(default=0.45, ge=0.0, le=1.0)
     reddit: float = Field(default=0.25, ge=0.0, le=1.0)
     blogs: float = Field(default=0.30, ge=0.0, le=1.0)
-
 
 class CollectionLimits(BaseModel):
     max_news_articles: int = Field(default=15, ge=1)
@@ -32,7 +30,6 @@ class CollectionLimits(BaseModel):
     reddit_lookback_days: int = Field(default=7, ge=1)
     blog_lookback_days: int = Field(default=14, ge=1)
 
-
 class LLMConfig(BaseModel):
     model: str = Field(default="groq/llama-3.3-70b-versatile")
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
@@ -40,7 +37,6 @@ class LLMConfig(BaseModel):
     api_key: Optional[str] = None
     fallback_model: Optional[str] = Field(default="gemini/gemini-2.0-flash-lite")
     timeout: int = Field(default=90, ge=5)
-
 
 class SentimentAgentConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -90,7 +86,6 @@ class SentimentAgentConfig(BaseModel):
             self.newsapi_key = os.environ.get("NEWSAPI_KEY")
         return self
 
-
 class AssetProfile(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -110,7 +105,6 @@ class AssetProfile(BaseModel):
     news_keywords: List[str] = Field(default_factory=list)
     sentiment_inversion_events: List[str] = Field(default_factory=list)
 
-
 class SourceDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -128,7 +122,6 @@ class SourceDocument(BaseModel):
     parent_id: Optional[str] = None
     relevance_score: float = Field(default=0.0, ge=0.0, le=1.0)
     quality_score: float = Field(default=0.0, ge=0.0, le=1.0)
-
 
 class KnowledgeSource(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -208,7 +201,6 @@ class KnowledgeSource(BaseModel):
     def get_all_source_ids(self) -> List[str]:
         return [d.source_id for d in self.documents]
 
-
 class SentimentFactor(BaseModel):
     rank: int
     factor: str
@@ -217,12 +209,10 @@ class SentimentFactor(BaseModel):
     supporting_sources: List[str] = Field(default_factory=list)
     explanation: str = ""
 
-
 class SentimentCitation(BaseModel):
     source_id: str
     claim: str
     direction: str
-
 
 class SentimentResult(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -238,7 +228,6 @@ class SentimentResult(BaseModel):
     dispersion_analysis: str = ""
     validation: Dict[str, Any] = Field(default_factory=dict)
     meta: Dict[str, Any] = Field(default_factory=dict)
-
 
 PROFILE_GENERATION_PROMPT = """You are a financial research assistant.  Given the metadata for a financial asset, generate a sentiment-analysis profile.
 
@@ -261,7 +250,6 @@ Produce a JSON object with **exactly** these keys:
 6. "sentiment_inversion_events"  — JSON array of event-type strings (e.g. "war", "sanctions") where sentiment interpretation is INVERTED for this asset compared to a generic equity.  Empty array if none.
 
 Respond with ONLY valid JSON — no markdown fences, no commentary."""
-
 
 class AssetProfileResolver:
 
@@ -298,7 +286,6 @@ class AssetProfileResolver:
         self._save_cache(profile)
         return profile
 
-
     @staticmethod
     def _fetch_yfinance_info(symbol: str) -> Dict[str, Any]:
         try:
@@ -309,7 +296,6 @@ class AssetProfileResolver:
         except Exception as e:
             logger.warning(f"yfinance lookup failed for {symbol}: {e}")
             return {"shortName": symbol, "quoteType": "UNKNOWN"}
-
 
     async def _enrich_via_llm(self, profile: AssetProfile) -> AssetProfile:
         prompt = PROFILE_GENERATION_PROMPT.format(
@@ -342,7 +328,6 @@ class AssetProfileResolver:
             profile = self._enrich_heuristic(profile)
         return profile
 
-
     @staticmethod
     def _enrich_heuristic(profile: AssetProfile) -> AssetProfile:
         qt = (profile.quote_type or "").upper()
@@ -351,7 +336,6 @@ class AssetProfileResolver:
 
         profile.display_name = profile.name or profile.symbol
 
-        # ── Asset-specific interpretation guide ──
         if qt == "EQUITY":
             profile.interpretation_guide = (
                 f"Analyse sentiment SPECIFICALLY for {profile.name} ({profile.symbol}). "
@@ -386,20 +370,14 @@ class AssetProfileResolver:
                 f"Only consider news and discussion that DIRECTLY mentions or impacts this asset."
             )
 
-        # ── Asset-specific subreddits ──
-        # Build subreddits from asset name to target specific communities
         asset_specific_subs: list[str] = []
-        # Common company-name derived subreddits
         if qt == "EQUITY":
-            # Try company name as subreddit (e.g., "netflix", "apple", "tesla")
             simple_name = name_lower.split(",")[0].split(" inc")[0].split(" corp")[0].split(" ltd")[0].strip()
             simple_name_clean = simple_name.replace(" ", "").replace(".", "")
             if simple_name_clean and len(simple_name_clean) > 2:
                 asset_specific_subs.append(simple_name_clean)
-            # Symbol-based subreddit
             if len(sym_clean) <= 5:
                 asset_specific_subs.append(sym_clean)
-            # Industry-specific subreddits
             industry_subs = {
                 "Entertainment": ["television", "movies", "entertainment"],
                 "Consumer Electronics": ["apple", "technology", "gadgets"],
@@ -424,9 +402,7 @@ class AssetProfileResolver:
             "ETF": ["ETFs", "Bogleheads"],
         }
         base_type_subs = type_subs.get(qt, [])
-        # Merge: asset-specific first, then type-specific, then generic
         all_subs = asset_specific_subs + base_type_subs + ["investing", "StockMarket"]
-        # Deduplicate while preserving order
         seen = set()
         deduped: list[str] = []
         for s in all_subs:
@@ -436,15 +412,12 @@ class AssetProfileResolver:
                 deduped.append(s)
         profile.subreddits = deduped[:8]
 
-        # ── Asset-specific news keywords (NO generic terms like "market", "price") ──
         kw: list[str] = []
         if profile.name:
             kw.append(profile.name)
         kw.append(profile.symbol)
-        # Add the clean symbol too
         if sym_clean != profile.symbol:
             kw.append(sym_clean)
-        # For equities, add key business terms
         if qt == "EQUITY":
             simple_name = (profile.name or "").split(",")[0].split(" Inc")[0].split(" Corp")[0].split(" Ltd")[0].strip()
             if simple_name and simple_name not in kw:
@@ -458,10 +431,8 @@ class AssetProfileResolver:
             kw.extend([f"{sym_clean} futures", f"{sym_clean} commodity", f"{sym_clean} supply demand"])
         elif qt == "ETF":
             kw.extend([f"{profile.name} ETF", f"{profile.symbol} fund"])
-        # DO NOT add generic terms like "market", "forecast", "outlook", "price" alone
         profile.news_keywords = kw[:15]
 
-        # ── Key factors (empty, to be filled by LLM if available) ──
         if not profile.key_factors:
             if qt == "EQUITY":
                 profile.key_factors = [
@@ -482,7 +453,6 @@ class AssetProfileResolver:
 
         return profile
 
-
     @staticmethod
     def _ensure_defaults(profile: AssetProfile) -> AssetProfile:
         if not profile.display_name:
@@ -497,7 +467,6 @@ class AssetProfileResolver:
         if not profile.news_keywords:
             profile.news_keywords = [profile.symbol, profile.name or profile.symbol, "market"]
         return profile
-
 
     def _load_cache(self, symbol: str) -> Optional[AssetProfile]:
         fp = self._cache_path / f"{_safe_filename(symbol)}.json"
@@ -517,7 +486,6 @@ class AssetProfileResolver:
         except Exception as e:
             logger.debug(f"Profile cache write failed: {e}")
 
-
 class NewsCollector:
 
     def __init__(self, config: SentimentAgentConfig):
@@ -534,15 +502,12 @@ class NewsCollector:
         try:
             from newsapi import NewsApiClient
             client = NewsApiClient(api_key=self.api_key)
-            # Use ONLY asset-specific terms — symbol + name. NO generic sector/industry terms.
             asset_terms = []
             if profile.name:
-                # Use the short company name (e.g. "Netflix" not "Netflix, Inc.")
                 short_name = profile.name.split(",")[0].split(" Inc")[0].split(" Corp")[0].split(" Ltd")[0].strip()
                 if short_name:
                     asset_terms.append(f'"{short_name}"')
             asset_terms.append(f'"{profile.symbol}"')
-            # Join with OR — but only the direct asset identifiers
             query = " OR ".join(asset_terms[:3])
             logger.info(f"NewsAPI query for {profile.symbol}: {query}")
             from_date = (
@@ -581,7 +546,6 @@ class NewsCollector:
             logger.warning(f"NewsAPI collection failed: {e}")
             return []
 
-
 class RedditCollector:
 
     def __init__(self, config: SentimentAgentConfig):
@@ -598,7 +562,6 @@ class RedditCollector:
         except Exception as e:
             logger.warning(f"PRAW collection failed ({e}), trying public JSON")
             return await self._collect_public_json(profile)
-
 
     def _collect_praw(self, profile: AssetProfile) -> List[SourceDocument]:
         import praw
@@ -668,7 +631,6 @@ class RedditCollector:
         logger.info(f"Reddit (PRAW): {post_idx} posts, "
                      f"{sum(1 for d in docs if d.is_comment)} comments")
         return docs
-
 
     async def _collect_public_json(self, profile: AssetProfile) -> List[SourceDocument]:
         try:
@@ -770,14 +732,11 @@ class RedditCollector:
         """Build a targeted Reddit search query using only asset-specific terms."""
         sym_clean = profile.symbol.replace("=F", "").replace(".NS", "").replace(".BO", "").replace("-USD", "")
         parts = [sym_clean]
-        # Add short company name if available
         if profile.name:
             short_name = profile.name.split(",")[0].split(" Inc")[0].split(" Corp")[0].split(" Ltd")[0].strip()
             if short_name and short_name.lower() != sym_clean.lower():
                 parts.append(short_name)
-        # Do NOT include generic terms like sector/industry/market
         return " OR ".join(parts[:3])
-
 
 class BlogCollector:
 
@@ -874,7 +833,6 @@ class BlogCollector:
             logger.debug(f"Blog feed '{name}' failed: {e}")
         return docs
 
-
 class AssetRelevanceScorer:
     """
     State-of-the-art multi-signal asset-relevance scoring.
@@ -889,15 +847,12 @@ class AssetRelevanceScorer:
     reaches the analysis prompt.
     """
 
-    # Minimum relevance to keep a document (0–1)
     RELEVANCE_THRESHOLD = 0.15
-    # Minimum relevance for a comment to be kept (lower bar)
     COMMENT_RELEVANCE_THRESHOLD = 0.10
 
-    # Weight allocation for the composite relevance score
-    W_ENTITY = 0.60   # Direct mention is the strongest signal
-    W_SECTOR = 0.15   # Sector match is supporting context
-    W_CAUSAL = 0.25   # Causal language connecting to the asset
+    W_ENTITY = 0.60
+    W_SECTOR = 0.15
+    W_CAUSAL = 0.25
 
     @classmethod
     def score_documents(
@@ -909,7 +864,6 @@ class AssetRelevanceScorer:
         if not docs:
             return []
 
-        # Build matching terms from the asset profile
         entity_terms = cls._build_entity_terms(profile)
         sector_terms = cls._build_sector_terms(profile)
 
@@ -928,7 +882,6 @@ class AssetRelevanceScorer:
             )
             doc.relevance_score = round(min(1.0, relevance), 4)
 
-            # Apply appropriate threshold
             threshold = (cls.COMMENT_RELEVANCE_THRESHOLD
                          if doc.is_comment else cls.RELEVANCE_THRESHOLD)
             if doc.relevance_score >= threshold:
@@ -949,20 +902,16 @@ class AssetRelevanceScorer:
         sym = profile.symbol.upper()
         sym_clean = sym.replace("=F", "").replace("-USD", "").replace(".NS", "").replace(".BO", "")
 
-        # Exact symbol match — highest weight
         terms.append((sym_clean.lower(), 1.0))
         if sym != sym_clean:
             terms.append((sym.lower(), 1.0))
 
-        # Full company name
         if profile.name:
             terms.append((profile.name.lower(), 0.95))
-            # Short name variant (e.g., "Netflix" from "Netflix, Inc.")
             short = profile.name.split(",")[0].split(" Inc")[0].split(" Corp")[0].split(" Ltd")[0].strip().lower()
             if short and short != profile.name.lower() and len(short) > 2:
                 terms.append((short, 0.90))
 
-        # Display name if different
         if profile.display_name and profile.display_name.lower() not in {t[0] for t in terms}:
             terms.append((profile.display_name.lower(), 0.80))
 
@@ -990,9 +939,7 @@ class AssetRelevanceScorer:
         max_score = 0.0
         for term, weight in entity_terms:
             if term in text:
-                # Count occurrences — more mentions = higher confidence
                 count = text.count(term)
-                # Diminishing returns: 1 mention = base, 2 = 1.3x, 3+ = 1.5x
                 freq_bonus = 1.0 + min(0.5, (count - 1) * 0.15)
                 score = weight * freq_bonus
                 max_score = max(max_score, score)
@@ -1017,7 +964,6 @@ class AssetRelevanceScorer:
         Score based on causal language linking events to the target asset.
         Detects phrases like "could impact Netflix", "affects streaming".
         """
-        # Causal connector words/phrases
         causal_phrases = [
             "impact on", "affect", "affecting", "affects",
             "could hurt", "could help", "could benefit",
@@ -1027,22 +973,17 @@ class AssetRelevanceScorer:
             "subscriber", "customer", "user growth",
         ]
 
-        # Check if any causal phrase appears near an entity mention
         entity_present = any(term in text for term, _ in entity_terms)
         if not entity_present:
-            # No entity mention → causal language alone is weak signal
-            # Check if the article at least discusses the industry
             industry = (profile.industry or "").lower()
             if industry and industry in text:
                 return 0.2
             return 0.0
 
-        # Entity is mentioned — check for causal language
         causal_count = sum(1 for phrase in causal_phrases if phrase in text)
         if causal_count == 0:
-            return 0.3  # Entity mentioned but no causal language
+            return 0.3
         return min(1.0, 0.4 + causal_count * 0.15)
-
 
 class SourceQualityRanker:
     """
@@ -1073,7 +1014,6 @@ class SourceQualityRanker:
             engagement = cls._engagement_score(doc)
             relevance = doc.relevance_score
 
-            # Composite quality: relevance-weighted
             doc.quality_score = round(
                 0.35 * relevance +
                 0.30 * credibility +
@@ -1082,7 +1022,6 @@ class SourceQualityRanker:
                 4
             )
 
-        # Sort by quality descending
         docs.sort(key=lambda d: d.quality_score, reverse=True)
         return docs
 
@@ -1096,12 +1035,10 @@ class SourceQualityRanker:
     def _engagement_score(doc: SourceDocument) -> float:
         """Normalized engagement from upvotes/comments."""
         if doc.tier != "reddit":
-            return 0.5  # Neutral for non-social sources
-        # Log-scale engagement: log(1 + upvotes) / log(1 + 1000)
+            return 0.5
         if doc.upvotes <= 0:
             return 0.1
         return min(1.0, np.log1p(doc.upvotes) / np.log1p(1000))
-
 
 class KnowledgeCompiler:
     def __init__(self, config: SentimentAgentConfig):
@@ -1116,14 +1053,12 @@ class KnowledgeCompiler:
         market_context: Dict[str, Any],
     ) -> KnowledgeSource:
 
-        # ── Layer 3: Asset-Relevance Scoring & Filtering ──
         news = AssetRelevanceScorer.score_documents(news, profile)
         reddit = AssetRelevanceScorer.score_documents(reddit, profile)
         blogs = AssetRelevanceScorer.score_documents(blogs, profile)
 
         all_docs = list(news) + list(reddit) + list(blogs)
 
-        # ── Layer 4: Source Quality Ranking ──
         all_docs = SourceQualityRanker.rank_documents(all_docs)
 
         total = sum(len(d.content) + len(d.title) for d in all_docs)
@@ -1155,7 +1090,6 @@ class KnowledgeCompiler:
         )
 
     def _trim(self, docs: List[SourceDocument]) -> List[SourceDocument]:
-        # Trim by quality score (already sorted by quality) instead of just tier priority
         kept: list[SourceDocument] = []
         chars = 0
         for d in docs:
@@ -1164,7 +1098,6 @@ class KnowledgeCompiler:
                 kept.append(d)
                 chars += c
         return kept
-
 
 MASTER_ANALYSIS_PROMPT = """You are a quantitative financial sentiment analyst for a DCA investment system.
 
@@ -1175,8 +1108,6 @@ G_t > 1.0 → amplify favourable signals.  G_t < 1.0 → dampen (caution).  G_t 
 TARGET ASSET: {symbol} — {display_name}
 
 {interpretation_guide}
-
-## ⚠️ CRITICAL: ASSET-RELEVANCE GATE
 
 Each source has a [relevance=X.XX] tag. This was computed by our asset-relevance scoring system.
 
@@ -1189,14 +1120,10 @@ Each source has a [relevance=X.XX] tag. This was computed by our asset-relevance
 - If most sources are low-relevance or about other assets, set confidence LOW (< 0.3) and G_t = 1.0 (neutral).
 - NEVER fabricate asset-specific factors from irrelevant sources. If you cannot find enough relevant data, say so honestly.
 
-## SOURCE TIERS & WEIGHTS
-
 Tier 1 (Verified News): weight {w_news:.0%} — institutional journalism
 Tier 2 (Reddit):        weight {w_reddit:.0%} — crowd sentiment
 Tier 3 (Expert Blogs):  weight {w_blogs:.0%} — long-form analysis
 When tiers conflict, weight higher tiers more heavily.
-
-## ANALYSIS RULES
 
 1. CITE every factual claim with a source-ID from the knowledge doc ([N1], [R3], [B2]).
 2. Track AGREEMENT vs DISAGREEMENT across tiers — dispersion indicates uncertainty → pull G_t toward 1.0.
@@ -1225,7 +1152,6 @@ Respond with ONLY this JSON:
   "dispersion_analysis": "1 sentence on cross-tier agreement/disagreement"
 }}"""
 
-
 def build_analysis_prompt(
     knowledge: KnowledgeSource,
     config: SentimentAgentConfig,
@@ -1242,7 +1168,6 @@ def build_analysis_prompt(
         w_blogs=config.tier_weights.blogs,
         knowledge_source=knowledge.to_prompt_text(),
     )
-
 
 class PromptValidator:
     REQUIRED = {
@@ -1271,12 +1196,10 @@ class PromptValidator:
         self._check_logic(parsed, report)
         self._check_source_relevance(parsed, knowledge, report)
 
-        # ── Post-validation: penalize confidence if sources are mostly irrelevant ──
         avg_cited_rel = report.get("checks", {}).get("cited_avg_relevance", 1.0)
         if parsed and avg_cited_rel < 0.25:
             original_conf = parsed.get("confidence", 0.5)
-            # Penalize confidence proportional to irrelevance
-            penalty = max(0.3, avg_cited_rel / 0.25)  # 0.3–1.0 multiplier
+            penalty = max(0.3, avg_cited_rel / 0.25)
             parsed["confidence"] = round(original_conf * penalty, 4)
             report["checks"]["confidence_penalized"] = True
             report["checks"]["confidence_penalty_factor"] = round(penalty, 4)
@@ -1287,7 +1210,6 @@ class PromptValidator:
 
         report["is_valid"] = len(report["errors"]) == 0
         return parsed, report
-
 
     @staticmethod
     def _parse(raw: str, report: dict) -> Optional[dict]:
@@ -1357,19 +1279,16 @@ class PromptValidator:
         to the target asset. Penalize confidence when analysis is based on
         tangentially related or irrelevant sources.
         """
-        # Build a map of source_id → relevance_score
         rel_map: Dict[str, float] = {
             d.source_id: d.relevance_score for d in knowledge.documents
         }
 
-        # Check cited sources in top_factors
         cited_relevances: list[float] = []
         for factor in p.get("top_factors", []):
             for src_id in factor.get("supporting_sources", []):
                 if src_id in rel_map:
                     cited_relevances.append(rel_map[src_id])
 
-        # Check citations
         for cit in p.get("citations", []):
             src_id = cit.get("source_id", "")
             if src_id in rel_map:
@@ -1397,7 +1316,6 @@ class PromptValidator:
                 f"low relevance (<0.30) to the target asset."
             )
 
-
 def _resolve_api_key(model: str, explicit_key: Optional[str] = None) -> Optional[str]:
     if explicit_key:
         provider = (model.split("/")[0] if "/" in model else "").lower()
@@ -1406,7 +1324,6 @@ def _resolve_api_key(model: str, explicit_key: Optional[str] = None) -> Optional
         if env_var:
             return os.environ.get(env_var) or explicit_key
     return explicit_key
-
 
 async def _llm_completion(cfg: LLMConfig, *, system: str, user: str) -> str:
     try:
@@ -1470,7 +1387,6 @@ async def _llm_completion(cfg: LLMConfig, *, system: str, user: str) -> str:
 
     raise RuntimeError("No LLM backend available (install litellm or emergentintegrations)")
 
-
 class SentimentAgent:
 
     def __init__(self, config: Optional[SentimentAgentConfig] = None):
@@ -1516,7 +1432,6 @@ class SentimentAgent:
         ctx = market_context or {"note": "Market context not provided"}
         knowledge = self.compiler.compile(profile, news_docs, reddit_docs, blog_docs, ctx)
 
-        # Log relevance statistics
         if knowledge.documents:
             avg_rel = float(np.mean([d.relevance_score for d in knowledge.documents]))
             avg_qual = float(np.mean([d.quality_score for d in knowledge.documents]))
@@ -1574,7 +1489,6 @@ class SentimentAgent:
                      f"valid={report['is_valid']}")
         return result
 
-
     def _neutral(self, symbol: str, reason: str,
                  report: Optional[Dict] = None) -> SentimentResult:
         return SentimentResult(
@@ -1604,20 +1518,16 @@ class SentimentAgent:
         except Exception:
             pass
 
-
 async def compute_sentiment_G_t(symbol: str, **kw: Any) -> float:
     agent = SentimentAgent(SentimentAgentConfig(**kw) if kw else None)
     return (await agent.analyze(symbol)).G_t
-
 
 async def full_sentiment_analysis(symbol: str, **kw: Any) -> SentimentResult:
     agent = SentimentAgent(SentimentAgentConfig(**kw) if kw else None)
     return await agent.analyze(symbol)
 
-
 def _safe_filename(s: str) -> str:
     return "".join(c if c.isalnum() or c in "._-" else "_" for c in s)
-
 
 def _parse_json_safe(raw: str) -> Optional[dict]:
     try:
@@ -1629,7 +1539,6 @@ def _parse_json_safe(raw: str) -> Optional[dict]:
         return json.loads(cleaned)
     except Exception:
         return None
-
 
 SentimentBacktestValidator = PromptValidator          
 get_asset_profile = None                                    

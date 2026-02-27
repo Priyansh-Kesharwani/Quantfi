@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 from indicators.committee import agg_committee
 
-
 @dataclass
 class Phase1Config:
     regime_threshold: Optional[float] = None
@@ -55,7 +54,6 @@ class Phase1Config:
             "allow_production_mode": self.allow_production_mode
         }
 
-
 class CompositeResult(NamedTuple):
     score: float                                  
     T_t: float                            
@@ -70,7 +68,6 @@ class CompositeResult(NamedTuple):
     Opp_t: float                               
     RawFavor_t: float                           
     meta: Dict[str, Any]                        
-
 
 def g_pers(
     H_t: float,
@@ -115,7 +112,6 @@ def g_pers(
         sigmoid_val = 1.0 / (1.0 + np.exp(-z))
         return float(np.clip(sigmoid_val * 2.0, 0.0, 1.0))
 
-
 def compute_gate(
     C_t: float,
     L_t: float,
@@ -152,7 +148,6 @@ def compute_gate(
     }
     
     return float(Gate_t), meta
-
 
 def compute_opportunity(
     T_t: float,
@@ -199,7 +194,6 @@ def compute_opportunity(
     }
     
     return float(Opp_t), meta
-
 
 def compute_composite_score(
     T_t: float,
@@ -274,7 +268,6 @@ def compute_composite_score(
         meta=meta
     )
 
-
 def _log_computation(
     score: float,
     T_t: float, U_t: float, V_t: float, L_t: float, C_t: float,
@@ -314,7 +307,6 @@ def _log_computation(
             
     except Exception as e:
         logger.warning(f"Failed to log computation: {e}")
-
 
 class Phase1Composite:
     
@@ -359,16 +351,10 @@ class Phase1Composite:
             H_t=0.5, R_t=0.5
         )
 
-
-# ====================================================================
-# Phase A — Entry / Exit Score Composer  (compose_scores)
-# ====================================================================
-
 @dataclass
 class PhaseAConfig:
     """Configuration for Phase A Entry/Exit score composition."""
 
-    # ── Entry score knobs ──────────────────────────────────
     committee_method: str = "trimmed_mean"
     committee_trim_pct: float = 0.1
     regime_threshold: Optional[float] = None
@@ -382,13 +368,11 @@ class PhaseAConfig:
         "H_unfavorable": None,
     })
 
-    # ── Exit score knobs ───────────────────────────────────
-    gamma_1: float = 0.4    # TBL flag weight
-    gamma_2: float = 0.35   # OFI reversal weight
-    gamma_3: float = 0.25   # Hawkes λ-decay weight
+    gamma_1: float = 0.4
+    gamma_2: float = 0.35
+    gamma_3: float = 0.25
     S_scale_exit: float = 1.0
 
-    # ── Logging ────────────────────────────────────────────
     log_intermediates: bool = True
     log_path: str = "logs/phaseA_indicator_runs.json"
 
@@ -430,7 +414,6 @@ class PhaseAConfig:
             "S_scale_exit": self.S_scale_exit,
         }
 
-
 def _compute_entry_series(
     components: Dict[str, pd.Series],
     config: PhaseAConfig,
@@ -458,9 +441,8 @@ def _compute_entry_series(
     C_t = components.get("C_t", pd.Series(np.full(n, 0.5), index=idx))
     OFI_t = components.get("OFI_t", pd.Series(np.full(n, 0.5), index=idx))
     P_move_t = components.get("P_move_t", pd.Series(np.full(n, 0.5), index=idx))
-    S_t = components.get("S_t", pd.Series(np.full(n, 0.0), index=idx))  # sentiment risk
+    S_t = components.get("S_t", pd.Series(np.full(n, 0.0), index=idx))
 
-    # g_pers(H) — vectorised
     g_H = pd.Series(
         [g_pers(h, config.g_pers_type, config.g_pers_params) for h in H_t],
         index=idx,
@@ -468,7 +450,6 @@ def _compute_entry_series(
 
     U_weighted = U_t * g_H
 
-    # Opportunity: trimmed mean of [T, U_weighted, P_move, OFI]
     opp_stack = pd.DataFrame({
         "T_t": T_t.values,
         "U_w": U_weighted.values,
@@ -485,7 +466,6 @@ def _compute_entry_series(
     else:
         Opp_t = opp_stack.mean(axis=1)
 
-    # Gate
     if config.regime_threshold is not None:
         if config.regime_threshold_type == "hard":
             R_pass = (R_t >= config.regime_threshold).astype(float)
@@ -521,7 +501,6 @@ def _compute_entry_series(
 
     return Entry, breakdown
 
-
 def _compute_exit_series(
     components: Dict[str, pd.Series],
     config: PhaseAConfig,
@@ -555,7 +534,6 @@ def _compute_exit_series(
 
     return pd.Series(Exit, index=idx, name="Exit_Score")
 
-
 def compose_scores(
     components: Dict[str, pd.Series],
     config: Optional[dict] = None,
@@ -587,7 +565,6 @@ def compose_scores(
     elif isinstance(config, PhaseAConfig):
         cfg = config
     else:
-        # Build from raw dict (supports flat or nested YAML shapes)
         entry_cfg = config.get("composite", config).get("entry", config) if isinstance(config.get("composite", None), dict) else config
         exit_cfg = config.get("composite", config).get("exit", config) if isinstance(config.get("composite", None), dict) else config
         cfg = PhaseAConfig(
@@ -610,11 +587,6 @@ def compose_scores(
     breakdown["Exit_Score"] = Exit_Score.values
 
     return Entry_Score, Exit_Score, breakdown
-
-
-# ====================================================================
-# Phase A — Unified YAML Config Loader
-# ====================================================================
 
 def load_phaseA_config(path: str = "config/phaseA.yml") -> Dict[str, Any]:
     """Load the full Phase A YAML config into a flat dictionary of
@@ -641,7 +613,6 @@ def load_phaseA_config(path: str = "config/phaseA.yml") -> Dict[str, Any]:
     with open(path, "r") as f:
         raw = yaml.safe_load(f)
 
-    # Build PhaseAConfig from the composite/logging sections
     composite_cfg = PhaseAConfig.from_yaml(path)
 
     return {
@@ -655,7 +626,6 @@ def load_phaseA_config(path: str = "config/phaseA.yml") -> Dict[str, Any]:
         "logging": raw.get("logging", {}),
     }
 
-
 def load_refactor_config(path=None):
     """Load config/phase_refactor.yml."""
     if path is None:
@@ -663,14 +633,12 @@ def load_refactor_config(path=None):
     with open(path, "r") as f:
         return yaml.safe_load(f)
 
-
 def g_pers_refactor(H_t: np.ndarray, k_pers: float) -> np.ndarray:
     """g_pers(H_t) = sigmoid(k_pers * (H_t - 0.5)), in (0, 1)."""
     H = np.asarray(H_t, dtype=np.float64)
     z = k_pers * (H - 0.5)
     z = np.clip(z, -500, 500)
     return np.where(np.isnan(H), np.nan, 1.0 / (1.0 + np.exp(-z)))
-
 
 def _trimmed_mean_row(values: np.ndarray, trim_frac: float) -> float:
     valid = values[~np.isnan(values)]
@@ -680,7 +648,6 @@ def _trimmed_mean_row(values: np.ndarray, trim_frac: float) -> float:
         return float(np.mean(valid))
     from scipy.stats import trim_mean
     return float(trim_mean(valid, trim_frac))
-
 
 def compute_opportunity_refactor(
     components,
@@ -712,7 +679,6 @@ def compute_opportunity_refactor(
     opp = np.array([_trimmed_mean_row(mat[i], trim_frac) for i in range(n)])
     return pd.Series(opp, index=idx, name="Opp_t")
 
-
 def compute_gate_refactor(components, r_thresh: float):
     """Gate_t = C_t * L_t * 1(R_t >= r_thresh)."""
     idx = next(iter(components.values())).index
@@ -724,7 +690,6 @@ def compute_gate_refactor(components, r_thresh: float):
     R_pass = (R_t >= r_thresh).astype(float)
     gate = C_t * L_t * R_pass
     return gate.rename("Gate_t")
-
 
 def compute_composite_score_refactor(components, config=None):
     """Entry CompositeScore and Exit score from refactor config."""
@@ -769,7 +734,6 @@ def compute_composite_score_refactor(components, config=None):
     }, index=idx)
 
     return Entry_Score, Exit_Score, breakdown
-
 
 def composite_refactor_from_config(components, config_path=None):
     """Load phase_refactor.yml and compute Entry/Exit scores."""

@@ -21,21 +21,16 @@ from indicators.ldc import LDC, build_templates_from_labels
 from indicators.composite import compose_scores, PhaseAConfig
 from tests.fixtures import fbm_series, hawkes_events
 
-
 SEED = 42
 MIN_OBS = 50
 
-
 def _run_full_pipeline(seed: int = SEED):
     """Execute the complete Phase A pipeline and return all artefacts."""
-    # ── Synthetic OHLCV data ──
     df = fbm_series(n=400, H=0.7, seed=seed)
 
-    # ── OFI ──
     ofi = compute_ofi(df, window=20, normalize=True, min_obs=MIN_OBS)
     ofi_rev = compute_ofi_reversal(df, window=20, min_obs=MIN_OBS)
 
-    # ── Hawkes ──
     h_events = hawkes_events(mu=0.5, alpha=0.3, beta=1.0, T=200.0, seed=seed)
     timestamps = np.arange(0, 200, 1.0)
     intensity, hawkes_meta = estimate_hawkes(
@@ -45,7 +40,6 @@ def _run_full_pipeline(seed: int = SEED):
         {"trades": h_events}, timestamps, min_obs=40,
     )
 
-    # ── LDC ──
     np.random.seed(seed)
     n_feat = 5
     bull_feat = np.random.randn(50, n_feat) + 1.0
@@ -57,7 +51,6 @@ def _run_full_pipeline(seed: int = SEED):
     ldc.fit(templates)
     ldc_scores = ldc.score_batch(features)
 
-    # ── Composite ──
     n = len(df)
     idx = df.index
     np.random.seed(seed)
@@ -89,11 +82,6 @@ def _run_full_pipeline(seed: int = SEED):
         "components": components,
     }
 
-
-# ─────────────────────────────────────────────────────────────
-# Test Classes
-# ─────────────────────────────────────────────────────────────
-
 class TestPipelineDeterminism:
     """Identical seeds → bit-for-bit identical outputs."""
 
@@ -109,7 +97,6 @@ class TestPipelineDeterminism:
         pd.testing.assert_series_equal(r1["entry"], r2["entry"])
         pd.testing.assert_series_equal(r1["exit"], r2["exit"])
         pd.testing.assert_frame_equal(r1["breakdown"], r2["breakdown"])
-
 
 class TestIndicatorContracts:
     """All normalised series satisfy ∈ [0, 1] (ignoring warm-up NaN)."""
@@ -150,7 +137,6 @@ class TestIndicatorContracts:
         assert len(exit_) > 0
         assert (exit_ >= 0).all() and (exit_ <= 100).all()
 
-
 class TestCrossIndicatorConsistency:
     """Verify relationships between indicators make sense."""
 
@@ -164,8 +150,6 @@ class TestCrossIndicatorConsistency:
         ofi_rev = pipeline["ofi_rev"]
         total = ofi + ofi_rev
         valid = total.dropna()
-        # They share the same raw OFI but one is polarity=-1 in ECDF-sigmoid
-        # so their sum should be ~1.0 for each observation
         assert np.abs(valid.mean() - 1.0) < 0.15, (
             f"OFI + OFI_rev mean should be ~1.0, got {valid.mean():.3f}"
         )
@@ -184,7 +168,6 @@ class TestCrossIndicatorConsistency:
         exit_ = pipeline["exit"]
         bd_exit = pipeline["breakdown"]["Exit_Score"]
         pd.testing.assert_series_equal(exit_, bd_exit, check_names=False)
-
 
 class TestNormalisationPipelineIntegrity:
     """Verify the expanding ECDF-sigmoid pipeline properties in context."""
@@ -208,13 +191,11 @@ class TestNormalisationPipelineIntegrity:
         ofi_short = compute_ofi(df_short, window=20, normalize=True, min_obs=MIN_OBS)
         ofi_long = compute_ofi(df_full, window=20, normalize=True, min_obs=MIN_OBS)
 
-        # First 200 values should be identical (no look-ahead)
         pd.testing.assert_series_equal(
             ofi_short,
             ofi_long.iloc[:200],
             check_names=False,
         )
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

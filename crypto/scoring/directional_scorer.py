@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 EPS = 1e-12
 
-
 @dataclass
 class ScoringConfig:
     rsi_period: int = 14
@@ -44,10 +43,8 @@ class ScoringConfig:
     ic_alpha: float = 5.0
     ic_shrink: float = 0.2
 
-
 def _sigmoid(x: np.ndarray, threshold: float, scale: float) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-(x - threshold) / (scale + EPS)))
-
 
 def _self_calibrating_tanh(
     signal: pd.Series,
@@ -58,7 +55,6 @@ def _self_calibrating_tanh(
     rolling_std = signal.rolling(window, min_periods=max(2, window // 4)).std().fillna(signal.expanding().std())
     rolling_std = rolling_std.clip(lower=EPS)
     return np.tanh(signal / rolling_std) * scale_factor
-
 
 class CryptoDirectionalScorer:
     """Computes directional score in [-100, +100].
@@ -128,7 +124,6 @@ class CryptoDirectionalScorer:
         """
         components = self._compute_all_components(ohlcv, funding_rates, open_interest)
 
-        # Use only warmup-period data to decide active columns (no look-ahead).
         warmup_end = min(self.config.compression_window, len(components))
         col_std = components.iloc[:warmup_end].std()
         active_cols = col_std[col_std > 1.0].index.tolist()
@@ -299,7 +294,6 @@ class CryptoDirectionalScorer:
             axis=1,
         ).max(axis=1)
         return tr.rolling(period, min_periods=1).mean()
-
 
 def verify_score_reachability(
     scores: pd.Series,

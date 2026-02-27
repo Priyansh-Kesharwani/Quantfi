@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Turnover sensitivity: sweep entry_score_threshold from 50 to 90; record total_trades
 and total_return_pct (and optionally win_rate, cost_drag_pct) per run.
@@ -23,7 +22,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
-
 
 def main():
     ap = argparse.ArgumentParser(description="Turnover sensitivity: sweep entry threshold 50–90")
@@ -105,7 +103,6 @@ def main():
 
     print(f"Written {out_path}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

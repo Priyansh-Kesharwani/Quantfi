@@ -11,16 +11,9 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 
-
-# ── Canonical rule parameters ────────────────────────────────────
-# These match the defaults in BackendConfig.  Both backend/scoring.py
-# and backtester/portfolio_simulator.py should import these constants
-# so the two paths never drift.
-
 SCORING_RULES = {
     "base_score": 50.0,
 
-    # Technical momentum
     "sma_below_bonus": 15.0,
     "sma_above_penalty": 5.0,
     "rsi_oversold": 30.0,
@@ -41,7 +34,6 @@ SCORING_RULES = {
     "adx_low_bonus": 5.0,
     "adx_high_penalty": 5.0,
 
-    # Volatility opportunity
     "atr_high_percentile": 80.0,
     "atr_mid_percentile": 60.0,
     "atr_low_percentile": 30.0,
@@ -57,7 +49,6 @@ SCORING_RULES = {
     "drawdown_light_bonus": 10.0,
     "drawdown_flat_penalty": 10.0,
 
-    # Statistical deviation
     "extreme_low_z": -2.0,
     "strong_low_z": -1.5,
     "moderate_low_z": -1.0,
@@ -71,7 +62,6 @@ SCORING_RULES = {
     "high_penalty": 30.0,
     "moderate_high_penalty": 15.0,
 
-    # Macro FX
     "fx_historical_avg": 83.0,
     "fx_high_dev": 5.0,
     "fx_mid_dev": 2.0,
@@ -90,13 +80,9 @@ DEFAULT_WEIGHTS: Dict[str, float] = {
     "macro_fx": 0.2,
 }
 
-
-# ── Trend-following scoring rules (inverted direction vs mean-reversion) ──
-
 TREND_SCORING_RULES = {
     "base_score": 50.0,
 
-    # Technical momentum (trend-following: reward price above SMA, strong momentum)
     "sma_above_bonus": 15.0,
     "sma_below_penalty": 10.0,
     "rsi_momentum": 50.0,
@@ -111,12 +97,10 @@ TREND_SCORING_RULES = {
     "adx_trend_bonus": 15.0,
     "adx_strong_trend_bonus": 20.0,
 
-    # Volatility (trend: prefer low vol, shallow drawdowns = healthy trend)
     "drawdown_flat_bonus": 10.0,
     "drawdown_severe_penalty": 20.0,
     "drawdown_medium_penalty": 10.0,
 
-    # Statistical deviation (trend: reward positive z = price above mean)
     "moderate_high_z": 0.5,
     "high_z": 1.0,
     "very_high_z": 1.5,
@@ -133,10 +117,8 @@ TREND_WEIGHTS: Dict[str, float] = {
     "macro_fx": 0.2,
 }
 
-
 def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, v))
-
 
 def technical_momentum_score(
     current_price: float,
@@ -189,7 +171,6 @@ def technical_momentum_score(
 
     return _clamp(score)
 
-
 def volatility_opportunity_score(
     atr_percentile: Optional[float],
     drawdown_pct: Optional[float],
@@ -219,7 +200,6 @@ def volatility_opportunity_score(
 
     return _clamp(score)
 
-
 def statistical_deviation_score(
     avg_z_score: Optional[float],
     rules: Optional[Dict[str, float]] = None,
@@ -244,7 +224,6 @@ def statistical_deviation_score(
 
     return _clamp(score)
 
-
 def macro_fx_score(
     usd_inr_rate: float,
     rules: Optional[Dict[str, float]] = None,
@@ -265,7 +244,6 @@ def macro_fx_score(
         score += r["fx_low_bonus"]
 
     return _clamp(score)
-
 
 def trend_technical_momentum_score(
     current_price: float,
@@ -308,7 +286,6 @@ def trend_technical_momentum_score(
 
     return _clamp(score)
 
-
 def trend_volatility_score(
     drawdown_pct: Optional[float],
     rules: Optional[Dict[str, float]] = None,
@@ -326,7 +303,6 @@ def trend_volatility_score(
             score -= r["drawdown_medium_penalty"]
 
     return _clamp(score)
-
 
 def trend_statistical_score(
     avg_z_score: Optional[float],
@@ -349,7 +325,6 @@ def trend_statistical_score(
             score -= r["low_z_penalty"]
 
     return _clamp(score)
-
 
 def compute_trend_score_single(
     current_price: float,
@@ -385,7 +360,6 @@ def compute_trend_score_single(
         "macro_fx": fx,
     }
     return composite, breakdown
-
 
 def compute_composite_score_single(
     current_price: float,

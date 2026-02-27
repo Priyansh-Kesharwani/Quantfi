@@ -15,10 +15,6 @@ from crypto.calendar import TIMEFRAME_TO_MS, bars_per_day
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/crypto")
 
-# ---------------------------------------------------------------------------
-# Timeframe helpers
-# ---------------------------------------------------------------------------
-
 _TF_DEFAULT_RANGE = {
     "5m": timedelta(weeks=2),
     "15m": timedelta(days=30),
@@ -30,16 +26,10 @@ _TF_DEFAULT_RANGE = {
 MIN_BARS = 200
 MAX_BARS = 10_000
 
-
 def _compute_n_bars(start: datetime, end: datetime, tf: str) -> int:
     delta_ms = (end - start).total_seconds() * 1000
     tf_ms = TIMEFRAME_TO_MS.get(tf, 3_600_000)
     return max(1, int(delta_ms / tf_ms))
-
-
-# ---------------------------------------------------------------------------
-# Market catalog cache (dynamic, loaded from exchange at runtime)
-# ---------------------------------------------------------------------------
 
 _market_cache: Dict[str, Any] = {"markets": [], "ts": 0.0, "ttl": 600}
 _OFFLINE_FALLBACK = [
@@ -54,7 +44,6 @@ _OFFLINE_FALLBACK = [
     {"symbol": "LINK/USDT:USDT", "base": "LINK", "name": "Chainlink", "price": 14, "volume_24h": 350e6},
     {"symbol": "DOT/USDT:USDT", "base": "DOT", "name": "Polkadot", "price": 5.5, "volume_24h": 200e6},
 ]
-
 
 def _load_markets_sync(exchange_id: str = "binance") -> List[Dict[str, Any]]:
     """Load all USDT linear perpetuals from exchange with live prices (blocking)."""
@@ -108,7 +97,6 @@ def _load_markets_sync(exchange_id: str = "binance") -> List[Dict[str, Any]]:
         logger.warning("Failed to load markets from %s: %s", exchange_id, e)
         return []
 
-
 async def _get_markets(exchange_id: str = "binance") -> List[Dict[str, Any]]:
     """Return cached market catalog, refreshing if TTL expired."""
     now = _time.time()
@@ -127,11 +115,6 @@ async def _get_markets(exchange_id: str = "binance") -> List[Dict[str, Any]]:
     for m in _OFFLINE_FALLBACK:
         m.setdefault("category", "Major")
     return _OFFLINE_FALLBACK
-
-
-# ---------------------------------------------------------------------------
-# Request / Response models
-# ---------------------------------------------------------------------------
 
 class CryptoBacktestRequest(BaseModel):
     symbol: str = "BTC/USDT:USDT"
@@ -154,7 +137,6 @@ class CryptoBacktestRequest(BaseModel):
     atr_multiplier: float = 3.0
     start_date: Optional[str] = None
     end_date: Optional[str] = None
-
 
 class CryptoBacktestResponse(BaseModel):
     sharpe: float
@@ -183,11 +165,6 @@ class CryptoBacktestResponse(BaseModel):
     end_date: str = ""
     n_bars_actual: int = 0
 
-
-# ---------------------------------------------------------------------------
-# Data fetching (always from exchange adapters)
-# ---------------------------------------------------------------------------
-
 def _fetch_ohlcv(
     symbol: str, timeframe: str, since: datetime, until: datetime,
 ) -> pd.DataFrame:
@@ -198,7 +175,6 @@ def _fetch_ohlcv(
     if df is None or df.empty:
         raise RuntimeError(f"No OHLCV data returned for {symbol} ({timeframe})")
     return df
-
 
 def _fetch_funding(
     symbol: str, since: datetime, until: datetime,
@@ -214,11 +190,6 @@ def _fetch_funding(
         logger.info("Funding rate fetch failed for %s (non-critical): %s", symbol, e)
     return None
 
-
-# ---------------------------------------------------------------------------
-# Equity curve sampling helpers
-# ---------------------------------------------------------------------------
-
 def _sample_equity(eq: pd.Series, target_points: int = 500) -> List[Dict[str, Any]]:
     """Downsample equity curve to ~target_points, always including last point."""
     if len(eq) == 0:
@@ -231,7 +202,6 @@ def _sample_equity(eq: pd.Series, target_points: int = 500) -> List[Dict[str, An
     if last_idx % step != 0:
         pts.append({"date": str(eq.index[last_idx]), "equity": round(float(eq.iloc[last_idx]), 2)})
     return pts
-
 
 def _sample_price(close: pd.Series, eq: pd.Series, target_points: int = 500) -> List[Dict[str, Any]]:
     """Downsample the close price series to match equity curve sampling."""
@@ -249,7 +219,6 @@ def _sample_price(close: pd.Series, eq: pd.Series, target_points: int = 500) -> 
     if last_idx % step != 0 and last_src < len(close):
         pts.append({"date": str(close.index[last_src]), "price": round(float(close.iloc[last_src]), 2)})
     return pts
-
 
 def _sample_regimes(regimes: pd.Series, eq: pd.Series, target_points: int = 500) -> List[str]:
     """Downsample regime labels to match the equity curve sampling."""
@@ -270,7 +239,6 @@ def _sample_regimes(regimes: pd.Series, eq: pd.Series, target_points: int = 500)
             labels.append("RANGING")
     return labels
 
-
 def _serialize_trades(
     trades, regimes: pd.Series, max_trades: int = 500,
 ) -> List[Dict[str, Any]]:
@@ -286,11 +254,6 @@ def _serialize_trades(
         out.append(d)
     return out
 
-
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
-
 @router.get("/markets")
 async def get_markets(exchange: str = "binance"):
     """Return all available perpetual futures from exchange (cached)."""
@@ -303,7 +266,6 @@ async def get_markets(exchange: str = "binance"):
         "offline": is_offline,
         "count": len(markets),
     }
-
 
 @router.post("/backtest", response_model=CryptoBacktestResponse)
 async def run_crypto_backtest(request: CryptoBacktestRequest):
@@ -318,7 +280,6 @@ async def run_crypto_backtest(request: CryptoBacktestRequest):
         tf = request.timeframe
         bpd = bars_per_day(tf)
 
-        # --- Resolve date range and n_bars ---
         if request.start_date and request.end_date:
             start_dt = datetime.fromisoformat(request.start_date)
             end_dt = datetime.fromisoformat(request.end_date)
@@ -340,7 +301,6 @@ async def run_crypto_backtest(request: CryptoBacktestRequest):
         start_str = start_dt.strftime("%Y-%m-%d")
         end_str = end_dt.strftime("%Y-%m-%d")
 
-        # --- Fetch data from exchange (parallel OHLCV + funding) ---
         try:
             ohlcv, funding_raw = await asyncio.gather(
                 asyncio.to_thread(_fetch_ohlcv, request.symbol, tf, start_dt, end_dt),
@@ -369,7 +329,6 @@ async def run_crypto_backtest(request: CryptoBacktestRequest):
         else:
             funding = pd.Series(0.0001, index=ohlcv.index)
 
-        # --- Scale windows by timeframe ---
         warmup = min(500, max(50, int(21 * bpd)))
         warmup = min(warmup, n_bars // 4)
         comp_win = min(120, max(20, int(10 * bpd)))
@@ -411,7 +370,6 @@ async def run_crypto_backtest(request: CryptoBacktestRequest):
         svc = CryptoBacktestService()
         result = await asyncio.to_thread(svc.run, ohlcv, bt_config, funding_rates=funding)
 
-        # --- Build response ---
         eq = result["equity_curve"]
         equity_points = _sample_equity(eq)
 
@@ -419,7 +377,6 @@ async def run_crypto_backtest(request: CryptoBacktestRequest):
         regime_labels = _sample_regimes(regimes, eq)
         regime_counts = dict(regimes.value_counts()) if len(regimes) > 0 else {}
 
-        # Buy & hold equity curve (sampled same as strategy)
         baselines = result.get("baselines", {})
         bh_data = baselines.get("buy_and_hold", {})
         bh_curve = []
@@ -431,11 +388,9 @@ async def run_crypto_backtest(request: CryptoBacktestRequest):
             bh_equity = (1 + bh_returns).cumprod() * request.initial_capital
             bh_curve = _sample_equity(bh_equity)
 
-        # Asset price curve (sampled to match equity curve points)
         close_series = ohlcv["close"]
         price_curve = _sample_price(close_series, eq)
 
-        # Serialize trade log with regime context
         raw_trades = result.get("trades", [])
         trade_dicts = _serialize_trades(raw_trades, regimes)
 
@@ -472,7 +427,6 @@ async def run_crypto_backtest(request: CryptoBacktestRequest):
         logger.error("Crypto backtest error: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/config/defaults")
 async def get_defaults():
     """Return default crypto bot configuration."""
@@ -494,7 +448,6 @@ async def get_defaults():
         "grid_order_size": 100.0,
         "atr_multiplier": 3.0,
     }
-
 
 @router.get("/strategies")
 async def get_strategies():

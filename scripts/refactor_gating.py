@@ -14,7 +14,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-
 def check_1_implemented_and_tested() -> tuple[bool, str]:
     """Criterion 1: CompositeScore, canonical normalizer, and component functions implemented and unit-tested."""
     try:
@@ -23,7 +22,6 @@ def check_1_implemented_and_tested() -> tuple[bool, str]:
         from indicators.refactor_components import ofi_refactor
     except ImportError as e:
         return False, f"Import failed: {e}"
-    # Quick smoke
     import numpy as np
     import pandas as pd
     n = 20
@@ -33,7 +31,6 @@ def check_1_implemented_and_tested() -> tuple[bool, str]:
     if len(entry) != n:
         return False, "CompositeScore length mismatch"
     return True, "OK"
-
 
 def check_2_determinism(runid: str = "refactor_test") -> tuple[bool, str]:
     """Criterion 2: Determinism check passes (e.g. 3 identical runs with same runid/seed)."""
@@ -49,7 +46,6 @@ def check_2_determinism(runid: str = "refactor_test") -> tuple[bool, str]:
             return False, f"verify_refactor_determinism failed: {r.stderr or r.stdout}"
     return True, "OK"
 
-
 def check_3_walkforward_or_ic(artifacts_dir: Path) -> tuple[bool, str]:
     """Criterion 3: Positive net-of-cost for ≥3 assets OR risk reduction + stable IC. (Relaxed: artifacts exist and metrics present.)"""
     metrics_path = artifacts_dir / "metrics.json"
@@ -59,9 +55,7 @@ def check_3_walkforward_or_ic(artifacts_dir: Path) -> tuple[bool, str]:
         m = json.load(f)
     if m.get("n_obs", 0) < 10:
         return False, "Insufficient n_obs in metrics"
-    # Full walk-forward would require phase3_runner with refactor score_fn; for gating we require artifacts from refactor run
     return True, "OK (artifacts present; full WF optional)"
-
 
 def check_4_hawkes_stress() -> tuple[bool, str]:
     """Criterion 4: Hawkes + slippage stress within tolerances."""
@@ -75,7 +69,6 @@ def check_4_hawkes_stress() -> tuple[bool, str]:
     if r.returncode != 0:
         return False, r.stderr or r.stdout or "Hawkes stress failed"
     return True, "OK"
-
 
 def check_5_lookahead_fx() -> tuple[bool, str]:
     """Criterion 5: No look-ahead or FX bugs; existing tests pass."""
@@ -95,7 +88,6 @@ def check_5_lookahead_fx() -> tuple[bool, str]:
         if r.returncode != 0:
             return False, f"{t} failed: {r.stdout[-500:] if r.stdout else r.stderr}"
     return True, "OK (or tests not present)"
-
 
 def main() -> int:
     import argparse
@@ -139,7 +131,6 @@ def main() -> int:
         return 1
     print("Gating PASSED — may proceed to R4 and trading-bot design.")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

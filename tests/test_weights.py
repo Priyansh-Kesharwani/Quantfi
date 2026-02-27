@@ -12,13 +12,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-
 def test_weighting_factory_create_ic_ewma():
     from weights import WeightingFactory
     w = WeightingFactory.create("ic_ewma", {"alpha": 5.0, "lambda_shrink": 0.2})
     assert w is not None
     assert hasattr(w, "update") and hasattr(w, "weights")
-
 
 def test_weighting_factory_create_kalman_stub():
     from weights import WeightingFactory
@@ -28,7 +26,6 @@ def test_weighting_factory_create_kalman_stub():
     assert w_arr.shape == (3,)
     assert np.isclose(w_arr.sum(), 1.0)
     assert (w_arr >= 0).all()
-
 
 def test_ic_ewma_weights_simplex():
     from weights import WeightingFactory
@@ -43,15 +40,13 @@ def test_ic_ewma_weights_simplex():
     assert (weights >= 0).all()
     assert "ewma_ic" in meta
 
-
 def test_ic_ewma_higher_ic_higher_weight():
     """Component with higher IC should get higher weight; weights are simplex."""
     from weights.ic_ewma import IC_EWMA_Weights
     np.random.seed(123)
     T = 80
-    # Component 0: aligned with forward returns (high IC); component 1: noise (low IC)
     fwd = np.random.randn(T) * 0.01
-    c0 = fwd + np.roll(fwd, -1) * 0.5  # correlated with fwd
+    c0 = fwd + np.roll(fwd, -1) * 0.5
     c1 = np.random.randn(T) * 0.01
     cr = np.column_stack([c0, c1])
     config = {"ic_window": 60, "ic_forward_horizon": 5, "alpha": 3.0, "lambda_shrink": 0.1, "max_weight_delta": 0.5}
@@ -60,9 +55,7 @@ def test_ic_ewma_higher_ic_higher_weight():
     assert weights.shape == (2,)
     assert np.isclose(weights.sum(), 1.0)
     assert (weights >= 0).all()
-    # First component (aligned with fwd) should get higher weight than noise component
     assert weights[0] > weights[1]
-
 
 def test_ic_ewma_turnover_cap():
     """With max_weight_delta, weights evolve; output remains simplex."""
@@ -77,7 +70,6 @@ def test_ic_ewma_turnover_cap():
         w, _ = w_engine.update(cr[: t], fwd[: t])
         assert np.isclose(w.sum(), 1.0)
         assert (w >= 0).all()
-
 
 def test_weighting_factory_unknown_method():
     from weights import WeightingFactory

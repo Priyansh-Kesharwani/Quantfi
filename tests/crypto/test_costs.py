@@ -13,7 +13,6 @@ from crypto.costs import (
     trade_cost,
 )
 
-
 class TestCostPresets:
     def test_all_presets_have_required_keys(self):
         for name, preset in CRYPTO_COST_PRESETS.items():
@@ -26,7 +25,6 @@ class TestCostPresets:
         p = CRYPTO_COST_PRESETS["BINANCE_FUTURES_TAKER"]
         assert p["fee_pct"] == pytest.approx(0.0005)
         assert p["slippage_pct"] == pytest.approx(0.0002)
-
 
 class TestMaintenanceMargin:
     def test_first_bracket(self):
@@ -47,7 +45,6 @@ class TestMaintenanceMargin:
         mmr, maint = get_maintenance_margin(5_000_000)
         assert mmr == pytest.approx(0.025)
         assert maint == 16_300
-
 
 class TestExecutionPrice:
     def test_buy_price_higher(self):
@@ -73,20 +70,18 @@ class TestExecutionPrice:
         assert buy == pytest.approx(50_000.0)
         assert sell == pytest.approx(50_000.0)
 
-
 class TestTradeCost:
     def test_taker_cost(self):
         cost = trade_cost(10_000.0, "BINANCE_FUTURES_TAKER")
-        assert cost == pytest.approx(5.0)  # 10000 * 0.0005
+        assert cost == pytest.approx(5.0)
 
     def test_maker_fallback(self):
         cost = trade_cost(10_000.0, "BINANCE_FUTURES_TAKER", is_maker=True)
-        assert cost == pytest.approx(2.0)  # 10000 * 0.0002
+        assert cost == pytest.approx(2.0)
 
     def test_zero_cost(self):
         cost = trade_cost(10_000.0, "ZERO")
         assert cost == pytest.approx(0.0)
-
 
 class TestAnnualFundingDrag:
     def test_default(self):
@@ -99,7 +94,6 @@ class TestAnnualFundingDrag:
 
     def test_zero_rate(self):
         assert annual_funding_drag(avg_8h_rate=0.0) == pytest.approx(0.0)
-
 
 class TestLiquidationPrice:
     def test_long_liquidation(self):
@@ -133,7 +127,7 @@ class TestLiquidationPrice:
         liq_10x = compute_liquidation_price(
             entry, 10.0, "long", entry * units / 10.0, units
         )
-        assert liq_10x > liq_3x  # 10x liquidates closer to entry
+        assert liq_10x > liq_3x
 
     def test_funding_erodes_margin_moves_liquidation(self):
         entry = 50_000.0

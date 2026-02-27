@@ -2,7 +2,6 @@
 
 import numpy as np
 
-
 def manual_roc_auc(labels: np.ndarray, scores: np.ndarray) -> float:
     """Compute ROC AUC using the trapezoidal rule.
 
@@ -18,7 +17,6 @@ def manual_roc_auc(labels: np.ndarray, scores: np.ndarray) -> float:
     labels = np.asarray(labels)
     scores = np.asarray(scores)
 
-    # Sort descending by score
     order = np.argsort(-scores)
     labels_sorted = labels[order]
 
@@ -38,7 +36,6 @@ def manual_roc_auc(labels: np.ndarray, scores: np.ndarray) -> float:
             tp += 1
         else:
             fp += 1
-            # Whenever we see a negative, TPR changes → trapezoid
             tpr = tp / n_pos
             fpr = fp / n_neg
             auc += (fpr - prev_fpr) * tpr

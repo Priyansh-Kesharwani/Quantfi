@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# RESEARCH ONLY — DO NOT USE OUTPUT FOR STRATEGY PARAMETERS
 """
 Regime clustering and regime-sliced IC/deciles.
 
@@ -22,7 +21,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from validation.metrics import information_coefficient, forward_returns
-
 
 def compute_decile_forward_returns(scores: pd.Series, prices: pd.Series, horizon: int) -> dict:
     """Bin bars by score decile; return mean forward return and std err per decile."""
@@ -47,7 +45,6 @@ def compute_decile_forward_returns(scores: pd.Series, prices: pd.Series, horizon
         se = float(rets.std() / np.sqrt(n)) if n > 1 and rets.std() > 0 else 0.0
         out.append({"decile": int(q), "mean_forward_return": mean_ret, "std_error": se, "n_bars": n})
     return {"deciles": out, "horizon": horizon}
-
 
 def main():
     ap = argparse.ArgumentParser(description="Regime clustering + IC/deciles per regime")
@@ -99,13 +96,12 @@ def main():
         sma50 = prices.rolling(50, min_periods=1).mean()
         trend = (prices / sma50 - 1.0).replace([np.inf, -np.inf], np.nan)
 
-        # Align and dropna for clustering
         common = scores.index.intersection(vol.index).intersection(trend.index)
         vol_a = vol.reindex(common).ffill().bfill().fillna(0)
         trend_a = trend.reindex(common).ffill().bfill().fillna(0)
         scores_a = scores.reindex(common).dropna()
         valid = vol_a.notna() & trend_a.notna() & scores_a.notna()
-        valid = valid & (vol_a > 0)  # avoid zero vol
+        valid = valid & (vol_a > 0)
         if valid.sum() < 100:
             all_results[symbol] = {"error": "insufficient_valid_bars"}
             continue
@@ -146,7 +142,6 @@ def main():
         json.dump(all_results, f, indent=2)
     print(f"Results written to {out_path}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -14,7 +14,6 @@ from indicators.ofi import compute_ofi as _compute_ofi
 from indicators.hawkes import estimate_hawkes as _estimate_hawkes
 from indicators.ldc import LDC as _LDC
 
-
 def compute_ofi(df: pd.DataFrame, window: int = 20) -> pd.Series:
     """
     Order Flow Imbalance (rolling signed-volume proxy), normalized to (0,1).
@@ -22,7 +21,6 @@ def compute_ofi(df: pd.DataFrame, window: int = 20) -> pd.Series:
     Delegates to indicators.ofi.compute_ofi with default normalize=True.
     """
     return _compute_ofi(df, window=window, normalize=True, min_obs=min(100, max(window, len(df) // 4)))
-
 
 def estimate_hawkes(
     event_times_dict: Dict[str, np.ndarray],
@@ -39,10 +37,7 @@ def estimate_hawkes(
     intensity, _ = _estimate_hawkes(event_times_dict, ts, decay=decay)
     return intensity
 
-
-# Lorentzian classifier: re-export for bot API (fit templates, score(x))
 LDC = _LDC
-
 
 def compute_atr(df: pd.DataFrame, window: int = 14) -> pd.Series:
     """
