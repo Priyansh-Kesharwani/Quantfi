@@ -112,27 +112,75 @@ def _states_well_separated(model) -> bool:
     return v.max() / v.min() >= _SEPARATION_RATIO
 
 class CryptoRegimeDetector:
-    """Rolling regime detector using GaussianHMM.  No heuristic fallback."""
+    """Rolling regime detector using GaussianHMM.  No heuristic fallback.
+
+    Caches the fitted model and labels to avoid redundant HMM fits on
+    every bar.  The initial fit is performed once during warmup; subsequent
+    refits happen every ``config.refit_every`` new bars.
+    """
 
     def __init__(self, config: Optional[CryptoRegimeConfig] = None):
         self.config = config or CryptoRegimeConfig()
         self._model = None
         self._state_map: dict[int, str] = {}
+        self._cached_n: int = 0
+        self._cached_raw_labels: Optional[pd.Series] = None
+        self._last_fit_n: int = 0
 
     def fit_rolling(self, ohlcv: pd.DataFrame) -> pd.Series:
-        """Classify regimes bar-by-bar.  Returns Series of regime labels."""
+        """Classify regimes bar-by-bar.  Returns Series of regime labels.
+
+        Uses incremental classification: the HMM is fitted once during
+        warmup, refitted every ``refit_every`` bars, and only new bars
+        are classified on each call.
+        """
         features = self._prepare_features(ohlcv)
         n = len(features)
-        labels = pd.Series(REGIME_RANGING, index=ohlcv.index, dtype=str)
 
         warmup = self.config.warmup_bars
         if n < warmup:
-            return labels
+            return pd.Series(REGIME_RANGING, index=ohlcv.index, dtype=str)
 
-        self._fit_model(features, warmup)
+        if self._model is None:
+            self._fit_model(features, warmup)
+            self._last_fit_n = n
+            labels = pd.Series(REGIME_RANGING, index=ohlcv.index, dtype=str)
+            if self._model is not None:
+                labels = self._classify_hmm(features, labels, warmup)
+            self._cached_raw_labels = labels.copy()
+            self._cached_n = n
+        else:
+            new_bars = n - self._cached_n
+            if new_bars <= 0 and self._cached_raw_labels is not None:
+                labels = self._cached_raw_labels.copy()
+                labels.index = ohlcv.index
+                labels = self._apply_circuit_breaker(ohlcv["close"], labels)
+                labels = self._apply_hysteresis(labels)
+                return labels
 
-        if self._model is not None:
-            labels = self._classify_hmm(features, labels, warmup)
+            if (n - self._last_fit_n) >= self.config.refit_every:
+                self._rolling_refit(features, n - 1)
+                self._last_fit_n = n
+
+            labels = pd.Series(REGIME_RANGING, index=ohlcv.index, dtype=str)
+            if self._cached_raw_labels is not None and self._cached_n <= n:
+                labels.iloc[: self._cached_n] = self._cached_raw_labels.values[: self._cached_n]
+
+            if self._model is not None:
+                start = max(warmup, self._cached_n)
+                for t in range(start, n):
+                    ws = max(0, t - self.config.rolling_window)
+                    X_w = features[ws : t + 1]
+                    try:
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            raw = self._model.predict(X_w)
+                        labels.iloc[t] = self._map_states(raw[-1])
+                    except Exception:
+                        pass
+
+            self._cached_raw_labels = labels.copy()
+            self._cached_n = n
 
         labels = self._apply_circuit_breaker(ohlcv["close"], labels)
         labels = self._apply_hysteresis(labels)

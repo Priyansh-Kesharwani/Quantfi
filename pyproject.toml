@@ -31,6 +31,12 @@ select = ["E", "F", "I", "N", "W"]
 ignore = ["E501"]
 exclude = [".git", ".venv", "frontend", "node_modules", "build"]
 
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["backend", "domain", "infrastructure", "services", "scoring", "indicators", "backtester", "bot", "weights", "utils", "validation"]
+skip_glob = ["frontend/*", "node_modules/*", ".venv/*"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

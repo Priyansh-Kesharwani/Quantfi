@@ -27,6 +27,7 @@ class GridStrategy:
         self._engine = GridEngine(grid_config)
         self._symbol = symbol
         self._atr_multiplier = atr_multiplier
+        self._last_grid_fills: List[CryptoTradeRecord] = []
 
     @property
     def name(self) -> str:
@@ -36,6 +37,11 @@ class GridStrategy:
     def grid_engine(self) -> GridEngine:
         return self._engine
 
+    @property
+    def last_grid_fills(self) -> List[CryptoTradeRecord]:
+        """Grid fills from the most recent on_bar call (consumed by the loop)."""
+        return self._last_grid_fills
+
     def on_bar(
         self,
         bar: pd.Series,
@@ -44,19 +50,21 @@ class GridStrategy:
         score: float,
         account_equity: float,
     ) -> List[OrderIntent]:
+        self._last_grid_fills = []
         ts = bar.name if isinstance(bar.name, datetime) else datetime(2024, 1, 1)
         close = bar["close"]
 
         if regime != "RANGING" and self._engine.is_active:
             trades = self._engine.close_all(close, ts, reason="regime_exit")
-            return self._trades_to_intents(trades)
+            self._last_grid_fills = trades
+            return []
 
         if regime == "RANGING" and not self._engine.is_active:
             atr = bar.get("atr", close * 0.02)
             half_range = atr * self._atr_multiplier
             self._grid_config.lower_price = close - half_range
             self._grid_config.upper_price = close + half_range
-            success = self._engine.initialize(close, self._symbol)
+            success = self._engine.initialize(close, self._symbol, initial_equity=account_equity)
             if not success:
                 return []
 
@@ -68,7 +76,7 @@ class GridStrategy:
                 close,
                 ts,
             )
-            return self._trades_to_intents(trades)
+            self._last_grid_fills = trades
 
         return []
 
@@ -78,8 +86,3 @@ class GridStrategy:
     def close_all(self, bar: pd.Series) -> List[CryptoTradeRecord]:
         ts = bar.name if isinstance(bar.name, datetime) else datetime(2024, 1, 1)
         return self._engine.close_all(bar["close"], ts, reason="strategy_transition")
-
-    @staticmethod
-    def _trades_to_intents(trades: List[CryptoTradeRecord]) -> List[OrderIntent]:
-        """Convert already-executed grid trades to empty intents (grid self-executes)."""
-        return []

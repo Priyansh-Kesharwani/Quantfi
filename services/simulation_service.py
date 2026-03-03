@@ -4,8 +4,6 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 from datetime import datetime, timezone
-import importlib.util
-import sys
 
 from domain.protocols import IFXProvider
 
@@ -22,16 +20,9 @@ class SimulationService:
         self._project_root = Path(project_root)
         self._fx_fallback = getattr(config, "fx_fallback_usd_inr", 83.5)
 
-    def _load_simulator_module(self) -> Any:
-        sim_path = str(
-            self._project_root / "backtester" / "portfolio_simulator.py"
-        )
-        spec = importlib.util.spec_from_file_location(
-            "portfolio_simulator", sim_path
-        )
-        mod = importlib.util.module_from_spec(spec)
-        sys.modules["portfolio_simulator"] = mod
-        spec.loader.exec_module(mod)
+    @staticmethod
+    def _load_simulator_module() -> Any:
+        import backtester.portfolio_simulator as mod
         return mod
 
     def get_templates(self) -> Dict[str, Any]:

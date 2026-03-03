@@ -20,6 +20,7 @@ def create_api_router() -> APIRouter:
         simulation,
         health,
         crypto,
+        paper_trading,
     )
     router = APIRouter(prefix="/api")
     router.include_router(assets.router, tags=["assets"])
@@ -34,4 +35,5 @@ def create_api_router() -> APIRouter:
     router.include_router(simulation.router, tags=["simulation"])
     router.include_router(health.router, tags=["health"])
     router.include_router(crypto.router, tags=["crypto"])
+    router.include_router(paper_trading.router, tags=["paper-trading"])
     return router

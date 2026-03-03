@@ -85,14 +85,21 @@ android-sdk/ -e
 *.env
 *.env.*
 
+# Archived non-functional files (docs, research scripts, tuning configs)
+.archive/
+
 # Temporary artifacts and run outputs
 temp_quant/
 .cursor/debug*.log
-logs/
+.cursor_memory/
+logs/*.json
+logs/*.log
 data_snapshots/
 validation/trade_exports/
 validation/outputs/
 validation/artifacts/
+validation/debug/
+validation/reports/
 notebooks/results/
 results/
 raw_data/

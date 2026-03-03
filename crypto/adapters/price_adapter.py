@@ -194,6 +194,25 @@ class CryptoPriceAdapter:
             df[col] = pd.to_numeric(df[col], errors="coerce")
         return df
 
+    def fetch_latest_n(
+        self,
+        symbol: str,
+        timeframe: str,
+        n_bars: int,
+    ) -> pd.DataFrame:
+        """Fetch the most recent *n_bars* candles (for live/paper loop warmup).
+
+        Computes ``since = now - n_bars * tf_ms`` and delegates to ``fetch()``.
+        """
+        from crypto.calendar import TIMEFRAME_TO_MS
+
+        tf_ms = TIMEFRAME_TO_MS.get(timeframe, 3_600_000)
+        until = datetime.now(timezone.utc).replace(tzinfo=None)
+        since = datetime.utcfromtimestamp(
+            (until.replace(tzinfo=timezone.utc).timestamp() * 1000 - n_bars * tf_ms) / 1000
+        )
+        return self.fetch(symbol, timeframe, since, until)
+
     def fetch_funding_rates(
         self,
         symbol: str,

@@ -48,3 +48,22 @@ regime_refit_every: 168
 regime_cooldown_bars: 12
 regime_circuit_breaker_dd: -0.12
 regime_warmup_bars: 504
+
+# Paper Trading
+paper_trading:
+  exchange_id: "binance"
+  sandbox: true
+  inject_latency: true
+  latency_min_ms: 50.0
+  latency_max_ms: 500.0
+  warmup_bars: 600
+  state_path: "paper_bot_state.json"
+  ledger_path: "paper_ledger.jsonl"
+
+# Risk Management
+risk:
+  max_daily_loss_pct: 0.05
+  max_position_notional_usd: 50000.0
+  max_leverage: 5.0
+  emergency_flatten_on_disconnect: true
+  heartbeat_timeout_seconds: 30

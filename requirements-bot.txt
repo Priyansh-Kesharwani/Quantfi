@@ -1,5 +1,5 @@
 # Bot and validation dependencies (install in addition to backend/requirements.txt or venv)
 hmmlearn>=0.3.0
-ccxt>=4.0
+ccxt>=4.5.6
 tenacity>=8.0
 pyarrow>=14.0

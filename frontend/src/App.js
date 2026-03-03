@@ -11,6 +11,7 @@ import News from './pages/News';
 import Settings from './pages/Settings';
 import PortfolioSim from './pages/PortfolioSim';
 import CryptoBot from './pages/CryptoBot';
+import PaperTrading from './pages/PaperTrading';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/ui/dialog';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
@@ -83,6 +84,7 @@ function App() {
                 <Route path="/backtest" element={<BacktestLab />} />
                 <Route path="/simulation" element={<PortfolioSim />} />
                 <Route path="/crypto-bot" element={<CryptoBot />} />
+                <Route path="/paper-trading" element={<PaperTrading />} />
                 <Route path="/news" element={<News />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>

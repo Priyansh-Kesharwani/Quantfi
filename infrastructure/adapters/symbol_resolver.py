@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, List
+import time
+from typing import Dict, Optional, List, Tuple
 import logging
 
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
+_CACHE_TTL_SECONDS = 3600
+
 
 class SymbolResolver:
-    _info_cache: Dict[str, Dict] = {}
+    _info_cache: Dict[str, Tuple[Dict, float]] = {}
+    _MAX_CACHE_SIZE = 500
 
     @classmethod
     def resolve(
@@ -31,11 +35,19 @@ class SymbolResolver:
 
     @classmethod
     def get_info(cls, symbol: str) -> Dict:
+        now = time.monotonic()
         if symbol in cls._info_cache:
-            return cls._info_cache[symbol]
+            info, ts = cls._info_cache[symbol]
+            if now - ts < _CACHE_TTL_SECONDS:
+                return info
+
+        if len(cls._info_cache) >= cls._MAX_CACHE_SIZE:
+            oldest_key = min(cls._info_cache, key=lambda k: cls._info_cache[k][1])
+            del cls._info_cache[oldest_key]
+
         try:
             info = yf.Ticker(symbol).info or {}
-            cls._info_cache[symbol] = info
+            cls._info_cache[symbol] = (info, now)
             return info
         except Exception:
             return {}

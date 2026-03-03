@@ -401,3 +401,51 @@ def compute_composite_score_single(
         "macro_fx": fx,
     }
     return composite, breakdown
+
+
+def compute_composite_scores_batch(
+    df,
+    usd_inr_rate: float = 83.5,
+    weights: Optional[Dict[str, float]] = None,
+    rules: Optional[Dict[str, float]] = None,
+):
+    """Vectorized composite scoring for a DataFrame with indicator columns.
+
+    Expects columns: Close, sma_200, rsi_14, macd, macd_hist, bb_lower,
+    bb_upper, adx_14, atr_percentile, drawdown_pct, z_score_20, z_score_50,
+    z_score_100.
+
+    Returns a numpy array of composite scores (same length as df).
+    """
+    n = len(df)
+    scores = np.empty(n, dtype=np.float64)
+
+    close = df["Close"].values if "Close" in df.columns else np.full(n, np.nan)
+
+    def _col(name):
+        return df[name].values if name in df.columns else np.full(n, np.nan)
+
+    sma_200 = _col("sma_200")
+    rsi_14 = _col("rsi_14")
+    macd_line = _col("macd")
+    macd_hist_arr = _col("macd_hist")
+    bb_lower = _col("bb_lower")
+    bb_upper = _col("bb_upper")
+    adx_14 = _col("adx_14")
+    atr_pctl = _col("atr_percentile")
+    drawdown = _col("drawdown_pct")
+    z20 = _col("z_score_20")
+    z50 = _col("z_score_50")
+    z100 = _col("z_score_100")
+
+    for i in range(n):
+        zs = [z for z in [z20[i], z50[i], z100[i]] if not np.isnan(z)]
+        avg_z = float(np.mean(zs)) if zs else None
+        s, _ = compute_composite_score_single(
+            close[i], sma_200[i], rsi_14[i], macd_line[i], macd_hist_arr[i],
+            bb_lower[i], bb_upper[i], adx_14[i], atr_pctl[i], drawdown[i],
+            avg_z, usd_inr_rate, weights, rules,
+        )
+        scores[i] = s
+
+    return scores

@@ -67,6 +67,13 @@ export const api = {
   getCryptoDefaults: () => axios.get(`${API}/crypto/config/defaults`),
   getCryptoStrategies: () => axios.get(`${API}/crypto/strategies`),
   getCryptoMarkets: (exchange = 'binance') => axios.get(`${API}/crypto/markets?exchange=${exchange}`),
+
+  // ── Paper Trading ─────────────────────────────────────────
+  startPaperTrading: (data) => axios.post(`${API}/paper-trading/start`, data),
+  stopPaperTrading: () => axios.post(`${API}/paper-trading/stop`),
+  getPaperTradingStatus: () => axios.get(`${API}/paper-trading/status`),
+  getPaperTradingMetrics: () => axios.get(`${API}/paper-trading/metrics`),
+  getPaperTradingLedger: (limit = 100) => axios.get(`${API}/paper-trading/ledger?limit=${limit}`),
 };
 
 export default api;
