@@ -41,9 +41,9 @@ def test_integration_features_scoring_execution_deterministic():
     """
     Run features -> scoring -> execution with fixed seed; two runs produce same artifact hash.
     """
-    from bot.features import compute_ofi, compute_atr
-    from bot.scoring import compute_composite_scores
-    from bot.execution import TBLManager
+    from engine.bot.features import compute_ofi, compute_atr
+    from engine.bot.scoring import compute_composite_scores
+    from engine.bot.execution import TBLManager
 
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     seed = 12345

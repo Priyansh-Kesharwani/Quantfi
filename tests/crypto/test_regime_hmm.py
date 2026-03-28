@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from crypto.regime.detector import (
+from engine.crypto.regime.detector import (
     REGIME_RANGING,
     REGIME_STRESS,
     REGIME_TRENDING,

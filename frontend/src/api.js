@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export const api = {
@@ -69,11 +69,11 @@ export const api = {
   getCryptoMarkets: (exchange = 'binance') => axios.get(`${API}/crypto/markets?exchange=${exchange}`),
 
   // ── Paper Trading ─────────────────────────────────────────
-  startPaperTrading: (data) => axios.post(`${API}/paper-trading/start`, data),
-  stopPaperTrading: () => axios.post(`${API}/paper-trading/stop`),
-  getPaperTradingStatus: () => axios.get(`${API}/paper-trading/status`),
-  getPaperTradingMetrics: () => axios.get(`${API}/paper-trading/metrics`),
-  getPaperTradingLedger: (limit = 100) => axios.get(`${API}/paper-trading/ledger?limit=${limit}`),
+  getPaperPortfolio: () => axios.get(`${API}/paper-trading/portfolio`),
+  getPaperPositions: () => axios.get(`${API}/paper-trading/positions`),
+  getPaperTrades: (limit = 50) => axios.get(`${API}/paper-trading/trades?limit=${limit}`),
+  placePaperOrder: (data) => axios.post(`${API}/paper-trading/order`, data),
+  resetPaperTrading: () => axios.post(`${API}/paper-trading/reset`),
 };
 
 export default api;

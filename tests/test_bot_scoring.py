@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from bot.scoring import compute_composite_scores
+from engine.bot.scoring import compute_composite_scores
 
 
 def _synthetic_components(n: int = 100, seed: int = 42) -> dict:

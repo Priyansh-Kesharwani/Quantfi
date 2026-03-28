@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from crypto.scoring.directional_scorer import (
+from engine.crypto.scoring.directional_scorer import (
     CryptoDirectionalScorer,
     ScoringConfig,
     _self_calibrating_tanh,

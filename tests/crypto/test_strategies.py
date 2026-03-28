@@ -5,13 +5,13 @@ import pandas as pd
 import pytest
 from datetime import datetime
 
-from crypto.engines.futures_engine import FuturesEngine, FuturesEngineConfig
-from crypto.engines.grid_engine import GridConfig
-from crypto.models import CryptoTradeRecord
-from crypto.strategies.adaptive import AdaptiveConfig, AdaptiveStrategy
-from crypto.strategies.base import IStrategy, compute_first_valid_bar
-from crypto.strategies.directional import DirectionalConfig, DirectionalStrategy
-from crypto.strategies.grid import GridStrategy
+from engine.crypto.engines.futures_engine import FuturesEngine, FuturesEngineConfig
+from engine.crypto.engines.grid_engine import GridConfig
+from engine.crypto.models import CryptoTradeRecord
+from engine.crypto.strategies.adaptive import AdaptiveConfig, AdaptiveStrategy
+from engine.crypto.strategies.base import IStrategy, compute_first_valid_bar
+from engine.crypto.strategies.directional import DirectionalConfig, DirectionalStrategy
+from engine.crypto.strategies.grid import GridStrategy
 
 
 def _make_bar(close=50_000, high=50_500, low=49_500, volume=1000, atr=500, idx=None):

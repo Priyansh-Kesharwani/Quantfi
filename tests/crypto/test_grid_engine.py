@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from crypto.engines.grid_engine import (
+from engine.crypto.engines.grid_engine import (
     GridConfig,
     GridEngine,
     compute_grid_levels,

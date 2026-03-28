@@ -8,7 +8,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from indicators.composite import (
+from engine.indicators.composite import (
     compute_composite_score,
     Phase1Config,
     CompositeResult,
@@ -17,7 +17,7 @@ from indicators.composite import (
     compute_opportunity,
     Phase1Composite
 )
-from indicators.committee import agg_committee
+from engine.indicators.committee import agg_committee
 
 
 class TestGPersPersistenceModifier:

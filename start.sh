@@ -33,17 +33,20 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-if [ ! -f "$ROOT/backend/.env" ]; then
-    echo "✗  backend/.env not found. Create it first:"
+if [ -f "$ROOT/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$ROOT/.env"
+    set +a
+elif [ -f "$ROOT/backend/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$ROOT/backend/.env"
+    set +a
+else
+    echo "✗  .env not found. Copy the example and fill in your keys:"
     echo ""
-    echo "    cat > backend/.env << EOF"
-    echo "    MONGO_URL=mongodb://localhost:27017"
-    echo "    DB_NAME=quantfi"
-    echo "    NEWS_API_KEY=your_key"
-    echo "    EMERGENT_LLM_KEY=your_key"
-    echo "    CORS_ORIGINS=http://localhost:$FRONTEND_PORT"
-    echo "    OPENAI_API_KEY=your_openai_api_key_here" 
-    echo "    EOF"
+    echo "    cp .env.example .env"
     echo ""
     exit 1
 fi
@@ -68,10 +71,10 @@ BACKEND_PID=$!
 cd "$ROOT/frontend"
 if [ ! -d "node_modules" ]; then
     echo "→ Installing frontend deps..."
-    yarn install --frozen-lockfile
+    npm install
 fi
 echo "→ Frontend starting on :$FRONTEND_PORT"
-REACT_APP_BACKEND_URL="http://localhost:$BACKEND_PORT" PORT="$FRONTEND_PORT" yarn start &
+VITE_BACKEND_URL="http://localhost:$BACKEND_PORT" npx vite --port "$FRONTEND_PORT" &
 FRONTEND_PID=$!
 
 echo ""

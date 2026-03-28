@@ -9,7 +9,7 @@ import pytest
 
 warnings.filterwarnings("ignore")
 
-from crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
+from engine.crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
 
 
 class TestPositionFraction:

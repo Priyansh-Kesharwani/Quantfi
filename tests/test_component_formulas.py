@@ -27,7 +27,7 @@ def test_component_contract_placeholder():
 
 def test_normalizer_used_by_refactor_path():
     """Refactor path uses normalization_refactor (smoke)."""
-    from indicators.normalization_refactor import canonical_normalize
+    from engine.indicators.normalization_refactor import canonical_normalize
     raw = np.random.RandomState(42).randn(100).cumsum()
     s, meta = canonical_normalize(raw, mode="approx", min_obs=20)
     assert isinstance(s, np.ndarray)
@@ -38,7 +38,7 @@ def test_normalizer_used_by_refactor_path():
 def test_ofi_refactor_returns_series_meta():
     """OFI refactor returns (Series, meta) with required keys."""
     from tests.fixtures import fbm_series
-    from indicators.refactor_components import ofi_refactor
+    from engine.indicators.refactor_components import ofi_refactor
     df = fbm_series(n=150, H=0.6, seed=42)
     series, meta = ofi_refactor(df, window=20, min_obs=30)
     assert isinstance(series, pd.Series)
@@ -54,7 +54,7 @@ def test_ofi_refactor_returns_series_meta():
 
 def test_vwap_z_refactor_returns_series_meta():
     """VWAP Z refactor returns (Series, meta)."""
-    from indicators.refactor_components import vwap_z_refactor
+    from engine.indicators.refactor_components import vwap_z_refactor
     np.random.seed(42)
     price = 100 + np.cumsum(np.random.randn(100) * 0.5)
     vol = np.abs(np.random.randn(100)) * 1e6 + 1e6
@@ -66,7 +66,7 @@ def test_vwap_z_refactor_returns_series_meta():
 
 def test_hurst_refactor_returns_series_meta():
     """Hurst refactor returns (Series, meta)."""
-    from indicators.refactor_components import hurst_refactor
+    from engine.indicators.refactor_components import hurst_refactor
     from tests.fixtures import fbm_series
     df = fbm_series(n=300, H=0.7, seed=43)
     series, meta = hurst_refactor(df["close"].values, window=100, method="rs")
@@ -80,7 +80,7 @@ def test_hurst_refactor_returns_series_meta():
 
 def test_hawkes_refactor_returns_series_meta():
     """Hawkes refactor returns (Series, meta)."""
-    from indicators.refactor_components import hawkes_refactor
+    from engine.indicators.refactor_components import hawkes_refactor
     from tests.fixtures import hawkes_events
     events = hawkes_events(seed=44)
     timestamps = np.linspace(0, 50, 200)
@@ -95,7 +95,7 @@ def test_hawkes_refactor_returns_series_meta():
 
 def test_ldc_refactor_returns_series_meta():
     """LDC refactor returns (Series, meta)."""
-    from indicators.refactor_components import ldc_refactor
+    from engine.indicators.refactor_components import ldc_refactor
     np.random.seed(45)
     bull = np.random.randn(30, 5) + 1
     bear = np.random.randn(30, 5) - 1
@@ -112,7 +112,7 @@ def test_refactor_component_determinism():
     """Refactor OFI: same input + seed → same output hash."""
     import hashlib
     from tests.fixtures import fbm_series
-    from indicators.refactor_components import ofi_refactor
+    from engine.indicators.refactor_components import ofi_refactor
     df = fbm_series(n=120, H=0.5, seed=99)
     s1, _ = ofi_refactor(df, window=15, min_obs=20)
     s2, _ = ofi_refactor(df, window=15, min_obs=20)

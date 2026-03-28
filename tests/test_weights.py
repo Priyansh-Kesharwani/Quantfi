@@ -42,7 +42,7 @@ def test_ic_ewma_weights_simplex():
 
 def test_ic_ewma_higher_ic_higher_weight():
     """Component with higher IC should get higher weight; weights are simplex."""
-    from weights.ic_ewma import IC_EWMA_Weights
+    from engine.weights.ic_ewma import IC_EWMA_Weights
     np.random.seed(123)
     T = 80
     fwd = np.random.randn(T) * 0.01
@@ -59,7 +59,7 @@ def test_ic_ewma_higher_ic_higher_weight():
 
 def test_ic_ewma_turnover_cap():
     """With max_weight_delta, weights evolve; output remains simplex."""
-    from weights.ic_ewma import IC_EWMA_Weights
+    from engine.weights.ic_ewma import IC_EWMA_Weights
     np.random.seed(44)
     T, n = 120, 3
     cr = np.random.randn(T, n).cumsum(axis=0) * 0.01

@@ -7,7 +7,7 @@ Verify DSR decreases as n_trials increases; sanity checks.
 import numpy as np
 import pytest
 
-from validation.objective import compute_dsr
+from engine.validation.objective import compute_dsr
 
 
 class TestDSR:

@@ -1,109 +1,95 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# IDE and editors
-.idea/
-.vscode/
-
 # Dependencies
 node_modules/
-/node_modules
-/.pnp
+.pnp
 .pnp.js
 .yarn/install-state.gz
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# Testing
-/coverage
-
-# Next.js
-/.next/
-/out/
-next-env.d.ts
-*.tsbuildinfo
-
-# Production builds
-/build
-dist/
-dist
-
-# Environment files (comprehensive coverage)
-
-*token.json*
-*credentials.json*
-
-# Validation debug outputs (diagnostic CSVs/JSONs)
-validation/debug/
-
-# Logs and debug files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-dump.rdb
-
-# System files
-.DS_Store
-*.pem
 
 # Python
 __pycache__/
-*pyc*
+*.pyc
+*.pyo
+*.egg-info/
 venv/
 .venv/
 
-# Development tools
-chainlit.md
-.chainlit
-.ipynb_checkpoints/
-.ac
-
-# Deployment
-.vercel
-
-# Data and databases
-agenthub/agents/youtube/db
-
-# Archive files and large assets
-**/*.zip
-**/*.tar.gz
-**/*.tar
-**/*.tgz
-*.pack
-*.deb
-*.dylib
-
-# Build caches
-.cache/
-
-# Mobile development
-android-sdk/ -e 
-# Environment files
+# Environment
+.env
 *.env
 *.env.*
 
-# Archived non-functional files (docs, research scripts, tuning configs)
-.archive/
+# IDE / editor
+.idea/
+.vscode/
+.cursor/
+*.swp
+*.swo
 
-# Temporary artifacts and run outputs
-temp_quant/
-.cursor/debug*.log
-.cursor_memory/
+# Tooling artifacts
+.emergent/
+.gitconfig
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+/build
+dist/
+*.tsbuildinfo
+/coverage
+/out/
+/.next/
+next-env.d.ts
+
+# Data cache (regenerated at runtime)
+data_cache/
+data/cache/*.parquet
+data/cache/metadata.json
+backend/data_cache/
+
+# Runtime state
+crypto_state.json
+paper_bot_state.json
+paper_ledger.jsonl
+
+# Logs
 logs/*.json
 logs/*.log
-data_snapshots/
-validation/trade_exports/
+
+# Validation outputs (regenerated)
 validation/outputs/
 validation/artifacts/
 validation/debug/
 validation/reports/
-notebooks/results/
-results/
-raw_data/
-backtest_logs/
-.emergent/
+validation/trade_exports/
+
+# Test outputs
 test-results/
 test_reports/
+
+# Archive
+.archive/
+
+# Secrets and credentials
+*token.json*
+*credentials.json*
+*.pem
+
+# Docker volumes
+mongo_data/
+
+# Miscellaneous
+dump.rdb
+chainlit.md
+.chainlit
+.ipynb_checkpoints/
+*.pack
+*.deb
+*.dylib
+**/*.zip
+**/*.tar.gz
+**/*.tar
+**/*.tgz

@@ -7,7 +7,7 @@ Verify: no train index in embargo zone; no train sample event window overlapping
 import numpy as np
 import pytest
 
-from validation.validator import (
+from engine.validation.validator import (
     CPCVConfig,
     CPCVSplit,
     generate_cpcv_splits,

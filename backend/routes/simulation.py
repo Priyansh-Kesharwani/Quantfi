@@ -1,9 +1,10 @@
 import logging
+
 from fastapi import APIRouter, HTTPException, Depends
 
 from backend.models import SimulationRequest
+from backend.core.container import Container
 from backend.routes import get_container
-from backend.container import Container
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,10 +30,9 @@ async def run_simulation(
     container: Container = Depends(get_container),
 ):
     try:
-        result = await container.simulation_service.run_simulation(
-            container.db, request, logger
+        return await container.simulation_service.run_simulation(
+            container.db, request, logger,
         )
-        return result
     except HTTPException:
         raise
     except ValueError as ve:

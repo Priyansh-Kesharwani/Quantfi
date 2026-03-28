@@ -31,7 +31,7 @@ def _synthetic_components(n: int = 100, seed: int = 42):
     }
 
 def test_composite_refactor_import():
-    from indicators.composite_refactor import (
+    from engine.indicators.composite_refactor import (
         load_refactor_config,
         compute_composite_score_refactor,
         g_pers_refactor,
@@ -41,7 +41,7 @@ def test_composite_refactor_import():
 
 def test_composite_score_bounded():
     """CompositeScore and Exit are in [0, 100] (Exit may have NaN during normalizer warm-up)."""
-    from indicators.composite_refactor import compute_composite_score_refactor
+    from engine.indicators.composite_refactor import compute_composite_score_refactor
     comp = _synthetic_components(80, seed=1)
     entry, exit_s, breakdown = compute_composite_score_refactor(comp)
     assert (entry >= 0).all() and (entry <= 100).all()
@@ -51,7 +51,7 @@ def test_composite_score_bounded():
 
 def test_gate_suppresses_when_r_low():
     """When R_t < r_thresh, Gate → 0 and CompositeScore suppressed."""
-    from indicators.composite_refactor import compute_gate_refactor, compute_composite_score_refactor
+    from engine.indicators.composite_refactor import compute_gate_refactor, compute_composite_score_refactor
     n = 50
     idx = pd.RangeIndex(n)
     comp = _synthetic_components(n, seed=2)
@@ -66,7 +66,7 @@ def test_gate_suppresses_when_r_low():
 def test_composite_determinism():
     """Same components and config → same Entry/Exit (hash)."""
     import hashlib
-    from indicators.composite_refactor import compute_composite_score_refactor
+    from engine.indicators.composite_refactor import compute_composite_score_refactor
     comp = _synthetic_components(60, seed=3)
     e1, x1, _ = compute_composite_score_refactor(comp)
     e2, x2, _ = compute_composite_score_refactor(comp)
@@ -74,7 +74,7 @@ def test_composite_determinism():
     assert hashlib.sha256(x1.values.tobytes()).hexdigest() == hashlib.sha256(x2.values.tobytes()).hexdigest()
 
 def test_g_pers_refactor_shape():
-    from indicators.composite_refactor import g_pers_refactor
+    from engine.indicators.composite_refactor import g_pers_refactor
     H = np.array([0.3, 0.5, 0.7])
     g = g_pers_refactor(H, k_pers=6.0)
     assert g.shape == H.shape
@@ -83,7 +83,7 @@ def test_g_pers_refactor_shape():
 
 def test_opportunity_uses_trimmed_mean():
     """Opportunity is deterministic and in [0,1]; with constant inputs it is constant."""
-    from indicators.composite_refactor import compute_opportunity_refactor
+    from engine.indicators.composite_refactor import compute_opportunity_refactor
     n = 40
     idx = pd.RangeIndex(n)
     comp = {

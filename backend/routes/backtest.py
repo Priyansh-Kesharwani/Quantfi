@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from backend.models import BacktestResult
+from backend.core.container import Container
 from backend.routes import get_container
-from backend.container import Container
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,6 +31,7 @@ async def run_backtest(
         cfg = container.config
         if request.buy_dip_threshold is None:
             request.buy_dip_threshold = cfg.backtest_buy_dip_threshold_default
+
         result = container.backtest_service.run_backtest(
             symbol=request.symbol.upper(),
             start_date=datetime.fromisoformat(request.start_date),
@@ -39,7 +40,7 @@ async def run_backtest(
             dca_cadence=request.dca_cadence,
             buy_dip_threshold=request.buy_dip_threshold,
         )
-        db = container.db
+
         try:
             doc = result.model_dump()
             doc["created_at"] = doc["created_at"].isoformat()
@@ -52,7 +53,7 @@ async def run_backtest(
                 "buy_dip_threshold": result.config.buy_dip_threshold,
             }
             doc.pop("equity_curve", None)
-            await db.backtest_results.insert_one(doc)
+            await container.db.backtest_results.insert_one(doc)
         except Exception as db_err:
             logger.warning("Failed to save backtest to DB: %s", db_err)
         return result

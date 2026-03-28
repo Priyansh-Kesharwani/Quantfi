@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from crypto.engines.futures_engine import FuturesEngineConfig
-from crypto.execution.executor import IExecutor
-from crypto.execution.loop import LiveExecutionLoop, RiskConfig
-from crypto.execution.simulated import SimulatedExecutor
-from crypto.models import BotState, OrderIntent
+from engine.crypto.engines.futures_engine import FuturesEngineConfig
+from engine.crypto.execution.executor import IExecutor
+from engine.crypto.execution.loop import LiveExecutionLoop, RiskConfig
+from engine.crypto.execution.simulated import SimulatedExecutor
+from engine.crypto.models import BotState, OrderIntent
 
 
 class TestSimulatedExecutor:

@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from crypto.regime.detector import CryptoRegimeConfig
-from crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
+from engine.crypto.regime.detector import CryptoRegimeConfig
+from engine.crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
 
 
 def _make_ohlcv(n: int = 800, seed: int = 42, trend: float = 0.0) -> pd.DataFrame:

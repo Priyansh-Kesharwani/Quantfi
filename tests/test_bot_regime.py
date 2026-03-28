@@ -17,7 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 pytest.importorskip("hmmlearn")
 
-from bot.regime import fit_hmm, predict_state_prob, regime_probability_rolling
+from engine.bot.regime import fit_hmm, predict_state_prob, regime_probability_rolling
 
 
 def _synthetic_returns(n: int = 200, seed: int = 42) -> pd.DataFrame:

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from backend.container import Container
+from backend.core.container import Container
 
 
 def get_container(req: Request) -> Container:

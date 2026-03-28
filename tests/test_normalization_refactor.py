@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from indicators.normalization_refactor import canonical_normalize
+from engine.indicators.normalization_refactor import canonical_normalize
 
 def test_normalization_refactor_import():
     """Refactor normalizer module is importable."""

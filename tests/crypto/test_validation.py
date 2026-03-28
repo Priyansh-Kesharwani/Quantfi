@@ -4,7 +4,7 @@ import pytest
 
 optuna = pytest.importorskip("optuna")
 
-from crypto.validation.orchestrator import (
+from engine.crypto.validation.orchestrator import (
     CryptoOrchestrator,
     OrchestratorResult,
     sensitivity_analysis,

@@ -2,7 +2,7 @@
 
 import pytest
 
-from crypto.costs import (
+from engine.crypto.costs import (
     BINANCE_USDT_M_BRACKETS,
     CRYPTO_COST_PRESETS,
     annual_funding_drag,

@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from crypto.engines.futures_engine import FuturesEngine, FuturesEngineConfig
+from engine.crypto.engines.futures_engine import FuturesEngine, FuturesEngineConfig
 
 
 @pytest.fixture

@@ -9,15 +9,15 @@ import pandas as pd
 import pytest
 from pathlib import Path
 
-from validation.validator import CPCVConfig, generate_cpcv_splits
-from validation.objective import compute_gt_score, equity_curve_from_result
+from engine.validation.validator import CPCVConfig, generate_cpcv_splits
+from engine.validation.objective import compute_gt_score, equity_curve_from_result
 
 
 def _synthetic_data_loader(config_dict):
     n = 252 * 3
     dates = pd.date_range("2019-01-01", periods=n, freq="B")
     close = 100 * np.cumprod(1 + np.random.RandomState(42).randn(n) * 0.01)
-    from backtester.portfolio_simulator import AssetData
+    from engine.backtester.portfolio_simulator import AssetData
 
     assets = {
         "SYM": AssetData(
@@ -39,7 +39,7 @@ def _synthetic_data_loader(config_dict):
 class TestOrchestratorWithStubData:
     def test_run_orchestrator_with_data_loader(self, tmp_path):
         import yaml
-        from validation.orchestrator import run_orchestrator
+        from engine.validation.orchestrator import run_orchestrator
 
         config = {
             "data": {"symbols": ["SYM"]},

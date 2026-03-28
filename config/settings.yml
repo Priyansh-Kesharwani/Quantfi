@@ -1,0 +1,474 @@
+# Only the parameters listed under "tunable" below are surfaced for optimization.
+# All other parameters are locked to robust defaults; do not change for tuning.
+tunable:
+  normalization_min_obs: 100
+  normalization_sigmoid_k: 1.0
+  windows_hmm_regime: 252
+  indicator_min_history_rows: 200
+  backtest_buy_dip_threshold_default: 60
+
+allow_production_mode: false
+regime_threshold: null
+regime_threshold_type: "hard"
+hmm:
+  n_states: 2
+  emission_type: "gaussian"
+  window: 252
+  jump_penalty: null
+  seed: 42
+S_scale: null
+committee_method: "mean"
+committee_trim_pct: 0.1
+g_pers_type: "sigmoid_canonical"
+g_pers_params:
+  k: 10.0
+  H_neutral: 0.5
+  H_favorable: null
+  H_unfavorable: null
+normalization:
+  min_obs: 100
+  sigmoid_k: 1.0
+  polarity:
+    trend: true
+    undervaluation: true
+    volatility: true
+    liquidity: true
+    coupling: true
+    hurst: true
+windows:
+  hurst: 252
+  hmm_regime: 252
+  vwap: 20
+  volatility: 21
+  vol_percentile: 252
+  liquidity: 21
+  liquidity_pct: 252
+  coupling: 63
+logging:
+  log_intermediates: true
+  log_path: "logs/phase1_indicator_runs.json"
+  level: "info"
+data_providers:
+  use_fixtures: true
+  fixture_path: "tests/fixtures/"
+  api_keys:
+    newsapi: null
+    mcx: null
+    nse: null
+  symbol_aliases:
+    GOLD: "GC=F"
+    SILVER: "SI=F"
+    XAU: "GC=F"
+    XAG: "SI=F"
+    NIFTY: "^NSEI"
+    NIFTY50: "^NSEI"
+    SENSEX: "^BSESN"
+  exchange_suffixes:
+    NSE: ".NS"
+    BSE: ".BO"
+  news_rss_base: "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+  news_rss_business: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en"
+  news_per_asset: 8
+sentiment:
+  default_model: "groq/llama-3.3-70b-versatile"
+  fallback_model: "gemini/gemini-2.0-flash-lite"
+  timeout: 90
+  max_reddit_posts: 5
+  max_comments_per_post: 10
+  max_blog_articles: 5
+  max_knowledge_chars: 40000
+  blog_feeds: {}
+  default_subreddits:
+    - "investing"
+    - "StockMarket"
+    - "wallstreetbets"
+    - "economy"
+backend:
+  indicator_min_history_rows: 200
+  rsi_period: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  bollinger_period: 20
+  bollinger_std_dev: 2.0
+  atr_period: 14
+  atr_percentile_lookback: 252
+  z_score_periods: [20, 50, 100]
+  sma_short_period: 50
+  sma_long_period: 200
+  ema_period: 50
+  adx_period: 14
+  score_zone_strong_buy: 81
+  score_zone_favorable: 61
+  score_zone_neutral: 31
+  score_default_value: 50
+  score_top_factors_count: 3
+  macro_fx_historical_avg: 83.0
+  technical_rules:
+    sma_below_bonus: 15
+    sma_above_penalty: 5
+    rsi_oversold: 30
+    rsi_low: 40
+    rsi_overbought: 70
+    rsi_high: 60
+    rsi_oversold_bonus: 20
+    rsi_low_bonus: 10
+    rsi_overbought_penalty: 15
+    rsi_high_penalty: 5
+    macd_bull_bonus: 10
+    macd_bear_penalty: 10
+    bb_below_bonus: 15
+    bb_near_multiplier: 1.02
+    bb_near_bonus: 8
+    adx_low: 20
+    adx_high: 40
+    adx_low_bonus: 5
+    adx_high_penalty: 5
+  volatility_rules:
+    atr_high_percentile: 80
+    atr_mid_percentile: 60
+    atr_low_percentile: 30
+    atr_high_bonus: 20
+    atr_mid_bonus: 10
+    atr_low_penalty: 10
+    drawdown_severe: -20
+    drawdown_medium: -10
+    drawdown_light: -5
+    drawdown_flat: -1
+    drawdown_severe_bonus: 30
+    drawdown_medium_bonus: 20
+    drawdown_light_bonus: 10
+    drawdown_flat_penalty: 10
+  statistical_rules:
+    extreme_low_z: -2.0
+    strong_low_z: -1.5
+    moderate_low_z: -1.0
+    light_low_z: -0.5
+    high_z: 1.5
+    moderate_high_z: 1.0
+    extreme_low_bonus: 50
+    strong_low_bonus: 35
+    moderate_low_bonus: 20
+    light_low_bonus: 10
+    high_penalty: 30
+    moderate_high_penalty: 15
+  macro_fx_rules:
+    high_dev: 5.0
+    mid_dev: 2.0
+    low_dev: -2.0
+    very_low_dev: -5.0
+    high_penalty: 20
+    mid_penalty: 10
+    low_bonus: 10
+    very_low_bonus: 20
+  phase1_score_bands:
+    favorable: 70
+    slightly_favorable: 55
+    neutral: 45
+    slightly_unfavorable: 30
+  phase1_trend_sma_window: 50
+  fx_fallback_usd_inr: 83.5
+  latest_price_period: "5d"
+  history_period: "2y"
+  news_lookback_days: 7
+  news_page_size: 20
+  news_process_limit: 50
+  news_default_query: "financial markets OR economy OR interest rates"
+  cache_price_minutes: 5
+  cache_indicators_hours: 1
+  cache_scores_hours: 1
+  cache_news_hours: 3
+  backtest_padding_days: 300
+  backtest_buy_dip_threshold_default: 60
+  user_default_dca_amount: 5000
+  user_default_dip_alert_threshold: 70
+  llm_explain_provider: "openai"
+  llm_explain_model: "gpt-5.2"
+  llm_news_provider: "anthropic"
+  llm_news_model: "claude-sonnet-4-5-20250929"
+  llm_summary_max_chars: 100
+  default_score_weights:
+    technical_momentum: 0.4
+    volatility_opportunity: 0.2
+    statistical_deviation: 0.2
+    macro_fx: 0.2
+  tuned_score_weights:
+    technical_momentum: 0.25
+    volatility_opportunity: 0.25
+    statistical_deviation: 0.35
+    macro_fx: 0.15
+
+# --- Consolidated from former phaseA / phaseB / phase3 / phase_refactor YAMLs ---
+seed: 42
+
+determinism:
+  rng_seed: 42
+
+normalization:
+  min_obs: 100
+  sigmoid_k: 1.0
+  ecdf_clip_lo: 0.001
+  ecdf_clip_hi: 0.999
+  polarity:
+    trend: true
+    undervaluation: true
+    volatility: true
+    liquidity: true
+    coupling: true
+    hurst: true
+
+ofi:
+  window: 20
+  normalize: true
+  polarity: 1
+
+hawkes:
+  decay: 1.0
+  dt: 1.0
+  max_iter: 200
+  mu_init: 0.1
+  alpha_init: 0.5
+  tol: 1.0e-6
+
+ldc:
+  kappa: 1.0
+  gamma_default: 1.0
+  feature_window: 5
+
+composite:
+  entry:
+    committee_method: "trimmed_mean"
+    committee_trim_pct: 0.1
+    regime_threshold: null
+    regime_threshold_type: "hard"
+    S_scale: 1.0
+    g_pers_type: "sigmoid_canonical"
+    g_pers_params:
+      k: 10.0
+      H_neutral: 0.5
+      H_favorable: null
+      H_unfavorable: null
+  exit:
+    gamma_1: 0.4
+    gamma_2: 0.35
+    gamma_3: 0.25
+    S_scale_exit: 1.0
+  trim_frac: 0.1
+  r_thresh: 0.2
+  S_scale: 1.0
+  k_pers: 6.0
+
+snapshots:
+  output_dir: "data_snapshots"
+  verification_file: "verification_snapshot.parquet"
+
+exit:
+  gamma1: 1.0
+  gamma2: 1.0
+  gamma3: 1.0
+
+indicators:
+  ofi:
+    window: 20
+  vwap_z:
+    vol_window: 60
+  hurst:
+    method: dfa
+    window: 200
+
+weighting:
+  method: ic_ewma
+  ic_window: 252
+  ic_forward_horizon: 20
+  alpha: 5.0
+  lambda_shrink: 0.2
+  max_weight_delta: 0.1
+
+testing:
+  hawkes_rmse_tol: 0.5
+  ic_min_threshold: 0.03
+
+data:
+  provider: "yfinance"
+  raw_data_dir: "raw_data"
+  symbols:
+    - "SPY"
+    - "AAPL"
+    - "GLD"
+  interval: "1d"
+  min_history_years: 10
+  required_columns:
+    - "open"
+    - "high"
+    - "low"
+    - "close"
+    - "volume"
+  max_nan_pct: 0.001
+  bar_interval_tolerance: 0.05
+  providers:
+    primary: "yfinance"
+    fallback: ["alpha_vantage"]
+  snapshot_dir: "data_snapshots"
+  raw_dir: "raw_data"
+  assets:
+    - symbol: "SPY"
+      intervals: ["1d"]
+      min_history_years: 10
+    - symbol: "AAPL"
+      intervals: ["1d"]
+      min_history_years: 10
+    - symbol: "GLD"
+      intervals: ["1d"]
+      min_history_years: 10
+
+walkforward:
+  train_window: 756
+  test_window: 252
+  slide_window: 252
+  expanding: true
+  overlap: false
+  embargo_pct: 0.01
+  forward_windows: [5, 10, 20]
+  entry_threshold: 70
+  exit_threshold: 70
+
+inner_cv:
+  n_splits: 5
+  embargo_bars: 20
+
+kfold:
+  n_splits: 5
+  embargo_bars: 20
+  shuffle: false
+
+tuning:
+  method: "random_search"
+  n_trials: 50
+  lambda_var: 0.5
+  objective: "sortino"
+  search_space:
+    lookback_short: [10, 20, 40]
+    lookback_medium: [40, 80, 120]
+    lookback_long: [120, 200, 252]
+    k_pers: [1.0, 3.0, 5.0, 8.0, 10.0, 12.0]
+    S_scale: [0.5, 0.8, 1.0, 1.2, 1.5, 2.0, 3.0]
+    S_scale_exit: [0.5, 0.8, 1.0, 1.2, 1.5, 2.0, 3.0]
+    ofi_window: [5, 10, 20, 40, 60]
+    ldc_kappa: [0.5, 1.0, 2.0, 3.0]
+    ldc_feature_window: [3, 5, 8, 16, 32]
+    hawkes_decay: [0.5, 1.0, 2.0, 5.0]
+
+execution:
+  slippage:
+    k_impact: 0.001
+    gamma: 0.5
+    sigma_slip: 0.0001
+    order_size_pct: 0.01
+  latency:
+    mean_latency_ms: 50
+    jitter: true
+  transaction_costs:
+    commission_bps: 2.0
+    spread_bps: 1.0
+
+hawkes_stress:
+  regimes:
+    - name: "bursty"
+      mu: 0.1
+      alpha: 0.8
+      beta: 1.0
+      T: 500.0
+    - name: "dense"
+      mu: 3.0
+      alpha: 0.1
+      beta: 1.0
+      T: 500.0
+    - name: "near_critical"
+      mu: 0.5
+      alpha: 0.98
+      beta: 1.0
+      T: 500.0
+    - name: "sparse"
+      mu: 0.02
+      alpha: 0.3
+      beta: 1.0
+      T: 500.0
+  rmse_threshold: 0.10
+  lob_depth_levels: 5
+
+hawkes_sim:
+  regimes:
+    - name: "bursty"
+      mu: 0.1
+      alpha: 0.8
+      beta: 1.0
+      T: 200.0
+    - name: "near_poisson"
+      mu: 2.0
+      alpha: 0.05
+      beta: 1.0
+      T: 200.0
+    - name: "explosive_edge"
+      mu: 0.5
+      alpha: 0.95
+      beta: 1.0
+      T: 200.0
+    - name: "sparse_events"
+      mu: 0.05
+      alpha: 0.3
+      beta: 1.0
+      T: 200.0
+  rmse_threshold: 0.10
+  min_events_stability: 50
+
+robustness:
+  subsample_fraction: 0.5
+  subsample_n_trials: 20
+  block_bootstrap_n: 200
+  block_bootstrap_block_size: 20
+  threshold_sweep: [50, 55, 60, 65, 70, 75, 80, 85, 90]
+  ablation_components:
+    - "ofi"
+    - "hawkes"
+    - "ldc"
+    - "hurst"
+  adversarial:
+    sparse_volume_fraction: 0.1
+    gap_fraction: 0.05
+    ofi_spike_magnitude: 10.0
+
+scoring:
+  entry_threshold: 70
+  exit_threshold: 70
+  forward_horizons: [5, 10, 20]
+
+metrics:
+  score_metrics:
+    - "information_coefficient"
+    - "hit_rate"
+    - "sortino"
+    - "max_drawdown"
+    - "cagr"
+  signal_metrics:
+    - "avg_holding_period"
+    - "entry_latency"
+    - "exit_lead"
+    - "roi_per_trade"
+    - "win_loss_ratio"
+    - "profit_factor"
+
+reporting:
+  output_dir: "validation/reports"
+  format: "html"
+  metrics_dir: "validation/metrics"
+  tuning_dir: "validation/outputs"
+
+output:
+  results_dir: "validation/outputs"
+  metrics_format: "json"
+
+resources:
+  base_timeout_s: 30
+  per_bar_timeout_s: 0.005
+  max_parallel_folds: 4
+  max_memory_gb: 8

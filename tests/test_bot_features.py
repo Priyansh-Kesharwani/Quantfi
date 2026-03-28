@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from bot.features import compute_ofi, estimate_hawkes, compute_atr, LDC
+from engine.bot.features import compute_ofi, estimate_hawkes, compute_atr, LDC
 
 try:
     from tests.fixtures import ou_series, hawkes_events

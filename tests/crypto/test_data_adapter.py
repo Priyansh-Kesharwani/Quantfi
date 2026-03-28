@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from crypto.adapters.symbol_resolver import parse_symbol, resolve_symbol
-from crypto.adapters.data_quality import (
+from engine.crypto.adapters.symbol_resolver import parse_symbol, resolve_symbol
+from engine.crypto.adapters.data_quality import (
     DataQualityReport,
     DataQualityValidator,
     align_funding_to_bars,

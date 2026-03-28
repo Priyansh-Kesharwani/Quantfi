@@ -1,7 +1,7 @@
 [project]
 name = "quantfi"
-version = "1.0.0"
-description = "Financial analysis and DCA intelligence platform"
+version = "2.0.0"
+description = "Quantitative trading platform with DCA intelligence, sentiment analysis, crypto bot, and portfolio simulation"
 readme = "README.md"
 requires-python = ">=3.11"
 
@@ -34,7 +34,7 @@ exclude = [".git", ".venv", "frontend", "node_modules", "build"]
 [tool.isort]
 profile = "black"
 line_length = 100
-known_first_party = ["backend", "domain", "infrastructure", "services", "scoring", "indicators", "backtester", "bot", "weights", "utils", "validation"]
+known_first_party = ["backend", "engine"]
 skip_glob = ["frontend/*", "node_modules/*", ".venv/*"]
 
 [tool.mypy]
@@ -47,7 +47,7 @@ disallow_untyped_defs = false
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["backend.*", "domain.*", "infrastructure.*", "services.*"]
+module = ["backend.*", "engine.*"]
 disallow_untyped_defs = true
 
 [tool.pytest.ini_options]

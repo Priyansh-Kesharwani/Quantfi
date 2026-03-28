@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from crypto.calendar import (
+from engine.crypto.calendar import (
     ANNUALIZATION_FACTORS,
     annualized_cagr,
     annualized_sharpe,

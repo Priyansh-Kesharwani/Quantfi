@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datetime import datetime, timedelta
 from pydantic import ValidationError
 
-from indicators.sentiment_agent import (
+from engine.indicators.sentiment_agent import (
                    
     SentimentAgentConfig, LLMConfig, CollectionLimits, TierWeights,
                  
@@ -569,7 +569,7 @@ def test_no_hardcoded_asset_types():
     check("analyze() does NOT have 'asset_type' param", "asset_type" not in params)
 
                                                  
-    from indicators.sentiment_agent import ASSET_PROFILES
+    from engine.indicators.sentiment_agent import ASSET_PROFILES
     check("ASSET_PROFILES is empty (deprecated)", len(ASSET_PROFILES) == 0)
 
                                      
@@ -623,7 +623,7 @@ def test_end_to_end():
     print("\n── TEST 13: End-to-End Pipeline ──")
 
                                                           
-    import indicators.sentiment_agent as sa
+    import engine.indicators.sentiment_agent as sa
 
     original_llm = sa._llm_completion
     call_count = [0]

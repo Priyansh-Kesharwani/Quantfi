@@ -43,7 +43,7 @@ def mock_db():
 @pytest.fixture
 def app(mock_db):
     from starlette.requests import Request
-    from backend.container import Container
+    from backend.core.container import Container
     from backend.server import create_app
     from backend.routes import get_container
 

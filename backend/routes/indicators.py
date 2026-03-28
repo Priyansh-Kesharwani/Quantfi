@@ -1,13 +1,11 @@
-from datetime import datetime, timedelta, timezone
-import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Depends
 
 from backend.models import IndicatorData
+from backend.core.container import Container
 from backend.routes import get_container
-from backend.container import Container
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -16,36 +14,23 @@ async def get_indicators(
     symbol: str,
     container: Container = Depends(get_container),
 ):
-    db = container.db
+    sym = symbol.upper()
     cfg = container.config
-    cached = await db.indicators.find_one(
-        {"symbol": symbol.upper()},
-        {"_id": 0},
-        sort=[("timestamp", -1)],
-    )
-    if cached and isinstance(cached.get("timestamp"), str):
-        cached_time = datetime.fromisoformat(cached["timestamp"])
-        if (
-            datetime.now(timezone.utc)
-            - cached_time.replace(tzinfo=timezone.utc)
-            < timedelta(hours=cfg.cache_indicators_hours)
-        ):
-            return cached
+    cached = await container.indicator_repo.get_fresh(sym, cfg.cache_indicators_hours)
+    if cached:
+        return cached
 
     facade = container.scoring_facade
-    indicators = facade.get_indicators_for_symbol(
-        symbol.upper(), period=cfg.history_period
-    )
+    indicators = facade.get_indicators_for_symbol(sym, period=cfg.history_period)
     if indicators is None:
-        raise HTTPException(
-            status_code=404, detail="Unable to calculate indicators"
-        )
+        raise HTTPException(status_code=404, detail="Unable to calculate indicators")
+
     indicator_obj = IndicatorData(
-        symbol=symbol.upper(),
+        symbol=sym,
         timestamp=datetime.now(timezone.utc),
         **indicators,
     )
     doc = indicator_obj.model_dump()
     doc["timestamp"] = doc["timestamp"].isoformat()
-    await db.indicators.insert_one(doc)
+    await container.indicator_repo.save(doc)
     return indicator_obj

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from validation.objective import compute_gt_score
+from engine.validation.objective import compute_gt_score
 
 
 class TestGTScoreUnderperformance:

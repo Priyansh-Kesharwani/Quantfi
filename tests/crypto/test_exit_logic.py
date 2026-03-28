@@ -10,8 +10,8 @@ import pytest
 
 warnings.filterwarnings("ignore")
 
-from crypto.models import FuturesPosition
-from crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
+from engine.crypto.models import FuturesPosition
+from engine.crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
 
 
 def _make_pos(direction="long", entry_price=100.0, leverage=3.0):

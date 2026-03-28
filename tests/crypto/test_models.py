@@ -5,7 +5,7 @@ from datetime import datetime
 
 import pytest
 
-from crypto.models import (
+from engine.crypto.models import (
     BotState,
     CryptoTradeRecord,
     FillResult,

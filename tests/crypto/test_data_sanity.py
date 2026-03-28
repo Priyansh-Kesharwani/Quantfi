@@ -15,9 +15,9 @@ from tests.crypto.synthetic import (
     generate_synthetic_data as _generate_synthetic_data,
     generate_synthetic_funding as _generate_synthetic_funding,
 )
-from crypto.regime.detector import CryptoRegimeConfig, CryptoRegimeDetector
-from crypto.scoring.directional_scorer import CryptoDirectionalScorer, ScoringConfig
-from crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
+from engine.crypto.regime.detector import CryptoRegimeConfig, CryptoRegimeDetector
+from engine.crypto.scoring.directional_scorer import CryptoDirectionalScorer, ScoringConfig
+from engine.crypto.services.backtest_service import CryptoBacktestConfig, CryptoBacktestService
 
 SYMBOLS = list(SYMBOL_PARAMS.keys())
 

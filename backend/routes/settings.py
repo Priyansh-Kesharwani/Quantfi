@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends
 
 from backend.models import UserSettings
+from backend.core.container import Container
 from backend.routes import get_container
-from backend.container import Container
 
 router = APIRouter()
 
 
 @router.get("/settings", response_model=UserSettings)
 async def get_settings(container: Container = Depends(get_container)):
-    db = container.db
-    settings = await db.user_settings.find_one({}, {"_id": 0})
+    settings = await container.settings_repo.get()
     if not settings:
-        settings = UserSettings().model_dump()
-        await db.user_settings.insert_one(settings)
+        default = UserSettings().model_dump()
+        await container.settings_repo.save(default)
+        return UserSettings(**default)
     return UserSettings(**settings)
 
 
@@ -22,9 +22,5 @@ async def update_settings(
     settings: UserSettings,
     container: Container = Depends(get_container),
 ):
-    db = container.db
-    doc = settings.model_dump()
-    await db.user_settings.update_one(
-        {}, {"$set": doc}, upsert=True
-    )
+    await container.settings_repo.save(settings.model_dump())
     return settings

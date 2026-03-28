@@ -23,8 +23,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend.indicators import TechnicalIndicators
-from backend.app_config import get_backend_config
+from backend.services.indicator_service import TechnicalIndicators
+from backend.core.config import get_backend_config
 
 CFG = get_backend_config()
 TOL = 1e-9
