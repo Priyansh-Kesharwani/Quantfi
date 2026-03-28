@@ -56,7 +56,7 @@ if [ ! -d ".venv" ]; then
     echo "→ Creating backend venv..."
     python3 -m venv .venv
 fi
-CORS_EFFECTIVE="${CORS_ORIGINS:-http://localhost:$FRONTEND_PORT}"
+CORS_EFFECTIVE="http://localhost:$FRONTEND_PORT"
 echo "→ Syncing backend deps..."
 PIP_DISABLE_PIP_VERSION_CHECK=1 .venv/bin/pip install -q -r requirements.txt
 if [ -f "$ROOT/requirements-bot.txt" ]; then

@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <img src="docs/images/dashboard.png" alt="QuantFi DCA Intelligence Platform — dashboard overview" width="920" />
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/react-19-61DAFB?logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/fastapi-0.115-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
@@ -178,7 +182,7 @@ Per-step movement is capped at `delta_max` and weights are projected back onto t
 All indicator components are normalized through an expanding empirical CDF followed by a probit-sigmoid transform:
 
 ```math
-p_t = \frac{\#\{x_s<x_t\}+0.5\,\#\{x_s=x_t\}}{n_t}
+p_t = \frac{\#\lbrace x_s < x_t \rbrace + 0.5\,\#\lbrace x_s = x_t \rbrace}{n_t}
 ```
 
 ```math
