@@ -56,8 +56,6 @@ The platform is designed for personal portfolio research, strategy backtesting, 
 
 The system is organized into four layers. The **Frontend Layer** (React 19 + Vite) manages UI state through `WatchlistContext` and a dedicated API client. The **Backend Layer** (FastAPI) follows Repository-Service-Controller with protocol-based dependency injection — routes are thin controllers, services hold business logic, repositories abstract MongoDB. The **Engine Layer** is a pure computation package (100 modules, zero I/O) containing all indicators, scoring, backtesting, and validation logic. **External Services** (Yahoo Finance, Binance via ccxt, LLM APIs) are accessed through adapter interfaces, while the **Streaming & Cache** layer provides Kafka-backed real-time ingestion and Redis-backed low-latency materialization.
 
-The full diagram source is available as an [Excalidraw file](docs/diagrams/architecture.excalidraw) for editing.
-
 ---
 
 ## Mathematical Foundations
@@ -68,45 +66,39 @@ The scoring engine, trading bot, and validation framework are built on concrete 
 
 The favorability score is a weighted linear combination of four sub-scores, each derived from piecewise rule functions applied to raw indicator values:
 
-$$
+```math
+\begin{aligned}
 S_{\mathrm{composite}}
-=
-w_{\mathrm{tm}} S_{\mathrm{tech}}
-+ w_{\mathrm{vo}} S_{\mathrm{vol}}
-+ w_{\mathrm{sd}} S_{\mathrm{stat}}
-+ w_{\mathrm{fx}} S_{\mathrm{fx}}
-$$
+&= w_{\mathrm{tm}} S_{\mathrm{tech}}
+ + w_{\mathrm{vo}} S_{\mathrm{vol}}
+ + w_{\mathrm{sd}} S_{\mathrm{stat}}
+ + w_{\mathrm{fx}} S_{\mathrm{fx}}
+\end{aligned}
+```
 
 Default weights: `w_tm = 0.40`, `w_vo = 0.20`, `w_sd = 0.20`, `w_fx = 0.20`. Each sub-score is clamped to `[0, 100]` and derived from configurable rule tables in `config/settings.yml`.
 
 The **Phase 1 composite** extends this with a persistence gate and opportunity measure:
 
-$$
-g_{\mathrm{pers}}(H)
-=
-\operatorname{clip}\!\left(2 \cdot \sigma\!\left(k(H-0.5)\right), 0, 1\right),
-\qquad k = 10
-$$
+```math
+g_{\mathrm{pers}}(H) = \mathrm{clip}\left(2 \cdot \sigma\left(k(H-0.5)\right), 0, 1\right), \quad k = 10
+```
 
-$$
-\operatorname{Opp}_t = \operatorname{mean}\!\left(T_t,\; U_t \cdot g_{\mathrm{pers}}(H_t)\right)
-$$
+```math
+\mathrm{Opp}_t = \mathrm{mean}\left(T_t, U_t \cdot g_{\mathrm{pers}}(H_t)\right)
+```
 
-$$
-\operatorname{Gate}_t = C_t \cdot L_t \cdot R_{\mathrm{pass}}
-$$
+```math
+\mathrm{Gate}_t = C_t \cdot L_t \cdot R_{\mathrm{pass}}
+```
 
-$$
-\operatorname{RawFavor}_t = \operatorname{Opp}_t \cdot \operatorname{Gate}_t
-$$
+```math
+\mathrm{RawFavor}_t = \mathrm{Opp}_t \cdot \mathrm{Gate}_t
+```
 
-$$
-\operatorname{Score}_t
-=
-100 \cdot \operatorname{clip}\!\left(
-0.5 + (\operatorname{RawFavor}_t - 0.5)\cdot S_{\mathrm{scale}},\; 0,\; 1
-\right)
-$$
+```math
+\mathrm{Score}_t = 100 \cdot \mathrm{clip}\left(0.5 + (\mathrm{RawFavor}_t - 0.5)\cdot S_{\mathrm{scale}}, 0, 1\right)
+```
 
 Where `T_t` is trend, `U_t` undervaluation, `H_t` Hurst exponent, `C_t` coupling, `L_t` liquidity, and `R_pass` the regime filter.
 
@@ -114,19 +106,19 @@ Where `T_t` is trend, `U_t` undervaluation, `H_t` Hurst exponent, `C_t` coupling
 
 Self-exciting point process for modeling trade arrival clustering. The intensity function with exponential kernel:
 
-$$
-\lambda(t)=\mu+\sum_{t_i<t}\alpha e^{-\beta(t-t_i)}
-$$
+```math
+\lambda(t) = \mu + \sum_{t_i < t}\alpha e^{-\beta(t-t_i)}
+```
 
 Parameters are estimated by maximizing the log-likelihood via L-BFGS-B:
 
-$$
+```math
+\begin{aligned}
 \mathcal{L}
-=
-\sum_i \log \lambda_i
-- \mu T
-- \frac{\alpha}{\beta}\sum_i\left(1-e^{-\beta(T-t_i)}\right)
-$$
+&= \sum_i \log \lambda_i - \mu T \\
+&\quad - \frac{\alpha}{\beta}\sum_i\left(1-e^{-\beta(T-t_i)}\right)
+\end{aligned}
+```
 
 Subject to constraints `mu > 0`, `alpha >= 0`, `beta > 0`, `alpha < beta` (stationarity). Used in `engine/simulations/hawkes_simulator.py` for synthetic LOB generation and in `engine/indicators/hawkes.py` for trade intensity features.
 
@@ -134,21 +126,18 @@ Subject to constraints `mu > 0`, `alpha >= 0`, `beta > 0`, `alpha < beta` (stati
 
 Measures long-range dependence in price series. For each subseries of length `n`, compute the rescaled range `R/S`:
 
-$$
-\frac{R}{S}
-=
-\frac{\max(Y_k)-\min(Y_k)}{\operatorname{std}(x)},
-\qquad
-Y_k=\sum_{j=1}^{k}(x_j-\bar{x})
-$$
+```math
+\begin{aligned}
+\frac{R}{S} &= \frac{\max(Y_k)-\min(Y_k)}{\mathrm{std}(x)} \\
+Y_k &= \sum_{j=1}^{k}(x_j-\bar{x})
+\end{aligned}
+```
 
 The Hurst exponent is the OLS slope of `log(R/S)` vs `log(n)` across multiple scales, with finite-sample shrinkage:
 
-$$
-H
-=
-0.5+(H_{\mathrm{raw}}-0.5)\cdot\min\!\left(1,\sqrt{\frac{n}{512}}\right)
-$$
+```math
+H = 0.5 + (H_{\mathrm{raw}}-0.5)\cdot\min\left(1,\sqrt{\frac{n}{512}}\right)
+```
 
 `H > 0.5` indicates persistence (trending), `H < 0.5` indicates mean-reversion. Implemented in `engine/indicators/hurst.py` with wavelet fallback via `pywt.wavedec`.
 
@@ -156,22 +145,13 @@ $$
 
 The trading bot maintains a recursive Bayesian linear regression for real-time score recalibration with forgetting factor $\lambda$:
 
-$$
-\Sigma_{t+1}^{-1}
-=
-\frac{1}{\lambda}\Sigma_t^{-1}
-+ \frac{1}{\sigma^2}x_t x_t^\top
-$$
+```math
+\Sigma_{t+1}^{-1} = \frac{1}{\lambda}\Sigma_t^{-1} + \frac{1}{\sigma^2}x_t x_t^\top
+```
 
-$$
-\mu_{t+1}
-=
-\Sigma_{t+1}
-\left(
-\frac{1}{\lambda}\Sigma_t^{-1}\mu_t
-+ \frac{1}{\sigma^2}x_t y_t
-\right)
-$$
+```math
+\mu_{t+1} = \Sigma_{t+1}\left(\frac{1}{\lambda}\Sigma_t^{-1}\mu_t + \frac{1}{\sigma^2}x_t y_t\right)
+```
 
 Hierarchical extension (`BayesHierarchical`) applies cross-regime shrinkage: `mu_r <- (1 - eta) * mu_r + eta * mu_global` after each regime-specific update.
 
@@ -179,20 +159,17 @@ Hierarchical extension (`BayesHierarchical`) applies cross-regime shrinkage: `mu
 
 Component weights adapt based on Information Coefficient (Spearman rank correlation with forward returns), smoothed with exponential weighting:
 
-$$
-\mathrm{EWMA}_t=(1-\beta)\mathrm{EWMA}_{t-1}+\beta\,\mathrm{IC}^{\mathrm{raw}}_t,
-\qquad \beta=0.1
-$$
+```math
+\mathrm{EWMA}_t = (1-\beta)\mathrm{EWMA}_{t-1} + \beta\,\mathrm{IC}^{\mathrm{raw}}_t, \quad \beta = 0.1
+```
 
-$$
-z_i=\frac{\mathrm{EWMA}_i-\mu}{\sigma+\varepsilon}
-$$
+```math
+z_i = \frac{\mathrm{EWMA}_i-\mu}{\sigma+\varepsilon}
+```
 
-$$
-w_i=
-(1-\lambda)\frac{e^{\alpha z_i}}{\sum_j e^{\alpha z_j}}
-+ \frac{\lambda}{n}
-$$
+```math
+w_i = (1-\lambda)\frac{e^{\alpha z_i}}{\sum_j e^{\alpha z_j}} + \frac{\lambda}{n}
+```
 
 Per-step movement is capped at `delta_max` and weights are projected back onto the simplex. Implemented in `engine/weights/ic_ewma.py`.
 
@@ -200,18 +177,17 @@ Per-step movement is capped at `delta_max` and weights are projected back onto t
 
 All indicator components are normalized through an expanding empirical CDF followed by a probit-sigmoid transform:
 
-$$
-p_t=
-\frac{\#\{x_s<x_t\}+0.5\,\#\{x_s=x_t\}}{n_t}
-$$
+```math
+p_t = \frac{\#\{x_s<x_t\}+0.5\,\#\{x_s=x_t\}}{n_t}
+```
 
-$$
-z_t=\Phi^{-1}\!\left(\operatorname{clip}(p_t,\varepsilon,1-\varepsilon)\right)
-$$
+```math
+z_t = \Phi^{-1}\left(\mathrm{clip}(p_t,\varepsilon,1-\varepsilon)\right)
+```
 
-$$
-s_t=\frac{1}{1+e^{-k z_t}}
-$$
+```math
+s_t = \frac{1}{1+e^{-k z_t}}
+```
 
 This produces a `[0, 1]` score with correct statistical calibration regardless of the raw indicator's distribution.
 
@@ -219,9 +195,9 @@ This produces a `[0, 1]` score with correct statistical calibration regardless o
 
 Ten technical components are combined via IC-EWMA weights or uniform averaging. Each component uses self-calibrating tanh compression:
 
-$$
-\mathrm{score}_i=\tanh\!\left(\frac{\mathrm{raw}_i}{\sigma_{\mathrm{roll},i}}\right)\cdot 100
-$$
+```math
+\mathrm{score}_i = \tanh\left(\frac{\mathrm{raw}_i}{\sigma_{\mathrm{roll},i}}\right)\cdot 100
+```
 
 Where `sigma_roll` is the rolling standard deviation of the signal, making the scoring automatically adaptive to changing volatility regimes. A volatility dampening filter attenuates signals during extreme ATR percentiles.
 
@@ -229,21 +205,21 @@ Where `sigma_roll` is the rolling standard deviation of the signal, making the s
 
 Position exit management uses a three-way maximum of trailing, initial, and minimum stops:
 
-$$
-\mathrm{trail\_stop}=P_{\mathrm{peak}}-m_{\mathrm{trail}}\cdot ATR \cdot w_{\mathrm{vol}}
-$$
+```math
+\mathrm{trail\_stop} = P_{\mathrm{peak}}-m_{\mathrm{trail}}\cdot ATR \cdot w_{\mathrm{vol}}
+```
 
-$$
-\mathrm{init\_stop}=P_{\mathrm{entry}}-m_{\mathrm{init}}\cdot ATR \cdot w_{\mathrm{vol}}
-$$
+```math
+\mathrm{init\_stop} = P_{\mathrm{entry}}-m_{\mathrm{init}}\cdot ATR \cdot w_{\mathrm{vol}}
+```
 
-$$
-\mathrm{min\_stop}=P_{\mathrm{entry}}\left(1-\frac{\mathrm{min\_stop\_pct}}{100}\right)
-$$
+```math
+\mathrm{min\_stop} = P_{\mathrm{entry}}\left(1-\frac{\mathrm{min\_stop\_pct}}{100}\right)
+```
 
-$$
-\mathrm{stop}=\max(\mathrm{trail\_stop},\mathrm{init\_stop},\mathrm{min\_stop})
-$$
+```math
+\mathrm{stop} = \max(\mathrm{trail\_stop},\mathrm{init\_stop},\mathrm{min\_stop})
+```
 
 Exit triggers when `close <= stop`, with additional exits on score deterioration (`score < entry_score * rel_mult AND score < abs_floor`) and maximum holding period.
 
@@ -420,45 +396,6 @@ cp .env.example backend/.env
 ./start.sh
 ```
 
----
-
-## Project Structure
-
-```
-quantfi/
-├── backend/                        # FastAPI application (55 Python files)
-│   ├── core/                       #   Config, DI container, protocol interfaces, constants
-│   ├── models/                     #   Pydantic schemas (asset, scoring, backtest, simulation, news)
-│   ├── repositories/               #   MongoDB data access (8 repository classes)
-│   ├── services/                   #   Business logic (12 services)
-│   ├── adapters/                   #   External I/O (price, FX, news adapters)
-│   ├── routes/                     #   Thin HTTP controllers (13 modules)
-│   └── server.py                   #   ASGI app factory
-│
-├── engine/                         # Pure computation layer (100 files, zero I/O)
-│   ├── indicators/                 #   16 modules (RSI, MACD, Hurst, Hawkes, OFI, HMM, ...)
-│   ├── scoring/                    #   Composite scoring rules and weight management
-│   ├── backtester/                 #   DCA simulator, portfolio simulator, score engine
-│   ├── bot/                        #   Trading bot: Bayes online, regime detection, execution
-│   ├── crypto/                     #   Futures + grid engines, directional scorer, strategies
-│   ├── validation/                 #   Walk-forward, purged k-fold, metrics, tuning
-│   ├── simulations/                #   Hawkes process, synthetic LOB/trade generation
-│   ├── weights/                    #   IC-EWMA adaptive weighting, Kalman stub
-│   └── utils/                      #   Config loader, data fetch/cache, timeout helpers
-│
-├── frontend/                       # React SPA
-│   └── src/
-│       ├── pages/                  #   10 page components
-│       ├── components/             #   Reusable UI (shared, crypto, simulation)
-│       ├── contexts/               #   WatchlistContext (global state via React Context)
-│       └── services/               #   News service, API client
-│
-├── config/settings.yml             # All tunable parameters in one YAML file
-├── tests/                          # 58 test files + fixtures
-├── docker-compose.yml              # MongoDB + backend + frontend orchestration
-├── Dockerfile                      # Multi-stage production build
-└── start.sh                        # Local development launcher
-```
 
 ---
 
